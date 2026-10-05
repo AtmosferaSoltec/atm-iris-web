@@ -1,15 +1,16 @@
 "use client";
 
 import { FileText, Upload, X } from "lucide-react";
-import { useState, useTransition, type DragEvent } from "react";
+import { useEffect, useState, useTransition, type DragEvent } from "react";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { Dialog } from "@/components/ui/dialog";
+import { toast } from "@/components/ui/toaster";
 import { cn } from "@/lib/cn";
 import { parseLyrics, titleFromFileName } from "@/lib/lyrics";
 import { nameKey, plural } from "@/lib/text";
-import { importSongs } from "../actions";
+import { importSongs, listSongTitles } from "../actions";
 import { IMPORT_LIMITS } from "../schemas";
 
 type Candidate = {
@@ -21,28 +22,44 @@ type Candidate = {
   problem?: string;
 };
 
-type Props = { open: boolean; onClose: () => void; existingTitles: string[] };
+type Outcome = { created: number; skipped: string[] };
 
-export function ImportSongsDialog({ open, onClose, existingTitles }: Props) {
+/** Mounted while open. Warns about duplicates first; the server has the last word. */
+export function ImportSongsDialog({ onClose }: { onClose: () => void }) {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [existingTitles, setExistingTitles] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string>();
-  const [result, setResult] = useState<string>();
+  const [outcome, setOutcome] = useState<Outcome>();
   const [isPending, startTransition] = useTransition();
 
-  const ready = candidates.filter((candidate) => !candidate.problem);
+  useEffect(() => {
+    // Only a heads-up: if it fails, the import still skips duplicates on the server.
+    listSongTitles().then(setExistingTitles, () => undefined);
+  }, []);
 
-  function close() {
-    setCandidates([]);
-    setError(undefined);
-    setResult(undefined);
-    onClose();
-  }
+  // Duplicates are worked out on every render, so they show up even when the
+  // library's titles arrive after the files were dropped.
+  const library = new Set(existingTitles.map(nameKey));
+  const seen = new Set<string>();
+  const checked = candidates.map((candidate) => {
+    const key = nameKey(candidate.title);
+    const problem =
+      candidate.problem ??
+      (library.has(key)
+        ? "Ya está en tu biblioteca"
+        : seen.has(key)
+          ? "Repetida en esta importación"
+          : undefined);
+    if (!candidate.problem) seen.add(key);
+    return { ...candidate, problem };
+  });
+  const ready = checked.filter((candidate) => !candidate.problem);
+  const close = onClose;
 
   async function addFiles(fileList: FileList | null) {
     if (!fileList) return;
-    setResult(undefined);
-    const taken = new Set([...existingTitles, ...candidates.map((c) => c.title)].map(nameKey));
+    setOutcome(undefined);
     const next: Candidate[] = [];
 
     for (const file of Array.from(fileList)) {
@@ -62,13 +79,7 @@ export function ImportSongsDialog({ open, onClose, existingTitles }: Props) {
       }
       const lyrics = await file.text();
       const sectionCount = parseLyrics(lyrics).length;
-      const problem =
-        sectionCount === 0
-          ? "Sin letra"
-          : taken.has(nameKey(title))
-            ? "Ya está en tu biblioteca"
-            : undefined;
-      taken.add(nameKey(title));
+      const problem = sectionCount === 0 ? "Sin letra" : undefined;
       next.push({ ...base, lyrics, sectionCount, problem });
     }
 
@@ -85,22 +96,23 @@ export function ImportSongsDialog({ open, onClose, existingTitles }: Props) {
     setError(undefined);
     startTransition(async () => {
       const response = await importSongs(
-        ready.map(({ title, lyrics }) => ({ title, author: "", lyrics })),
+        ready.map(({ title, lyrics }) => ({ title, author: "", copyright: "", lyrics })),
       );
-      if (response.error) {
+      if (!response.result) {
         setError(response.error);
         return;
       }
+      const created = response.result.created.length;
       setCandidates([]);
-      setResult(
-        `Se ${response.created === 1 ? "importó 1 canción" : `importaron ${response.created} canciones`}.`,
-      );
+      setExistingTitles((titles) => [...titles, ...response.result!.created.map((s) => s.title)]);
+      setOutcome({ created, skipped: response.result.skipped.map((item) => item.title) });
+      if (created > 0) toast.success(importedMessage(created));
     });
   }
 
   return (
     <Dialog
-      open={open}
+      open
       onClose={close}
       size="lg"
       title="Importar canciones"
@@ -108,7 +120,7 @@ export function ImportSongsDialog({ open, onClose, existingTitles }: Props) {
       footer={
         <>
           <Button variant="ghost" onClick={close}>
-            {result ? "Listo" : "Cancelar"}
+            {outcome ? "Listo" : "Cancelar"}
           </Button>
           <Button onClick={submit} isLoading={isPending} disabled={ready.length === 0}>
             {ready.length > 0
@@ -120,7 +132,16 @@ export function ImportSongsDialog({ open, onClose, existingTitles }: Props) {
     >
       <div className="flex flex-col gap-4">
         {error && <Banner tone="error">{error}</Banner>}
-        {result && <Banner tone="success">{result}</Banner>}
+        {outcome && (
+          <Banner tone={outcome.created > 0 ? "success" : "info"}>
+            <p>{importedMessage(outcome.created)}</p>
+            {outcome.skipped.length > 0 && (
+              <p className="mt-1 text-ink-2">
+                Ya estaban en tu biblioteca: {outcome.skipped.join(", ")}.
+              </p>
+            )}
+          </Banner>
+        )}
         <label
           onDragOver={(event) => {
             event.preventDefault();
@@ -135,7 +156,7 @@ export function ImportSongsDialog({ open, onClose, existingTitles }: Props) {
         >
           <Upload aria-hidden className="size-7 text-coral" />
           <span className="font-semibold">Arrastra tus archivos aquí</span>
-          <span className="text-sm text-ink-3">
+          <span className="text-sm text-ink-2">
             o haz clic para elegirlos · hasta {IMPORT_LIMITS.maxFiles} archivos de 100 KB
           </span>
           <input
@@ -150,9 +171,9 @@ export function ImportSongsDialog({ open, onClose, existingTitles }: Props) {
           />
         </label>
 
-        {candidates.length > 0 && (
+        {checked.length > 0 && (
           <ul className="divide-y divide-line overflow-hidden rounded-md ring-1 ring-line">
-            {candidates.map((candidate) => (
+            {checked.map((candidate) => (
               <li key={candidate.key} className="flex items-center gap-3 px-4 py-3">
                 <FileText
                   aria-hidden
@@ -167,7 +188,7 @@ export function ImportSongsDialog({ open, onClose, existingTitles }: Props) {
                   >
                     {candidate.title}
                   </p>
-                  <p className="truncate text-xs text-ink-3">{candidate.fileName}</p>
+                  <p className="truncate text-xs text-ink-2">{candidate.fileName}</p>
                 </div>
                 {candidate.problem ? (
                   <Chip color="var(--color-warning)">{candidate.problem}</Chip>
@@ -193,4 +214,9 @@ export function ImportSongsDialog({ open, onClose, existingTitles }: Props) {
       </div>
     </Dialog>
   );
+}
+
+function importedMessage(created: number): string {
+  if (created === 0) return "No se importó ninguna canción.";
+  return created === 1 ? "Se importó 1 canción." : `Se importaron ${created} canciones.`;
 }

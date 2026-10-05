@@ -7,11 +7,13 @@ describe("songFormSchema", () => {
     const result = songFormSchema.parse({
       title: " Sublime gracia ",
       author: "",
+      copyright: "  ",
       lyrics: "[Coro]\nA\n\nB",
     });
     expect(result).toEqual({
       title: "Sublime gracia",
       author: "",
+      copyright: null,
       sections: [
         { label: "Coro", text: "A" },
         { label: null, text: "B" },
@@ -20,7 +22,7 @@ describe("songFormSchema", () => {
   });
 
   it("requires a title and some lyrics", () => {
-    const result = songFormSchema.safeParse({ title: "", author: "", lyrics: "  " });
+    const result = songFormSchema.safeParse({ title: "", author: "", copyright: "", lyrics: "  " });
     expect(result.success).toBe(false);
     expect(result.error?.issues.map((issue) => issue.path[0])).toEqual(["title", "lyrics"]);
   });

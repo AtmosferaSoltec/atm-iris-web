@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { fieldErrorsFrom, formValues, GENERIC_ERROR, type FormState } from "@/lib/form-state";
+import { idSchema } from "@/lib/validation";
 import { authorize } from "@/server/dal";
+import { errorMessage, toFormState } from "@/server/repositories/api/errors";
+import type { SongImportResult } from "@/server/repositories/types";
 import {
   importSongsSchema,
   SONG_FIELDS,
@@ -12,57 +14,73 @@ import {
   type SongField,
 } from "./schemas";
 
-/** Creates (`songId` null) or updates a song from the editor form. */
+function revalidateSongs() {
+  revalidatePath("/canciones", "layout");
+  revalidatePath("/");
+}
+
+/** Creates (`songId` null) or replaces a song from the editor form. */
 export async function saveSong(
   songId: string | null,
   _prev: FormState<SongField>,
   formData: FormData,
 ): Promise<FormState<SongField>> {
-  const { repos } = await authorize();
   const values = formValues(formData, SONG_FIELDS);
   const parsed = songFormSchema.safeParse(values);
   if (!parsed.success) {
     return { status: "error", fieldErrors: fieldErrorsFrom(parsed.error), values };
   }
+  const id = songId === null ? null : idSchema.safeParse(songId);
+  if (id && !id.success) return { status: "error", message: GENERIC_ERROR, values };
 
   try {
-    if (songId) await repos.songs.update(songId, parsed.data);
+    const { repos } = await authorize("songs.manage");
+    if (id) await repos.songs.update(id.data, parsed.data);
     else await repos.songs.create(parsed.data);
   } catch (error) {
-    console.error(error);
-    return { status: "error", message: GENERIC_ERROR, values };
+    // `sections.3.text` and the like have no field of their own: they go to the lyrics.
+    return toFormState(error, SONG_FIELDS, { values, aliases: { sections: "lyrics" } });
   }
-
-  revalidatePath("/canciones");
-  redirect("/canciones");
+  revalidateSongs();
+  return { status: "success" };
 }
 
 export async function deleteSong(songId: string): Promise<{ error?: string }> {
-  const { repos } = await authorize();
+  const id = idSchema.safeParse(songId);
+  if (!id.success) return { error: GENERIC_ERROR };
   try {
-    await repos.songs.delete(songId);
+    const { repos } = await authorize("songs.manage");
+    await repos.songs.delete(id.data);
   } catch (error) {
-    console.error(error);
-    return { error: GENERIC_ERROR };
+    return { error: errorMessage(error) };
   }
-  revalidatePath("/canciones");
-  redirect("/canciones");
+  revalidateSongs();
+  return {};
 }
 
+/** The server decides what is a duplicate; the dialog only warns beforehand. */
 export async function importSongs(
   items: ImportSongItem[],
-): Promise<{ created?: number; error?: string }> {
-  const { repos } = await authorize();
+): Promise<{ result?: SongImportResult; error?: string }> {
   const parsed = importSongsSchema.safeParse(items);
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? GENERIC_ERROR };
-  }
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? GENERIC_ERROR };
   try {
-    const created = await repos.songs.createMany(parsed.data);
-    revalidatePath("/canciones");
-    return { created: created.length };
+    const { repos } = await authorize("songs.manage");
+    const result = await repos.songs.import(parsed.data);
+    revalidateSongs();
+    return { result };
   } catch (error) {
-    console.error(error);
-    return { error: GENERIC_ERROR };
+    return { error: errorMessage(error) };
+  }
+}
+
+/** Every title in the library, to warn about duplicates before importing. */
+export async function listSongTitles(): Promise<string[]> {
+  const { repos } = await authorize("songs.manage");
+  const titles: string[] = [];
+  for (let page = 1; ; page += 1) {
+    const { data, meta } = await repos.songs.list({ page, limit: 100 });
+    titles.push(...data.map((song) => song.title));
+    if (page >= meta.totalPages) return titles;
   }
 }

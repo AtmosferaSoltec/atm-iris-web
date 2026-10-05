@@ -37,7 +37,7 @@ export function Field({ id, label, error, hint, accessory, className, children }
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="text-xs text-ink-3">
+        <p id={`${id}-hint`} className="text-xs text-ink-2">
           {hint}
         </p>
       ) : null}

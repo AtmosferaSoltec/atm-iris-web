@@ -23,7 +23,7 @@ export const signInSchema = z.object({
 
 export const signUpSchema = z.object({
   churchName: z.string().trim().min(1, "Escribe el nombre de tu iglesia.").max(120),
-  leaderName: z.string().trim().min(1, "Escribe el nombre del responsable.").max(120),
+  fullName: z.string().trim().min(1, "Escribe el nombre del responsable.").max(120),
   email,
   password: newPassword,
 });
@@ -48,5 +48,5 @@ export const newPasswordSchema = z
   });
 
 export const SIGN_IN_FIELDS = ["email", "password"] as const;
-export const SIGN_UP_FIELDS = ["churchName", "leaderName", "email", "password"] as const;
+export const SIGN_UP_FIELDS = ["churchName", "fullName", "email", "password"] as const;
 export const NEW_PASSWORD_FIELDS = ["password", "passwordConfirmation"] as const;

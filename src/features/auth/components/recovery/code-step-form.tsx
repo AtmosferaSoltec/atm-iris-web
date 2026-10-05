@@ -56,7 +56,7 @@ export function CodeStepForm() {
       <SubmitButton size="lg" className="w-full">
         Continuar
       </SubmitButton>
-      <p className="text-center text-sm text-ink-3">
+      <p className="text-center text-sm text-ink-2">
         ¿No te llegó?{" "}
         {cooldown > 0 ? (
           <span className="tabular-nums">Puedes pedir otro en {cooldown} s.</span>

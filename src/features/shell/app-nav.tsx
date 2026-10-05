@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ChurchModules } from "@/domain/models";
 import { cn } from "@/lib/cn";
 import { NAV_ITEMS } from "./nav-items";
 
@@ -9,9 +10,9 @@ function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function AppNav({ showTimeControl }: { showTimeControl: boolean }) {
+export function AppNav({ modules }: { modules: ChurchModules }) {
   const pathname = usePathname();
-  const items = NAV_ITEMS.filter((item) => !item.requiresTimeControl || showTimeControl);
+  const items = NAV_ITEMS.filter((item) => !item.module || modules[item.module]);
 
   return (
     <nav

@@ -41,4 +41,17 @@ Fases 02–06.
 
 ## Desviaciones
 
-_(Completar al cerrar la fase.)_
+- **Próximo servicio**: `src/domain/next-service.ts`. Entre los tipos con horario gana el que empieza antes desde
+  `ahora − 2 h`; es "Servicio de hoy" si cae en la fecha de hoy de la iglesia. Sin horarios, el primero ("Sin
+  horario"). Sin tipos, "Crea tu primer servicio" con "Configurar servicios" (solo con `serviceTypes.manage`).
+- **Tarjetas**: Canciones · Multimedia · Servicios · Tiempos · Personas · Equipo · Ajustes, en una cuadrícula de
+  hasta tres columnas (la del iPad no tiene Multimedia, Equipo ni Ajustes). Cada una carga en su `Suspense`.
+- **Carga y errores**: un solo `loading.tsx` con esqueleto de página para `(app)` y el `error.tsx` de `(app)` con
+  "Reintentar" cubre todos los segmentos (se ve dentro del layout). No se agregaron uno por segmento porque serían
+  idénticos.
+- **Contraste**: los textos pequeños pasaron de `ink-3` a `ink-2` (pistas, subtítulos de tarjetas, encabezados en
+  mayúsculas, tamaños de archivo, IP…). `ink-3` queda en íconos, marcadores de posición y bloques omitidos (la spec
+  los pide atenuados).
+- **Recorrido a 390 px** de todas las páginas: sin desbordes horizontales; las tablas de Tiempos se desplazan
+  dentro de su panel. Sin errores en la consola del navegador (salvo el 404 esperado de una ruta inexistente).
+- `/modulos` redirige a `/ajustes`; `not-found.tsx` propio dentro del layout autenticado.

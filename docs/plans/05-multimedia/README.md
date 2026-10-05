@@ -21,6 +21,7 @@ y `downloadUrl` hacia ese mismo handler con GET. Ese route handler solo existe c
 ## Flujo de subida (cliente)
 
 `src/features/media/upload/` — un hook `useMediaUpload()` y una cola visual:
+
 1. El usuario arrastra o elige archivos (multiples). Por cada uno, en el navegador:
    - deduce `kind` por `type`; rechaza localmente los tipos y tamaños fuera de la tabla del contrato con el mismo mensaje del API;
    - mide metadatos: imagen → `width`/`height` con `createImageBitmap`; video → `duration`, `videoWidth`, `videoHeight` con un
@@ -29,8 +30,8 @@ y `downloadUrl` hacia ese mismo handler con GET. Ese route handler solo existe c
 3. `XMLHttpRequest` `PUT uploadUrl` con los `headers` del ticket, mostrando el progreso (`upload.onprogress`). Permite cancelar.
 4. Server Action `confirmUpload({ uploadId, title (nombre sin extensión), durationSeconds, width, height, isBackground })`.
 5. `revalidatePath("/multimedia")` y toast.
-Errores por archivo (no tiran la cola completa): `STORAGE_QUOTA_EXCEEDED`, `UNSUPPORTED_MEDIA_TYPE`, `FILE_TOO_LARGE`,
-falla de red en el PUT ("No se pudo subir. Reintentar").
+   Errores por archivo (no tiran la cola completa): `STORAGE_QUOTA_EXCEEDED`, `UNSUPPORTED_MEDIA_TYPE`, `FILE_TOO_LARGE`,
+   falla de red en el PUT ("No se pudo subir. Reintentar").
 
 ## Pantalla `/multimedia`
 
@@ -55,4 +56,14 @@ falla de red en el PUT ("No se pudo subir. Reintentar").
 
 ## Desviaciones
 
-_(Completar al cerrar la fase.)_
+- **Textos de error**: el contrato no fija los mensajes de `UNSUPPORTED_MEDIA_TYPE`, `FILE_TOO_LARGE`,
+  `STORAGE_QUOTA_EXCEEDED` ni `UPLOAD_NOT_FOUND`. Los de la web y el mock están en `src/domain/media-rules.ts`;
+  con el API real se muestran los suyos (el rechazo local, antes de pedir el ticket, usa los de la web).
+- **Almacenamiento simulado**: `src/app/api/mock-storage/[key]/route.ts` (`PUT` y `GET` con `Range`, para poder
+  adelantar videos). La URL que entrega el mock es relativa (`/api/mock-storage/<id>`); la del API es absoluta.
+- **Varios archivos a la vez** se suben en paralelo; las Server Actions de Next se ejecutan de a una, pero los
+  `PUT` al almacenamiento sí van en paralelo.
+- **Miniaturas de video**: el primer cuadro con `<video preload="metadata" src="…#t=0.1">`, porque el contrato no
+  guarda pósters.
+- **Módulo apagado**: `/multimedia` responde "no encontrado" y desaparece de la navegación.
+- Arrastrar archivos funciona sobre toda la página (resalta la biblioteca); el atajo `/` enfoca la búsqueda.

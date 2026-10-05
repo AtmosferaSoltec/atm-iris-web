@@ -1,7 +1,8 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { Dialog as DialogPrimitive } from "radix-ui";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Button, IconButton } from "./button";
 
@@ -19,7 +20,7 @@ type DialogProps = {
 
 const widths = { sm: "max-w-sm", md: "max-w-lg", lg: "max-w-3xl" };
 
-/** Modal on the native <dialog> element: focus trap, Esc and backdrop come from the browser. */
+/** Modal on Radix Dialog: focus trap, Esc, outside click and scroll lock. */
 export function Dialog({
   open,
   onClose,
@@ -30,42 +31,39 @@ export function Dialog({
   footer,
   size = "md",
 }: DialogProps) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const titleId = useId();
-
-  useEffect(() => {
-    const dialog = ref.current;
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
-
   return (
-    <dialog
-      ref={ref}
-      aria-labelledby={title ? titleId : undefined}
-      aria-label={title ? undefined : ariaLabel}
-      onClose={onClose}
-      onClick={(event) => event.target === ref.current && onClose()}
-      className={cn(
-        "m-auto w-[calc(100%-2rem)] rounded-2xl bg-elevated p-0 text-ink ring-1 ring-line backdrop:bg-black/60 backdrop:backdrop-blur-sm open:animate-fade-in",
-        widths[size],
-      )}
-    >
-      {open && (
-        <div className="flex max-h-[85dvh] flex-col">
+    <DialogPrimitive.Root open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm data-[state=open]:animate-fade-in" />
+        <DialogPrimitive.Content
+          aria-label={title ? undefined : ariaLabel}
+          // Descriptions are optional; Radix warns unless told there is none.
+          {...(!description && { "aria-describedby": undefined })}
+          className={cn(
+            "fixed top-1/2 left-1/2 z-50 flex max-h-[85dvh] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl bg-elevated text-ink shadow-menu ring-1 ring-line outline-none data-[state=open]:animate-fade-in",
+            widths[size],
+          )}
+        >
           <header className="flex items-start gap-4 px-6 pt-6 pb-4">
             <div className="min-w-0 flex-1">
-              {title && (
-                <h2 id={titleId} className="font-serif text-2xl font-medium tracking-tight">
+              {title ? (
+                <DialogPrimitive.Title className="font-serif text-2xl font-medium tracking-tight">
                   {title}
-                </h2>
+                </DialogPrimitive.Title>
+              ) : (
+                <DialogPrimitive.Title className="sr-only">{ariaLabel}</DialogPrimitive.Title>
               )}
-              {description && <div className="mt-1.5 text-sm text-ink-2">{description}</div>}
+              {description && (
+                <DialogPrimitive.Description asChild>
+                  <div className="mt-1.5 text-sm text-ink-2">{description}</div>
+                </DialogPrimitive.Description>
+              )}
             </div>
-            <IconButton label="Cerrar" onClick={onClose}>
-              <X />
-            </IconButton>
+            <DialogPrimitive.Close asChild>
+              <IconButton label="Cerrar">
+                <X />
+              </IconButton>
+            </DialogPrimitive.Close>
           </header>
           {children && <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-2">{children}</div>}
           {footer && (
@@ -73,9 +71,9 @@ export function Dialog({
               {footer}
             </footer>
           )}
-        </div>
-      )}
-    </dialog>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
 
@@ -87,6 +85,8 @@ type ConfirmDialogProps = {
   description?: ReactNode;
   confirmLabel: string;
   isPending?: boolean;
+  /** Shown inside the dialog when the confirmed action fails. */
+  error?: string;
 };
 
 /** Destructive confirmation ("¿Eliminar…?"). */
@@ -98,6 +98,7 @@ export function ConfirmDialog({
   description,
   confirmLabel,
   isPending,
+  error,
 }: ConfirmDialogProps) {
   return (
     <Dialog
@@ -116,6 +117,12 @@ export function ConfirmDialog({
           </Button>
         </>
       }
-    />
+    >
+      {error && (
+        <p role="alert" className="pb-2 text-sm font-medium text-danger">
+          {error}
+        </p>
+      )}
+    </Dialog>
   );
 }

@@ -3,13 +3,21 @@ import { notFound } from "next/navigation";
 import { BackLink } from "@/components/ui/back-link";
 import { PageHeader } from "@/components/ui/page-header";
 import { SongEditor } from "@/features/songs/components/song-editor";
+import { can } from "@/lib/permissions";
 import { requireSession } from "@/server/dal";
 
-export const metadata: Metadata = { title: "Editar canción" };
+export async function generateMetadata({
+  params,
+}: PageProps<"/canciones/[id]">): Promise<Metadata> {
+  const { id } = await params;
+  const { repos } = await requireSession();
+  const song = await repos.songs.get(id);
+  return { title: song?.title ?? "Canción" };
+}
 
 export default async function EditSongPage({ params }: PageProps<"/canciones/[id]">) {
   const { id } = await params;
-  const { repos } = await requireSession();
+  const { session, repos } = await requireSession();
   const song = await repos.songs.get(id);
   if (!song) notFound();
 
@@ -17,7 +25,7 @@ export default async function EditSongPage({ params }: PageProps<"/canciones/[id
     <div className="mx-auto flex max-w-content flex-col gap-8">
       <BackLink href="/canciones">Canciones</BackLink>
       <PageHeader title={song.title} description={song.author || "Sin autor"} />
-      <SongEditor song={song} />
+      <SongEditor song={song} readOnly={!can(session, "songs.manage")} />
     </div>
   );
 }

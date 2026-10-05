@@ -1,28 +1,34 @@
 import "server-only";
+import type { DeviceSession, SessionView, UserSession } from "@/domain/models";
 import type { SessionTokens } from "../../session-token";
-import { AuthError, type AuthResult, type AuthService } from "../types";
-import { ApiError, createApiClient, type ApiClient } from "./client";
+import type { AuthResult, AuthService } from "../types";
+import { createApiClient, segment, type ClientOptions } from "./client";
 
-/** atm-iris-api `AuthResult` (docs/plans/01-auth.md). */
-type ApiAuthResult = SessionTokens & {
-  user: { id: string; email: string; fullName: string };
-  church: { id: string; name: string };
-  role: "owner" | "member";
-};
+/** Contract §4 `AuthResult`. */
+export type ApiAuthResult = SessionView & SessionTokens;
 
-/** API field names → web form field names. */
-const FIELD_NAMES: Record<string, string> = { fullName: "leaderName" };
+export const WEB_CLIENT = { platform: "web", deviceName: "Navegador" } as const;
 
-const WEB_CLIENT = { platform: "web", deviceName: "Navegador" } as const;
+export function toUserSession(view: SessionView): UserSession {
+  return {
+    userId: view.user.id,
+    sessionId: view.session.id,
+    email: view.user.email,
+    fullName: view.user.fullName,
+    church: {
+      id: view.church.id,
+      name: view.church.name,
+      timezone: view.church.timezone,
+    },
+    role: view.role,
+    permissions: view.permissions,
+    churches: view.churches,
+  };
+}
 
 export function toAuthResult(result: ApiAuthResult): AuthResult {
   return {
-    session: {
-      userId: result.user.id,
-      churchName: result.church.name,
-      leaderName: result.user.fullName,
-      email: result.user.email,
-    },
+    session: toUserSession(result),
     tokens: {
       accessToken: result.accessToken,
       accessTokenExpiresAt: result.accessTokenExpiresAt,
@@ -32,60 +38,29 @@ export function toAuthResult(result: ApiAuthResult): AuthResult {
   };
 }
 
-/** Every API failure becomes an AuthError the form can show. */
-async function translated<T>(call: () => Promise<T>): Promise<T> {
-  try {
-    return await call();
-  } catch (error) {
-    if (!(error instanceof ApiError)) throw error;
-    const fieldErrors = error.errors
-      ? Object.fromEntries(
-          Object.entries(error.errors).map(([field, message]) => [
-            FIELD_NAMES[field] ?? field,
-            message,
-          ]),
-        )
-      : undefined;
-    throw new AuthError(error.code, error.message, fieldErrors);
-  }
-}
-
-export function apiAuth(accessToken?: string, forwardedFor?: string): AuthService {
-  const api: ApiClient = createApiClient({ accessToken, forwardedFor });
+export function apiAuth(options: ClientOptions = {}): AuthService {
+  const api = createApiClient(options);
+  const post = <T = void>(path: string, body?: unknown) => api<T>(path, { method: "POST", body });
 
   return {
-    signIn: (input) =>
-      translated(async () =>
-        toAuthResult(
-          await api<ApiAuthResult>("/auth/sign-in", {
-            method: "POST",
-            body: { ...input, client: WEB_CLIENT },
-          }),
-        ),
-      ),
-    signUp: ({ leaderName, ...input }) =>
-      translated(async () =>
-        toAuthResult(
-          await api<ApiAuthResult>("/auth/sign-up", {
-            method: "POST",
-            body: { ...input, fullName: leaderName, client: WEB_CLIENT },
-          }),
-        ),
-      ),
-    refresh: (refreshToken) =>
-      translated(async () =>
-        toAuthResult(
-          await api<ApiAuthResult>("/auth/refresh", { method: "POST", body: { refreshToken } }),
-        ),
-      ),
-    signOut: () => translated(() => api<void>("/auth/sign-out", { method: "POST" })),
-    requestPasswordReset: (email) =>
-      translated(() => api<void>("/auth/forgot-password", { method: "POST", body: { email } })),
-    verifyResetCode: (email, code) =>
-      translated(() =>
-        api<void>("/auth/verify-reset-code", { method: "POST", body: { email, code } }),
-      ),
-    resetPassword: (input) =>
-      translated(() => api<void>("/auth/reset-password", { method: "POST", body: input })),
+    signIn: async (input) =>
+      toAuthResult(await post<ApiAuthResult>("/auth/sign-in", { ...input, client: WEB_CLIENT })),
+    signUp: async (input) =>
+      toAuthResult(await post<ApiAuthResult>("/auth/sign-up", { ...input, client: WEB_CLIENT })),
+    refresh: async (refreshToken) =>
+      toAuthResult(await post<ApiAuthResult>("/auth/refresh", { refreshToken })),
+    signOut: () => post("/auth/sign-out"),
+    signOutAll: () => post("/auth/sign-out-all"),
+    requestPasswordReset: (email) => post("/auth/forgot-password", { email }),
+    verifyResetCode: (email, code) => post("/auth/verify-reset-code", { email, code }),
+    resetPassword: (input) => post("/auth/reset-password", input),
+    getSession: async () => toUserSession(await api<SessionView>("/auth/me")),
+    updateProfile: async (fullName) =>
+      toUserSession(await api<SessionView>("/auth/me", { method: "PATCH", body: { fullName } })),
+    changePassword: (input) => post("/auth/change-password", input),
+    switchChurch: async (churchId) =>
+      toAuthResult(await post<ApiAuthResult>("/auth/switch-church", { churchId })),
+    listSessions: () => api<DeviceSession[]>("/auth/sessions"),
+    revokeSession: (id) => api(`/auth/sessions/${segment(id)}`, { method: "DELETE" }),
   };
 }

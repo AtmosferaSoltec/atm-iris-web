@@ -1,74 +1,94 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
-import type { Repositories } from "@/server/repositories";
+import type { Person } from "@/domain/models";
 import { GENERIC_ERROR, type FormState } from "@/lib/form-state";
 import { nameKey } from "@/lib/text";
 import { authorize } from "@/server/dal";
+import { errorMessage, toFormState } from "@/server/repositories/api/errors";
+import { personIdSchema, personNameSchema } from "./schemas";
 
-const nameSchema = z
-  .string()
-  .trim()
-  .min(1, "Escribe un nombre.")
-  .max(80, "Usa un nombre más corto.");
-const DUPLICATE = "Ya existe una persona con ese nombre.";
+// Duplicates are the API's call (PERSON_NAME_TAKEN); the form checks the
+// loaded list first only to answer without a round trip.
 
-async function validateName(
-  repos: Repositories,
-  raw: unknown,
-  exceptId?: string,
-): Promise<{ name: string } | { error: string }> {
-  const parsed = nameSchema.safeParse(raw);
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const people = await repos.people.list();
-  const key = nameKey(parsed.data);
-  if (people.some((person) => person.id !== exceptId && nameKey(person.name) === key))
-    return { error: DUPLICATE };
-  return { name: parsed.data };
+const NAME_FIELD = ["name"] as const;
+const NAME_TAKEN = { PERSON_NAME_TAKEN: "name" } as const;
+
+function revalidatePeople() {
+  revalidatePath("/personas");
+  // Leaders show in the service editor and the home tiles too.
+  revalidatePath("/servicios", "layout");
+  revalidatePath("/");
 }
 
 export async function addPerson(
   _prev: FormState<"name">,
   formData: FormData,
 ): Promise<FormState<"name">> {
-  const { repos } = await authorize();
   const raw = String(formData.get("name") ?? "");
-  try {
-    const result = await validateName(repos, raw);
-    if ("error" in result)
-      return { status: "error", fieldErrors: { name: result.error }, values: { name: raw } };
-    await repos.people.add(result.name);
-  } catch (error) {
-    console.error(error);
-    return { status: "error", message: GENERIC_ERROR, values: { name: raw } };
+  const parsed = personNameSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      status: "error",
+      fieldErrors: { name: parsed.error.issues[0].message },
+      values: { name: raw },
+    };
   }
-  revalidatePath("/personas");
+  try {
+    const { repos } = await authorize("people.manage");
+    await repos.people.create(parsed.data);
+  } catch (error) {
+    return toFormState(error, NAME_FIELD, { values: { name: raw }, codes: NAME_TAKEN });
+  }
+  revalidatePeople();
   return { status: "success" };
 }
 
 export async function renamePerson(id: string, name: string): Promise<{ error?: string }> {
-  const { repos } = await authorize();
+  const personId = personIdSchema.safeParse(id);
+  const parsed = personNameSchema.safeParse(name);
+  if (!personId.success) return { error: GENERIC_ERROR };
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
   try {
-    const result = await validateName(repos, name, id);
-    if ("error" in result) return result;
-    await repos.people.rename(id, result.name);
+    const { repos } = await authorize("people.manage");
+    await repos.people.rename(personId.data, parsed.data);
   } catch (error) {
-    console.error(error);
-    return { error: GENERIC_ERROR };
+    return { error: errorMessage(error) };
   }
-  revalidatePath("/personas");
+  revalidatePeople();
   return {};
 }
 
 export async function deletePerson(id: string): Promise<{ error?: string }> {
-  const { repos } = await authorize();
+  const personId = personIdSchema.safeParse(id);
+  if (!personId.success) return { error: GENERIC_ERROR };
   try {
-    await repos.people.delete(id);
+    const { repos } = await authorize("people.manage");
+    await repos.people.delete(personId.data);
   } catch (error) {
-    console.error(error);
-    return { error: GENERIC_ERROR };
+    return { error: errorMessage(error) };
   }
-  revalidatePath("/personas");
+  revalidatePeople();
   return {};
+}
+
+/**
+ * "Agregar persona…" from a block: reuses whoever already has that name
+ * (IRIS_SPEC §6.8), otherwise creates them.
+ */
+export async function findOrAddPerson(
+  rawName: string,
+): Promise<{ person?: Person; error?: string }> {
+  const parsed = personNameSchema.safeParse(rawName);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  try {
+    const { repos } = await authorize("people.manage");
+    const people = await repos.people.list();
+    const match = people.find((candidate) => nameKey(candidate.name) === nameKey(parsed.data));
+    const person = match ?? (await repos.people.create(parsed.data));
+    revalidatePeople();
+    return { person };
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
 }

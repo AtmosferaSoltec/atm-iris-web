@@ -16,11 +16,11 @@
 
 ## Comandos
 
-| Para | Comando |
-|---|---|
-| Desarrollo | `pnpm dev` (puerto 3000) |
-| Verificar en cada fase | `pnpm lint && pnpm typecheck && pnpm build` |
-| Formato | `pnpm format` |
+| Para                   | Comando                                            |
+| ---------------------- | -------------------------------------------------- |
+| Desarrollo             | `pnpm dev` (puerto 3000)                           |
+| Verificar en cada fase | `pnpm lint && pnpm typecheck && pnpm build`        |
+| Formato                | `pnpm format`                                      |
 | Pruebas (solo fase 08) | `pnpm test` · `pnpm test:e2e` (la crea la fase 08) |
 
 `.env.local` actual: `AUTH_SOURCE=api`, `DATA_SOURCE=mock`. Mientras la API no tenga un endpoint, usa los mocks
@@ -29,19 +29,19 @@ en `../atm-iris-api` (no la modifiques).
 
 ## Fases
 
-| # | Fase | Estado |
-|---|---|---|
-| 00 | [Fundamentos](00-fundamentos/README.md): tipos del contrato, cliente HTTP, permisos, primitivos accesibles, filtros en la URL | [ ] |
-| 01 | [Login y sesiones](01-login/README.md) | [x] ya hecha (con ajustes en la fase 02) |
-| 02 | [Cuenta y equipo](02-cuenta-y-equipo/README.md): perfil, contraseña, dispositivos, cambio de iglesia, equipo, invitaciones | [ ] |
-| 03 | [Iglesia](03-iglesia/README.md): ajustes, módulos, personas, servicios contra el contrato | [ ] |
-| 04 | [Canciones](04-canciones/README.md): búsqueda en el servidor, paginación, importación | [ ] |
-| 05 | [Multimedia](05-multimedia/README.md): subida directa al almacenamiento, biblioteca, fondos | [ ] |
-| 06 | [Tiempos](06-tiempos/README.md): registros y resúmenes | [ ] |
-| 07 | [Inicio y pulido](07-inicio-y-pulido/README.md): panel con datos reales, estados, accesibilidad, móvil | [ ] |
-| 08 | [Calidad y entrega](08-calidad-y-entrega/README.md): pruebas, documentación, reporte | [ ] |
+| #   | Fase                                                                                                                          | Estado                                   |
+| --- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 00  | [Fundamentos](00-fundamentos/README.md): tipos del contrato, cliente HTTP, permisos, primitivos accesibles, filtros en la URL | [x]                                      |
+| 01  | [Login y sesiones](01-login/README.md)                                                                                        | [x] ya hecha (con ajustes en la fase 02) |
+| 02  | [Cuenta y equipo](02-cuenta-y-equipo/README.md): perfil, contraseña, dispositivos, cambio de iglesia, equipo, invitaciones    | [x]                                      |
+| 03  | [Iglesia](03-iglesia/README.md): ajustes, módulos, personas, servicios contra el contrato                                     | [x]                                      |
+| 04  | [Canciones](04-canciones/README.md): búsqueda en el servidor, paginación, importación                                         | [x]                                      |
+| 05  | [Multimedia](05-multimedia/README.md): subida directa al almacenamiento, biblioteca, fondos                                   | [x]                                      |
+| 06  | [Tiempos](06-tiempos/README.md): registros y resúmenes                                                                        | [x]                                      |
+| 07  | [Inicio y pulido](07-inicio-y-pulido/README.md): panel con datos reales, estados, accesibilidad, móvil                        | [x]                                      |
+| 08  | [Calidad y entrega](08-calidad-y-entrega/README.md): pruebas, documentación, reporte                                          | [x]                                      |
 
-Marca cada casilla al terminar la fase y completa su sección *Desviaciones*.
+Marca cada casilla al terminar la fase y completa su sección _Desviaciones_.
 
 ## Reglas propias de este repo
 

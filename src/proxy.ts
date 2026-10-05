@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { apiAuth } from "@/server/repositories/api/auth";
-import { AuthError } from "@/server/repositories/types";
+import { ApiError } from "@/server/repositories/api/errors";
 import {
   decryptSession,
   encryptSession,
@@ -18,26 +18,31 @@ import {
 // The Data Access Layer (src/server/dal.ts) still checks the session next to
 // every read and mutation.
 
-const PUBLIC_PATHS = ["/login", "/recuperar"];
+/** Only for visitors without a session. */
+const GUEST_PATHS = ["/login", "/recuperar"];
+/** Open to everyone: an invitation may be for another account than the one signed in. */
+const OPEN_PATHS = ["/invitacion"];
 const SESSION_OVER = new Set(["INVALID_REFRESH_TOKEN", "UNAUTHORIZED", "VALIDATION_FAILED"]);
+
+const matches = (pathname: string, paths: string[]) =>
+  paths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`),
-  );
+  const isGuestOnly = matches(pathname, GUEST_PATHS);
+  const isOpen = matches(pathname, OPEN_PATHS);
   const session = await decryptSession(request.cookies.get(SESSION_COOKIE)?.value);
 
   if (!session) {
-    return isPublic ? NextResponse.next() : redirectTo("/login", request);
+    return isGuestOnly || isOpen ? NextResponse.next() : redirectTo("/login", request);
   }
-  if (isPublic) return redirectTo("/", request);
+  if (isGuestOnly) return redirectTo("/", request);
 
   if (!needsRefresh(session)) return NextResponse.next();
 
   const refreshed = await refresh(session, request);
   if (refreshed === "expired") {
-    const response = redirectTo("/login", request);
+    const response = isOpen ? NextResponse.next() : redirectTo("/login", request);
     response.cookies.delete(SESSION_COOKIE);
     return response;
   }
@@ -61,12 +66,12 @@ async function refresh(
 ): Promise<SessionPayload | "expired" | "unavailable"> {
   try {
     const forwardedFor = request.headers.get("x-forwarded-for") ?? undefined;
-    const result = await apiAuth(undefined, forwardedFor).refresh(session.tokens!.refreshToken);
+    const result = await apiAuth({ forwardedFor }).refresh(session.tokens!.refreshToken);
     return { ...result.session, tokens: result.tokens };
   } catch (error) {
     // Only a rejected refresh token ends the session. A 5xx or a network
     // blip must not sign anyone out in the middle of preparing a service.
-    return error instanceof AuthError && SESSION_OVER.has(error.code) ? "expired" : "unavailable";
+    return error instanceof ApiError && SESSION_OVER.has(error.code) ? "expired" : "unavailable";
   }
 }
 

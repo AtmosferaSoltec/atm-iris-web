@@ -1,24 +1,30 @@
 "use client";
 
 import { Calendar, ChevronDown, ChevronUp, Minus, Plus, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Banner } from "@/components/ui/banner";
 import { Button, ButtonLink, IconButton } from "@/components/ui/button";
 import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
 import { controlStyles } from "@/components/ui/field";
-import { Select } from "@/components/ui/select";
+import { NativeSelect, Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Surface } from "@/components/ui/surface";
 import { TextField } from "@/components/ui/text-field";
+import { toast } from "@/components/ui/toaster";
 import { BlockTimeline } from "@/components/service/block-timeline";
 import type { BlockTemplate, Person, ServiceType } from "@/domain/models";
 import { BLOCK_MINUTES, plannedSeconds, SERVICE_PALETTE } from "@/domain/rules";
 import { cn } from "@/lib/cn";
 import { durationSummary, shortWeekdayName } from "@/lib/format";
-import { compareNames } from "@/lib/text";
-import { deleteServiceType, findOrAddPerson, saveServiceType } from "../actions";
-import { BLOCKS_REQUIRED, type SaveServiceTypeResult } from "../schemas";
+import type { FormState } from "@/lib/form-state";
+import { compareNames, nameKey } from "@/lib/text";
+import { findOrAddPerson } from "@/features/people/actions";
+import { deleteServiceType, saveServiceType } from "../actions";
+import { BLOCKS_REQUIRED, SERVICE_TYPE_DUPLICATE, type ServiceTypeField } from "../schemas";
 
+/** Radix Select can't use "" as a value. */
+const NO_PERSON = "none";
 const ADD_PERSON = "__add_person__";
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7];
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
@@ -29,7 +35,11 @@ type Props = {
   serviceType?: ServiceType;
   people: Person[];
   timeControlEnabled: boolean;
+  /** Names of the other service types, to flag duplicates before saving. */
+  otherNames: string[];
 };
+
+type Result = Pick<FormState<ServiceTypeField>, "message" | "fieldErrors">;
 
 function newBlock(): BlockTemplate {
   return {
@@ -50,7 +60,9 @@ export function ServiceTypeEditor({
   serviceType,
   people: initialPeople,
   timeControlEnabled,
+  otherNames,
 }: Props) {
+  const router = useRouter();
   const [name, setName] = useState(serviceType?.name ?? "");
   const [color, setColor] = useState(serviceType?.color ?? SERVICE_PALETTE[0].value);
   const [hasSchedule, setHasSchedule] = useState(Boolean(serviceType?.schedule));
@@ -61,7 +73,7 @@ export function ServiceTypeEditor({
   const [blocks, setBlocks] = useState<BlockTemplate[]>(serviceType?.blocks ?? []);
   const [people, setPeople] = useState(initialPeople);
 
-  const [result, setResult] = useState<SaveServiceTypeResult>({});
+  const [result, setResult] = useState<Result>({});
   const [isSaving, startSaving] = useTransition();
   const [isConfirmingBlockRemoval, setIsConfirmingBlockRemoval] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -104,6 +116,10 @@ export function ServiceTypeEditor({
   }
 
   function save() {
+    if (otherNames.some((other) => nameKey(other) === nameKey(name))) {
+      setResult({ fieldErrors: { name: SERVICE_TYPE_DUPLICATE } });
+      return;
+    }
     setResult({});
     startSaving(async () => {
       const response = await saveServiceType({
@@ -114,8 +130,10 @@ export function ServiceTypeEditor({
         tracksTime: showsBlocks,
         blocks: showsBlocks ? blocks : [],
       });
-      // Success redirects; we only get here with errors.
-      if (response) setResult(response);
+      if (response.status === "success") {
+        toast.success("Servicio guardado");
+        router.push("/servicios");
+      } else setResult(response);
     });
   }
 
@@ -123,10 +141,13 @@ export function ServiceTypeEditor({
     if (!serviceType) return;
     startDeleting(async () => {
       const response = await deleteServiceType(serviceType.id);
-      if (response?.error) {
-        setResult({ error: response.error });
+      if (response.error) {
+        setResult({ message: response.error });
         setIsConfirmingDelete(false);
+        return;
       }
+      toast.success(`Se eliminó ${serviceType.name}`);
+      router.push("/servicios");
     });
   }
 
@@ -139,7 +160,7 @@ export function ServiceTypeEditor({
         if (canSave) save();
       }}
     >
-      {result.error && <Banner tone="error">{result.error}</Banner>}
+      {result.message && <Banner tone="error">{result.message}</Banner>}
 
       <Surface className="flex flex-col gap-8 p-6 sm:p-8">
         <TextField
@@ -162,7 +183,7 @@ export function ServiceTypeEditor({
         />
 
         <fieldset className="flex flex-col gap-3">
-          <legend className="mb-3 eyebrow text-ink-3">Color</legend>
+          <legend className="mb-3 eyebrow text-ink-2">Color</legend>
           <div className="flex flex-wrap gap-3" role="radiogroup" aria-label="Color">
             {SERVICE_PALETTE.map((option) => (
               <button
@@ -184,7 +205,7 @@ export function ServiceTypeEditor({
         </fieldset>
 
         <fieldset className="flex flex-col gap-4">
-          <legend className="mb-3 eyebrow text-ink-3">Horario</legend>
+          <legend className="mb-3 eyebrow text-ink-2">Horario</legend>
           <label className="flex items-center justify-between gap-4">
             <span className="font-semibold">Tiene horario fijo</span>
             <Switch
@@ -217,7 +238,7 @@ export function ServiceTypeEditor({
               {/* Two selects instead of <input type="time">, which follows the OS 12/24 h setting. */}
               <div className="flex items-center gap-2" role="group" aria-label="Hora">
                 <span className="text-[13px] font-medium text-ink-2">Hora</span>
-                <Select
+                <NativeSelect
                   id="schedule-hour"
                   aria-label="Hora"
                   value={hour}
@@ -229,9 +250,9 @@ export function ServiceTypeEditor({
                       {value}
                     </option>
                   ))}
-                </Select>
+                </NativeSelect>
                 <span className="text-ink-3">:</span>
-                <Select
+                <NativeSelect
                   id="schedule-minute"
                   aria-label="Minutos"
                   value={minute}
@@ -244,7 +265,7 @@ export function ServiceTypeEditor({
                       {pad(value)}
                     </option>
                   ))}
-                </Select>
+                </NativeSelect>
               </div>
             </div>
           )}
@@ -252,7 +273,7 @@ export function ServiceTypeEditor({
 
         {timeControlEnabled && (
           <fieldset className="flex flex-col gap-4">
-            <legend className="mb-3 eyebrow text-ink-3">Control de tiempo</legend>
+            <legend className="mb-3 eyebrow text-ink-2">Control de tiempo</legend>
             <label className="flex items-center justify-between gap-4">
               <span>
                 <span className="block font-semibold">Controlar el tiempo de este servicio</span>
@@ -276,7 +297,7 @@ export function ServiceTypeEditor({
                         key={block.id}
                         className="flex flex-wrap items-center gap-2 rounded-md bg-surface p-2 ring-1 ring-line ring-inset sm:flex-nowrap"
                       >
-                        <span className="w-7 text-center text-xs text-ink-3 tabular-nums">
+                        <span className="w-7 text-center text-xs text-ink-2 tabular-nums">
                           {String(index + 1).padStart(2, "0")}
                         </span>
                         <input
@@ -323,7 +344,7 @@ export function ServiceTypeEditor({
                                 "h-10 w-20 [appearance:textfield] pr-9 pl-3 text-right tabular-nums [&::-webkit-inner-spin-button]:appearance-none",
                               )}
                             />
-                            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-ink-3">
+                            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-ink-2">
                               min
                             </span>
                           </label>
@@ -339,37 +360,27 @@ export function ServiceTypeEditor({
                             <Plus />
                           </IconButton>
                         </div>
-                        <label className="relative min-w-44 flex-1 sm:max-w-56">
-                          <span className="sr-only">Responsable</span>
-                          <select
-                            value={block.defaultPersonId ?? ""}
-                            onChange={(event) => {
-                              if (event.target.value === ADD_PERSON) setAddPersonForBlock(block.id);
-                              else
-                                updateBlock(block.id, {
-                                  defaultPersonId: event.target.value || null,
-                                });
-                            }}
-                            className={cn(
-                              controlStyles(),
-                              "h-10 cursor-pointer appearance-none pr-8 pl-3",
-                            )}
-                          >
-                            <option value="">Sin responsable</option>
-                            {[...people]
+                        <Select
+                          id={`block-${block.id}-person`}
+                          ariaLabel={`Responsable de ${block.name || "bloque"}`}
+                          value={block.defaultPersonId ?? NO_PERSON}
+                          onValueChange={(value) => {
+                            if (value === ADD_PERSON) setAddPersonForBlock(block.id);
+                            else
+                              updateBlock(block.id, {
+                                defaultPersonId: value === NO_PERSON ? null : value,
+                              });
+                          }}
+                          options={[
+                            { value: NO_PERSON, label: "Sin responsable" },
+                            ...[...people]
                               .sort((a, b) => compareNames(a.name, b.name))
-                              .map((person) => (
-                                <option key={person.id} value={person.id}>
-                                  {person.name}
-                                </option>
-                              ))}
-                            <option value={ADD_PERSON}>Agregar persona…</option>
-                          </select>
-                          <ChevronDown
-                            aria-hidden
-                            className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-ink-3"
-                          />
-                        </label>
+                              .map((person) => ({ value: person.id, label: person.name })),
+                          ]}
+                          footer={[{ value: ADD_PERSON, label: "Agregar persona…" }]}
+                          className="h-10 pl-3"
+                          containerClassName="min-w-44 flex-1 sm:max-w-56"
+                        />
                         <div className="ml-auto flex items-center gap-1">
                           <IconButton
                             label="Mover arriba"

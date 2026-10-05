@@ -50,8 +50,16 @@ export function encryptSession(payload: SessionPayload): Promise<string> {
   return seal(payload, sessionExpiry(payload));
 }
 
-export function decryptSession(token: string | undefined): Promise<SessionPayload | null> {
-  return unseal<SessionPayload>(token);
+/**
+ * Cookies written before the session carried permissions (phase 01) are
+ * treated as missing, so their owners sign in again instead of crashing pages.
+ */
+export async function decryptSession(token: string | undefined): Promise<SessionPayload | null> {
+  const payload = await unseal<SessionPayload & { iat?: number; exp?: number }>(token);
+  if (!payload || !Array.isArray(payload.permissions) || !payload.church?.timezone) return null;
+  // The JWT's own claims aren't part of the session.
+  const { iat: _iat, exp: _exp, ...session } = payload;
+  return session;
 }
 
 /** The cookie lives exactly as long as the refresh token. */

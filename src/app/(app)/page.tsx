@@ -1,123 +1,123 @@
-import { ListMusic, Settings2, Timer, Users, Library, Plus } from "lucide-react";
-import { AvatarStack } from "@/components/ui/avatar";
+import { Plus, Upload, UserPlus } from "lucide-react";
+import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ButtonLink } from "@/components/ui/button";
-import { Chip, ColorDot } from "@/components/ui/chip";
-import { Tile } from "@/components/ui/tile";
-import { tracksTime } from "@/domain/rules";
+import { PermissionGate } from "@/components/ui/permission-gate";
+import { Skeleton, TileSkeleton } from "@/components/ui/skeleton";
+import { nextService } from "@/domain/next-service";
 import { Greeting } from "@/features/home/components/greeting";
-import { compareNames, plural } from "@/lib/text";
+import {
+  MediaTile,
+  PeopleTile,
+  ServicesTile,
+  SettingsTile,
+  SongsTile,
+  TeamTile,
+  TimesTile,
+} from "@/features/home/components/home-tiles";
+import { NextServiceCard } from "@/features/home/components/next-service-card";
+import { can } from "@/lib/permissions";
 import { requireSession } from "@/server/dal";
+import type { Repositories } from "@/server/repositories/types";
 
-const MODULE_LABELS = [
-  { key: "bible", label: "Biblia" },
-  { key: "multimedia", label: "Multimedia" },
-  { key: "timeControl", label: "Control de tiempo" },
-] as const;
+export const metadata: Metadata = { title: "Inicio" };
 
 export default async function HomePage() {
   const { session, repos } = await requireSession();
-  const [songs, types, people, modules] = await Promise.all([
-    repos.songs.list(),
-    repos.serviceTypes.list(),
-    repos.people.list(),
-    repos.modules.get(),
-  ]);
-  const recentSongs = [...songs].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3);
+  const church = await repos.church.get();
+  const { modules } = church;
+  const now = new Date();
 
   return (
     <div className="mx-auto flex max-w-content flex-col gap-10">
       <div className="flex flex-wrap items-end justify-between gap-6">
-        <Greeting churchName={session.churchName} />
-        <ButtonLink href="/canciones/nueva" size="lg" icon={<Plus className="size-4" />}>
-          Subir canción
-        </ButtonLink>
-      </div>
-
-      <div className="grid gap-5 md:grid-cols-2">
-        <Tile
-          href="/canciones"
-          icon={<ListMusic />}
-          color="var(--color-ember)"
-          title="Canciones"
-          subtitle={plural(songs.length, "canción", "canciones")}
-        >
-          {recentSongs.length > 0 && (
-            <ul className="flex flex-col gap-2">
-              {recentSongs.map((song) => (
-                <li key={song.id} className="flex items-baseline gap-2 text-sm">
-                  <span className="truncate font-serif text-[15px] italic">{song.title}</span>
-                  <span className="shrink-0 text-ink-3">· {song.author || "Sin autor"}</span>
-                </li>
-              ))}
-            </ul>
+        <Greeting churchName={church.name} timeZone={church.timezone} now={now} />
+        <div className="flex flex-wrap gap-3">
+          <PermissionGate session={session} permission="members.manage">
+            <ButtonLink href="/equipo" variant="secondary" icon={<UserPlus className="size-4" />}>
+              Invitar
+            </ButtonLink>
+          </PermissionGate>
+          {modules.multimedia && (
+            <PermissionGate session={session} permission="media.manage">
+              <ButtonLink
+                href="/multimedia"
+                variant="secondary"
+                icon={<Upload className="size-4" />}
+              >
+                Subir multimedia
+              </ButtonLink>
+            </PermissionGate>
           )}
-        </Tile>
-
-        <Tile
-          href="/servicios"
-          icon={<Library />}
-          color="var(--color-violet)"
-          title="Servicios"
-          subtitle={plural(types.length, "tipo de servicio", "tipos de servicio")}
-        >
-          <ul className="flex flex-col gap-2.5">
-            {types.slice(0, 4).map((type) => (
-              <li key={type.id} className="flex items-center gap-2.5 text-sm">
-                <ColorDot color={type.color} />
-                <span className="min-w-0 flex-1 truncate font-medium">{type.name}</span>
-                {modules.timeControl && tracksTime(type) ? (
-                  <Chip color="var(--color-success)" icon={<Timer />}>
-                    Con tiempos
-                  </Chip>
-                ) : (
-                  <Chip>Solo proyección</Chip>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Tile>
+          <PermissionGate session={session} permission="songs.manage">
+            <ButtonLink href="/canciones/nueva" icon={<Plus className="size-4" />}>
+              Subir canción
+            </ButtonLink>
+          </PermissionGate>
+        </div>
       </div>
 
-      <div className={modules.timeControl ? "grid gap-5 md:grid-cols-2" : "grid gap-5"}>
-        {modules.timeControl && (
-          <Tile
-            href="/personas"
-            icon={<Users />}
-            color="var(--color-coral)"
-            title="Personas"
-            subtitle="Responsables de bloques"
-          >
-            <div className="flex items-center justify-between gap-4">
-              <AvatarStack
-                names={[...people].sort((a, b) => compareNames(a.name, b.name)).map((p) => p.name)}
-              />
-              <span className="text-sm text-ink-3">
-                {plural(people.length, "persona registrada", "personas registradas")}
-              </span>
-            </div>
-          </Tile>
+      <Suspense fallback={<Skeleton className="h-72 rounded-2xl" />}>
+        <NextServiceSection
+          repos={repos}
+          timeZone={church.timezone}
+          now={now}
+          timeControl={modules.timeControl}
+          canEditServices={can(session, "serviceTypes.manage")}
+        />
+      </Suspense>
+
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <Suspense fallback={<TileSkeleton />}>
+          <SongsTile repos={repos} />
+        </Suspense>
+        {modules.multimedia && (
+          <Suspense fallback={<TileSkeleton />}>
+            <MediaTile repos={repos} storage={church.storage} />
+          </Suspense>
         )}
-        <Tile
-          href="/modulos"
-          icon={<Settings2 />}
-          color="var(--color-indigo)"
-          title="Módulos"
-          subtitle="Elige qué usar"
-        >
-          <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-            <li className="flex items-center gap-2">
-              <ColorDot color="var(--color-success)" /> Letras
-            </li>
-            {MODULE_LABELS.map(({ key, label }) => (
-              <li key={key} className="flex items-center gap-2">
-                <ColorDot color={modules[key] ? "var(--color-success)" : "var(--color-ink-3)"} />
-                {label}
-                <span className="text-ink-3">{modules[key] ? "Activo" : "Apagado"}</span>
-              </li>
-            ))}
-          </ul>
-        </Tile>
+        <Suspense fallback={<TileSkeleton />}>
+          <ServicesTile repos={repos} timeControl={modules.timeControl} />
+        </Suspense>
+        {modules.timeControl && (
+          <>
+            <Suspense fallback={<TileSkeleton />}>
+              <TimesTile repos={repos} timeZone={church.timezone} />
+            </Suspense>
+            <Suspense fallback={<TileSkeleton />}>
+              <PeopleTile repos={repos} />
+            </Suspense>
+          </>
+        )}
+        <Suspense fallback={<TileSkeleton />}>
+          <TeamTile repos={repos} session={session} />
+        </Suspense>
+        <SettingsTile modules={modules} />
       </div>
     </div>
+  );
+}
+
+async function NextServiceSection({
+  repos,
+  timeZone,
+  now,
+  timeControl,
+  canEditServices,
+}: {
+  repos: Repositories;
+  timeZone: string;
+  now: Date;
+  timeControl: boolean;
+  canEditServices: boolean;
+}) {
+  const [types, people] = await Promise.all([repos.serviceTypes.list(), repos.people.list()]);
+  return (
+    <NextServiceCard
+      next={nextService(types, now, timeZone)}
+      people={people}
+      timeControl={timeControl}
+      canEditServices={canEditServices}
+    />
   );
 }

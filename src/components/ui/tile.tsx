@@ -28,7 +28,7 @@ export function Tile({ href, icon, color, title, subtitle, children }: TileProps
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="font-semibold">{title}</h2>
-          <p className="truncate text-sm text-ink-3">{subtitle}</p>
+          <p className="truncate text-sm text-ink-2">{subtitle}</p>
         </div>
         <ChevronRight
           aria-hidden

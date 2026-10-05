@@ -29,7 +29,7 @@ export function RecoveryStep({ step, icon, title, description }: Props) {
         {icon}
       </span>
       <div>
-        <p className="eyebrow text-ink-3">
+        <p className="eyebrow text-ink-2">
           Paso {step} de {STEPS}
         </p>
         <h1 className="mt-2 font-serif text-[28px] font-medium tracking-tight">{title}</h1>

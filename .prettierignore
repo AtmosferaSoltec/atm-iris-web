@@ -2,3 +2,7 @@
 node_modules
 pnpm-lock.yaml
 public/brand
+test-results
+playwright-report
+# Shared with the other Iris repos and edited by hand: must stay byte-identical.
+docs

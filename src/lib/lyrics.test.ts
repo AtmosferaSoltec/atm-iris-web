@@ -52,3 +52,27 @@ describe("helpers", () => {
     expect(firstLine([])).toBeNull();
   });
 });
+
+describe("importing .txt files", () => {
+  it("handles Windows line endings and blank lines with spaces", () => {
+    const sections = parseLyrics("[Coro]\r\nSanto, santo\r\n   \r\nDigno es el Cordero\r\n");
+    expect(sections).toEqual([
+      { label: "Coro", text: "Santo, santo" },
+      { label: null, text: "Digno es el Cordero" },
+    ]);
+  });
+
+  it("names numbered and pre-chorus sections", () => {
+    const sections = parseLyrics("Estrofa 2\nA\n\nPre-coro\nB\n\nINTRO:\nC");
+    expect(sections.map((s) => s.label)).toEqual(["Estrofa 2", "Pre-coro", "INTRO"]);
+  });
+
+  it("uses the file name, without extension, as the title", () => {
+    expect(titleFromFileName("Cuán grande es Él.txt")).toBe("Cuán grande es Él");
+    expect(titleFromFileName("  dos   espacios .TXT")).toBe("dos espacios");
+  });
+
+  it("finds no slides in an empty file", () => {
+    expect(parseLyrics("[Coro]\n\n")).toEqual([]);
+  });
+});

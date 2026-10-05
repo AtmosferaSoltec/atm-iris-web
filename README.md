@@ -1,14 +1,19 @@
 # Iris · Web
 
-Panel web de Iris para preparar el contenido de la iglesia. **No proyecta**: la proyección vive en la app de escritorio (Windows) y en el iPad. Desde la web se hace lo administrativo:
+Panel web de Iris para administrar la iglesia. **No proyecta**: la proyección vive en las consolas (iPad y Windows). Desde la web se hace lo administrativo, contra el mismo contrato que usan las consolas (`docs/api-contract.md`):
 
-- **Canciones**: crear y editar letras con vista previa de cada diapositiva tal como se ve en el TV, cargar un `.txt` en el editor o **importar varios `.txt` a la vez**.
+- **Inicio**: saludo y fecha en la zona de la iglesia, próximo servicio con sus bloques y tarjetas de cada sección.
+- **Canciones**: biblioteca con búsqueda, orden y paginación en el servidor; editor con vista previa de cada diapositiva tal como se ve en el TV; importación de varios `.txt`.
+- **Multimedia**: imágenes, videos y música. La subida va del navegador directo al almacenamiento (URL firmada), con progreso, metadatos medidos en el navegador, cuota visible y fondos para la consola.
 - **Servicios**: tipos de servicio con color, horario y bloques de tiempo con responsable sugerido.
-- **Personas**: responsables de bloques, para el control de horas por servicio.
-- **Módulos**: Biblia, Multimedia y Control de tiempo (Letras siempre activo).
-- **Acceso**: iniciar sesión, crear cuenta y recuperar contraseña con un código de 6 dígitos (3 pantallas).
+- **Personas**: responsables de bloques.
+- **Tiempos**: registros que guardan las consolas, con ajustes, y resúmenes por periodo, servicio, bloque y persona.
+- **Equipo**: miembros, roles (dueño, administrador, operador) e invitaciones por correo; página pública `/invitacion` para aceptarlas.
+- **Mi cuenta**: perfil, contraseña y dispositivos con sesión abierta. Cambio de iglesia desde el menú de cuenta.
+- **Ajustes**: nombre y zona horaria de la iglesia, módulos y almacenamiento.
+- **Acceso**: iniciar sesión, crear cuenta y recuperar la contraseña con un código de 6 dígitos.
 
-> **Estado:** el acceso (crear cuenta, iniciar sesión, recuperar contraseña) ya funciona contra `atm-iris-api`. Canciones, servicios, personas y módulos siguen con datos de ejemplo en memoria (los del iPad) hasta que la API los sirva; se reinician al reiniciar el servidor.
+Cada acción aparece solo si el rol de la sesión tiene el permiso (contrato §3); el API la rechaza igual.
 
 ## Requisitos
 
@@ -19,74 +24,105 @@ Panel web de Iris para preparar el contenido de la iglesia. **No proyecta**: la 
 
 ```bash
 pnpm install
-cp .env.example .env.local   # opcional en desarrollo
+cp .env.example .env.local
 pnpm dev                     # http://localhost:3000
 ```
 
-| Script                         | Qué hace                                 |
-| ------------------------------ | ---------------------------------------- |
-| `pnpm dev`                     | Servidor de desarrollo (Turbopack)       |
-| `pnpm build` / `pnpm start`    | Build y servidor de producción           |
-| `pnpm lint`                    | ESLint (reglas de Next + React Compiler) |
-| `pnpm typecheck`               | Genera los tipos de rutas y corre `tsc`  |
-| `pnpm test`                    | Pruebas unitarias (Vitest)               |
-| `pnpm format` / `format:check` | Prettier (+ orden de clases de Tailwind) |
-| `pnpm check`                   | lint + typecheck + test                  |
+| Script                         | Qué hace                                                      |
+| ------------------------------ | ------------------------------------------------------------- |
+| `pnpm dev`                     | Servidor de desarrollo (Turbopack). Uno solo por carpeta      |
+| `pnpm build` / `pnpm start`    | Build y servidor de producción                                |
+| `pnpm lint`                    | ESLint (reglas de Next + React Compiler)                      |
+| `pnpm typecheck`               | Genera los tipos de rutas y corre `tsc`                       |
+| `pnpm test`                    | Pruebas unitarias (Vitest)                                    |
+| `pnpm test:e2e`                | Pruebas de interfaz (Playwright) contra un build en modo mock |
+| `pnpm format` / `format:check` | Prettier (+ orden de clases de Tailwind)                      |
+| `pnpm check`                   | lint + typecheck + test                                       |
+
+### Con la API
+
+```bash
+cd ../atm-iris-api && pnpm start:dev        # http://localhost:3020/api/v1
+cd ../atm-iris-web && pnpm dev              # AUTH_SOURCE=api, DATA_SOURCE=api
+```
+
+Cuenta de desarrollo (la siembra la API): `pastor@vidanueva.org` / `vidanueva123`. La multimedia necesita MinIO (`docker compose -f docker-compose.dev.yml up -d` en `atm-iris-api`) con CORS que permita el `PUT` desde `http://localhost:3000`.
+
+### Sin la API (mocks)
+
+`AUTH_SOURCE=mock DATA_SOURCE=mock pnpm dev`. Los datos viven en memoria y se reinician al reiniciar el servidor:
+
+- Cuentas: `pastor@vidanueva.org` (dueño), `admin@vidanueva.org` (administrador) y `operador@vidanueva.org` (operador). Cualquier contraseña sirve para entrar; cualquier otro correo entra como el pastor y `error@…` simula credenciales incorrectas. Para cambiar la contraseña o aceptar una invitación con cuenta existente, la contraseña es `vidanueva123`.
+- Recuperación: el código es siempre `123456` (también sale en el log del servidor).
+- Invitación pendiente de ejemplo: `/invitacion?token=invitacion-de-prueba`. Las nuevas imprimen su enlace en el log.
+- Dos iglesias (Vida Nueva y Betania) para probar el cambio de iglesia.
+- Los mismos datos de ejemplo del iPad (8 personas, 3 servicios, 10 registros de tiempos, himnos de dominio público).
+- La multimedia se guarda en memoria a través de `/api/mock-storage/[key]`, que solo existe con `DATA_SOURCE=mock`.
 
 ## Variables de entorno
 
 | Variable         | Por defecto           | Descripción                                                                                                              |
 | ---------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `AUTH_SOURCE`    | `mock`                | Acceso: `api` (atm-iris-api) o `mock` (cualquier correo entra; código de recuperación `123456`)                          |
-| `DATA_SOURCE`    | `mock`                | Canciones, servicios, personas y módulos. `api` cuando la API los sirva (etapas 02–04)                                   |
+| `AUTH_SOURCE`    | `mock`                | Cuentas: acceso, sesión, dispositivos, miembros e invitaciones. `api` (atm-iris-api) o `mock`                            |
+| `DATA_SOURCE`    | `mock`                | Contenido de la iglesia: ajustes, personas, servicios, canciones, multimedia y tiempos. `api` o `mock`                   |
 | `API_URL`        | —                     | URL de atm-iris-api **con** `/api/v1`. Obligatoria si alguna fuente es `api`. Local: `http://localhost:3020/api/v1`      |
 | `SESSION_SECRET` | secreto de desarrollo | Cifra la cookie de sesión (lleva los tokens). **Obligatoria en producción**, ≥ 32 caracteres (`openssl rand -base64 32`) |
 
-Se validan con zod al arrancar (`src/server/env.ts`).
-
-Para trabajar con el acceso real, levanta la API (`cd ../atm-iris-api && pnpm start:dev`) y entra con `pastor@vidanueva.org` / `vidanueva123` (lo crea `pnpm db:seed:dev` en la API).
+Se validan con zod al arrancar (`src/server/env.ts`). `.env.example` trae las dos fuentes en `api`.
 
 ## Arquitectura
 
-Next.js 16 (App Router) · React 19 + React Compiler · Tailwind CSS 4 · zod · jose.
+Next.js 16 (App Router) · React 19 + React Compiler · Tailwind CSS 4 · zod · jose · radix-ui · nuqs · sonner.
 
 ```
 src/
-  app/                    Rutas. Solo componen pantallas; sin lógica de negocio.
-    (auth)/login          Acceso
-    (app)/                Pantallas con sesión: Inicio, canciones, servicios, personas, modulos
-    api/health            Sonda de salud para Docker / balanceadores
-  proxy.ts                Redirección optimista según la cookie (antes "middleware")
+  app/                    Rutas. Páginas delgadas: metadata + carga de datos + la vista del feature
+    (auth)/               login, recuperar (3 pasos), invitacion (pública)
+    (app)/                Con sesión: Inicio, canciones, multimedia, servicios, personas, tiempos,
+                          equipo, cuenta, ajustes (+ loading, error y not-found propios)
+    api/health            Sonda de salud
+    api/session/expired   Borra una cookie muerta y manda al login (las páginas no pueden escribir cookies)
+    api/mock-storage      Almacenamiento simulado (solo DATA_SOURCE=mock)
+  proxy.ts                Redirección según la cookie y renovación del access token
   components/
-    ui/                   Design system: Button, TextField, Dialog, Surface, Chip, Switch…
-    brand/                Logo y fondo ambiental
-    projection/           SlidePreview: la diapositiva 16:9 tal como se ve en el TV
-    service/              BlockTimeline
+    ui/                   Sistema de diseño: Button, TextField, Dialog, Select, Combobox, DropdownMenu,
+                          Popover, Tooltip, Toaster, PermissionGate, Pagination, Skeleton…
+    brand/ projection/ service/
   features/<feature>/     actions.ts (Server Actions) · schemas.ts (zod) · components/
-  domain/                 Modelos (iguales a IRIS_SPEC §9) y reglas puras
-  lib/                    Utilidades puras: parser de letras, formato, texto
-  server/                 Solo servidor (`server-only`)
+  domain/                 Modelos del contrato y reglas puras: tiempos, próximo servicio, multimedia
+  lib/                    Utilidades puras: letras, formatos, zona horaria, permisos, parámetros de la URL
+  server/                 Solo servidor
     env.ts                Variables de entorno validadas
-    session.ts            Sesión firmada (JWT HS256) en cookie httpOnly
-    dal.ts                Data Access Layer: requireSession / authorize
+    session*.ts           Sesión cifrada en cookie httpOnly
+    dal.ts                requireSession / requirePermission / authorize
     repositories/
       types.ts            Contratos (interfaces) de datos
-      mock/               Implementación en memoria + datos de ejemplo
-      api/                Implementación contra atm-iris-api
-      index.ts            Composition root: elige mock o api según DATA_SOURCE
+      api/                Implementación contra atm-iris-api (cliente HTTP, errores, mappers)
+      mock/               Implementación en memoria con las mismas reglas
+      index.ts            Composition root: elige mock o api
 ```
 
-Principios (los mismos del iPad):
+### Decisiones respecto a `forma-de-trabajo.md`
 
-1. **Datos detrás de interfaces.** Las pantallas usan `repos.songs`, `repos.people`, etc. y no saben si son mocks o la API.
-2. **Autorización junto a los datos.** `proxy.ts` solo redirige; cada página llama a `requireSession()` y cada Server Action a `authorize()`.
-3. **Validación en el servidor** con zod en cada Server Action, con los mismos textos de error de la spec.
-4. **Tokens centralizados** en `src/app/globals.css` (`@theme`). Las vistas no usan colores ni medidas sueltos.
-5. **Lógica pura y probada** en `lib/` y `domain/` (parser de letras, formatos, reglas).
+| La casa usa                                           | Iris web                                                                                                | Motivo                                                                               |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Navegador → API por rewrite, cookie puesta por el API | **BFF**: Server Components y Server Actions llaman al API; tokens cifrados en cookie propia             | Las consolas necesitan refresh token; la web es un cliente más del mismo contrato    |
+| TanStack Query en el cliente                          | **Server Components + Server Actions + `revalidatePath`**                                               | Con el BFF los datos ya se cargan en el servidor; TanStack Query duplicaría la caché |
+| react-hook-form                                       | `useActionState` + Zod en el servidor; estado local para editores complejos                             | Formularios cortos; el patrón ya se usa en todo el repo                              |
+| shadcn/ui + Tabler                                    | **Primitivos de `radix-ui`** envueltos en `src/components/ui` con los tokens de Iris; íconos **lucide** | Iris tiene su propio sistema visual (el del iPad); Radix da la accesibilidad         |
+| nuqs para filtros en la URL                           | **Se adopta** (`src/lib/search-params.ts`)                                                              | Búsqueda, paginación y filtros compartibles y que sobreviven al recargar             |
+| sonner para toasts                                    | **Se adopta**, restilizado (`src/components/ui/toaster.tsx`)                                            | Avisos breves tras guardar                                                           |
+
+### Principios
+
+1. **Datos detrás de interfaces.** Las pantallas usan `repos.songs`, `repos.media`, etc. y no saben si son mocks o la API. Cada interfaz tiene dos implementaciones a la par: `api/` y `mock/` (mismas reglas: duplicados por _nameKey_, permisos, `LAST_OWNER`, cuota).
+2. **Permisos, no roles.** La web decide qué mostrar con `permissions` de la sesión (`can()`, `PermissionGate`); las páginas que el rol no puede usar responden "no encontrado" (`requirePermission`) y las acciones vuelven a comprobarlo (`authorize(permission)`).
+3. **Errores del API tal cual.** `ApiError` lleva `code`, `message` y `errors`; `toFormState` los pone en el campo del formulario o en el aviso general.
+4. **Zona de la iglesia.** Fechas, saludos, "hoy" y periodos se calculan en `church.timezone` (`src/lib/zoned-time.ts`), nunca en la del navegador ni la del servidor.
+5. **Tokens centralizados** en `src/app/globals.css` (`@theme`). Las vistas no usan colores ni medidas sueltos.
+6. **Lógica pura y probada** en `lib/` y `domain/` (letras, formatos, estadísticas de tiempos, próximo servicio, permisos).
 
 ### Formato de letras
-
-Lo que se pega en el editor o se sube como `.txt`:
 
 ```
 [Estrofa 1]
@@ -99,23 +135,25 @@ Mi corazón entona la canción
 
 - Una **línea en blanco** separa diapositivas (cada una es una pantalla del TV).
 - La primera línea puede nombrar la sección: `[Lo que sea]`, `Coro`, `Estrofa 2`, `Puente:`… No se proyecta.
-- En la importación, el **nombre del archivo** es el título. Los que ya existen en la biblioteca o vienen vacíos se marcan y no se importan.
+- En la importación, el **nombre del archivo** es el título. Los que ya están en la biblioteca se avisan antes y el servidor los salta.
 
 ## Sesión y acceso
 
 El navegador nunca ve los tokens de la API:
 
-1. Los Server Actions de `src/features/auth/actions.ts` llaman a `/auth/*` de la API desde el servidor de Next.
-2. Los tokens (access de 15 min y refresh de 60 días) se guardan **cifrados** (JWE A256GCM) en la cookie `httpOnly` `iris_session`, que vive lo mismo que el refresh token.
+1. Las Server Actions llaman a `/auth/*` de la API desde el servidor de Next.
+2. Los tokens (access de 15 min y refresh de 60 días) se guardan **cifrados** (JWE A256GCM) en la cookie `httpOnly` `iris_session`, junto con lo que la web necesita de la sesión: usuario, iglesia (con zona horaria), rol, permisos e iglesias.
 3. `src/proxy.ts` corre antes de cada página y Server Action. Si al access token le queda menos de un minuto, lo renueva y reescribe la cookie. Si la API rechaza el refresh, borra la cookie y manda al login. Si la API no responde, deja pasar la petición y lo intenta en la siguiente.
-4. Cada página llama a `requireSession()` y cada acción a `authorize()` (`src/server/dal.ts`).
-5. Las llamadas reenvían `X-Forwarded-For`, para que el límite de intentos de login de la API sea por visitante y no por servidor.
+4. Si una llamada de datos responde `401` (sesión cerrada desde otro dispositivo, contraseña cambiada…), el DAL borra la cookie y vuelve al login.
+5. Las llamadas reenvían `X-Forwarded-For`, para que el límite de intentos de la API sea por visitante.
+6. Cambiar de iglesia, editar el perfil o el nombre de la iglesia reescribe la cookie con la sesión nueva.
 
-**Recuperar contraseña**: `/recuperar` (correo) → `/recuperar/codigo` (código de 6 dígitos, con "Reenviar") → `/recuperar/nueva` (contraseña y confirmación) → `/login` con aviso. El correo y el código viajan entre pasos en una cookie cifrada de 15 min, nunca en la URL.
+**Recuperar contraseña**: `/recuperar` → `/recuperar/codigo` → `/recuperar/nueva` → `/login` con aviso. El correo y el código viajan entre pasos en una cookie cifrada de 15 min, nunca en la URL.
 
-## Conectar el resto de datos
+## Pruebas
 
-Cuando la API exponga los endpoints de `src/server/repositories/api/index.ts` (etapas 02–04 de `atm-iris-api/docs/plans`), cambia `DATA_SOURCE=api`. Las pantallas no cambian.
+- **Unitarias** (`pnpm test`, Vitest, `src/**/*.test.ts`): letras, `nameKey`, formatos y fechas en zona horaria, estadísticas de tiempos (incluidas las cifras del iPad), próximo servicio, permisos contra la tabla del contrato, mappers del cliente API, `toFormState` y mocks. Corren en CI.
+- **Interfaz** (`pnpm test:e2e`, Playwright, `e2e/`): acceso y recuperación, canciones, servicios, personas, equipo, multimedia, tiempos y lo que no ve un operador. Construye la app y la sirve en el puerto 3200 en modo mock, así no depende de la API ni choca con un `pnpm dev` abierto. La primera vez: `pnpm exec playwright install chromium`.
 
 ## Despliegue
 
@@ -127,7 +165,7 @@ El build genera un servidor autónomo (`output: "standalone"`).
 docker build -t iris-web .
 docker run -p 3000:3000 \
   -e SESSION_SECRET="$(openssl rand -base64 32)" \
-  -e AUTH_SOURCE=api -e API_URL=http://atm-iris-api:3001/api/v1 \
+  -e AUTH_SOURCE=api -e DATA_SOURCE=api -e API_URL=http://atm-iris-api:3001/api/v1 \
   iris-web
 ```
 
@@ -143,6 +181,6 @@ SESSION_SECRET=... node .next/standalone/server.js
 
 Detrás de un proxy con **HTTPS** (la cookie de sesión es `Secure` en producción). `next.config.ts` añade cabeceras de seguridad (HSTS, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`).
 
-**CI** (`.github/workflows/ci.yml`): lint, typecheck, pruebas, formato y build en cada push a `main` y en cada PR.
+**CI** (`.github/workflows/ci.yml`): lint, typecheck, pruebas unitarias, formato y build en cada push a `main` y en cada PR.
 
-> Mientras `DATA_SOURCE=mock`, los datos viven en la memoria de cada instancia: usa una sola réplica y no lo trates como persistente.
+> Con `DATA_SOURCE=mock` los datos viven en la memoria de cada instancia: usa una sola réplica y no lo trates como persistente.

@@ -54,6 +54,9 @@
 
   --ease-calm: cubic-bezier(0.22, 1, 0.36, 1);
 
+  /* Floating layers: menus, popovers, toasts. */
+  --shadow-menu: 0 24px 48px -12px rgb(0 0 0 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.05);
+
   --animate-pulse-live: pulse-live 0.9s ease-in-out infinite alternate;
   --animate-fade-in: fade-in 0.35s var(--ease-calm);
 

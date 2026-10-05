@@ -1,17 +1,20 @@
-"use client";
-
 import { greeting, longDateOverline } from "@/lib/format";
 
-/** Rendered with the visitor's clock, not the server's (which may be in another time zone). */
-export function Greeting({ churchName }: { churchName: string }) {
-  const now = new Date();
+/** Date and greeting by the church's clock, not the browser's or the server's. */
+export function Greeting({
+  churchName,
+  timeZone,
+  now,
+}: {
+  churchName: string;
+  timeZone: string;
+  now: Date;
+}) {
   return (
     <header className="flex flex-col gap-3">
-      <p className="w-fit text-accent eyebrow" suppressHydrationWarning>
-        {longDateOverline(now)}
-      </p>
+      <p className="w-fit text-accent eyebrow">{longDateOverline(now, timeZone)}</p>
       <h1 className="font-serif text-4xl leading-tight font-medium tracking-tight sm:text-[44px]">
-        <span suppressHydrationWarning>{greeting(now)}</span>
+        {greeting(now, timeZone)}
         <br />
         <span className="text-accent">{churchName}</span>
       </h1>

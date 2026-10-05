@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { cache } from "react";
+import type { AuthResult } from "./repositories/types";
 import {
   decryptSession,
   encryptSession,
@@ -14,6 +15,11 @@ import {
 export async function createSession(payload: SessionPayload): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, await encryptSession(payload), sessionCookieOptions(payload));
+}
+
+/** Signs this browser in with what the API (or the mock) answered. */
+export async function startSession(result: AuthResult): Promise<void> {
+  await createSession({ ...result.session, tokens: result.tokens });
 }
 
 export async function deleteSession(): Promise<void> {

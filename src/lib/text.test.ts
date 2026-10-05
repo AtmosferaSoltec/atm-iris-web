@@ -2,11 +2,23 @@ import { describe, expect, it } from "vitest";
 import { durationSummary, scheduleSummary } from "./format";
 import { accountInitials, initials, nameKey, plural } from "./text";
 
-describe("text", () => {
-  it("compares names without accents, case or surrounding spaces", () => {
-    expect(nameKey("  José Pérez ")).toBe(nameKey("jose perez"));
+describe("nameKey (contract §2)", () => {
+  it("matches the contract's example", () => {
+    expect(nameKey("  José   Pérez ")).toBe("jose perez");
   });
 
+  it("collapses inner whitespace of any kind", () => {
+    expect(nameKey("Ana\t\tTorres")).toBe(nameKey("ana torres"));
+    expect(nameKey("Culto  general")).toBe("culto general");
+  });
+
+  it("drops diacritics, ñ included, and lowercases", () => {
+    expect(nameKey("ÑANDÚ Ü")).toBe("nandu u");
+    expect(nameKey("Oración")).toBe("oracion");
+  });
+});
+
+describe("text", () => {
   it("builds initials", () => {
     expect(initials("Daniel Ruiz")).toBe("DR");
     expect(initials("ana")).toBe("A");

@@ -3,17 +3,18 @@ import { notFound } from "next/navigation";
 import { BackLink } from "@/components/ui/back-link";
 import { PageHeader } from "@/components/ui/page-header";
 import { ServiceTypeEditor } from "@/features/service-types/components/service-type-editor";
-import { requireSession } from "@/server/dal";
+import { requirePermission } from "@/server/dal";
 
 export const metadata: Metadata = { title: "Editar servicio" };
 
 export default async function EditServiceTypePage({ params }: PageProps<"/servicios/[id]">) {
   const { id } = await params;
-  const { repos } = await requireSession();
-  const [serviceType, people, modules] = await Promise.all([
+  const { repos } = await requirePermission("serviceTypes.manage");
+  const [serviceType, types, people, { modules }] = await Promise.all([
     repos.serviceTypes.get(id),
+    repos.serviceTypes.list(),
     repos.people.list(),
-    repos.modules.get(),
+    repos.church.get(),
   ]);
   if (!serviceType) notFound();
 
@@ -25,6 +26,7 @@ export default async function EditServiceTypePage({ params }: PageProps<"/servic
         serviceType={serviceType}
         people={people}
         timeControlEnabled={modules.timeControl}
+        otherNames={types.filter((type) => type.id !== id).map((type) => type.name)}
       />
     </div>
   );

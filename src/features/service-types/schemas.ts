@@ -40,7 +40,7 @@ export const serviceTypeDraftSchema = z
 
 export type ServiceTypeDraft = z.input<typeof serviceTypeDraftSchema>;
 
-export type SaveServiceTypeResult = {
-  error?: string;
-  fieldErrors?: { name?: string; blocks?: string };
-};
+export const SERVICE_TYPE_FIELDS = ["name", "blocks"] as const;
+export type ServiceTypeField = (typeof SERVICE_TYPE_FIELDS)[number];
+
+export const SERVICE_TYPE_DUPLICATE = "Ya existe un servicio con ese nombre.";

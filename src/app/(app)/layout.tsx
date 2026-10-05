@@ -6,7 +6,7 @@ import { requireSession } from "@/server/dal";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const { session, repos } = await requireSession();
-  const modules = await repos.modules.get();
+  const { modules } = await repos.church.get();
 
   return (
     <div className="lg:grid lg:min-h-dvh lg:grid-cols-[248px_1fr]">
@@ -16,11 +16,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             <IrisWordmark height={26} />
           </Link>
           <div className="lg:hidden">
-            <AccountMenu session={session} />
+            <AccountMenu session={session} compact />
           </div>
         </div>
-        <AppNav showTimeControl={modules.timeControl} />
-        <div className="mt-auto hidden border-t border-line pt-4 lg:block">
+        <AppNav modules={modules} />
+        <div className="mt-auto hidden border-t border-line pt-3 lg:block">
           <AccountMenu session={session} />
         </div>
       </aside>

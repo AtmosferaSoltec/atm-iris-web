@@ -1,6 +1,7 @@
 "use client";
 
-import { FileUp, Quote, Trash2, User } from "lucide-react";
+import { Copyright, FileUp, Quote, Trash2, User } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useActionState, useRef, useState, useTransition } from "react";
 import { SlidePreview } from "@/components/projection/slide-preview";
 import { Banner } from "@/components/ui/banner";
@@ -13,8 +14,9 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { Surface } from "@/components/ui/surface";
 import { TextArea } from "@/components/ui/text-area";
 import { TextField } from "@/components/ui/text-field";
+import { toast } from "@/components/ui/toaster";
 import type { Song } from "@/domain/models";
-import { idleState } from "@/lib/form-state";
+import { idleState, type FormState } from "@/lib/form-state";
 import { formatLyrics, parseLyrics, titleFromFileName } from "@/lib/lyrics";
 import { plural } from "@/lib/text";
 import { deleteSong, saveSong } from "../actions";
@@ -23,10 +25,23 @@ import { IMPORT_LIMITS, type SongField } from "../schemas";
 /** A screen with more lines than this is hard to read from the back of the room. */
 const COMFORTABLE_LINES = 6;
 
-export function SongEditor({ song }: { song?: Song }) {
-  const [state, action] = useActionState(saveSong.bind(null, song?.id ?? null), idleState);
+/** `readOnly`: roles without `songs.manage` see the song and its preview, nothing to change. */
+export function SongEditor({ song, readOnly = false }: { song?: Song; readOnly?: boolean }) {
+  const router = useRouter();
+  const [state, action] = useActionState(
+    async (previous: FormState<SongField>, formData: FormData) => {
+      const next = await saveSong(song?.id ?? null, previous, formData);
+      if (next.status === "success") {
+        toast.success("Canción guardada");
+        router.push("/canciones");
+      }
+      return next;
+    },
+    idleState,
+  );
   const [title, setTitle] = useState(song?.title ?? "");
   const [author, setAuthor] = useState(song?.author ?? "");
+  const [copyright, setCopyright] = useState(song?.copyright ?? "");
   const [lyrics, setLyrics] = useState(song ? formatLyrics(song.sections) : "");
   const [fileError, setFileError] = useState<string>();
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -54,7 +69,13 @@ export function SongEditor({ song }: { song?: Song }) {
     if (!song) return;
     startDelete(async () => {
       const result = await deleteSong(song.id);
-      if (result?.error) setDeleteError(result.error);
+      if (result.error) {
+        setDeleteError(result.error);
+        setIsConfirmingDelete(false);
+        return;
+      }
+      toast.success(`Se eliminó «${song.title}»`);
+      router.push("/canciones");
     });
   }
 
@@ -78,6 +99,7 @@ export function SongEditor({ song }: { song?: Song }) {
             onChange={(event) => setTitle(event.target.value)}
             error={errorFor("title", title)}
             autoFocus={!song}
+            readOnly={readOnly}
           />
           <TextField
             id="author"
@@ -87,8 +109,20 @@ export function SongEditor({ song }: { song?: Song }) {
             value={author}
             onChange={(event) => setAuthor(event.target.value)}
             error={errorFor("author", author)}
+            readOnly={readOnly}
           />
         </div>
+        <TextField
+          id="copyright"
+          label="Derechos de autor"
+          placeholder="Opcional"
+          icon={<Copyright />}
+          value={copyright}
+          onChange={(event) => setCopyright(event.target.value)}
+          error={errorFor("copyright", copyright)}
+          hint={readOnly ? undefined : "Ej. Dominio público"}
+          readOnly={readOnly}
+        />
         <TextArea
           id="lyrics"
           label="Letra"
@@ -96,18 +130,25 @@ export function SongEditor({ song }: { song?: Song }) {
           value={lyrics}
           onChange={(event) => setLyrics(event.target.value)}
           error={errorFor("lyrics", lyrics) ?? fileError}
-          hint="Deja una línea en blanco entre diapositivas. Para nombrar una, escribe [Coro] o Estrofa 2 en su primera línea."
+          readOnly={readOnly}
+          hint={
+            readOnly
+              ? undefined
+              : "Deja una línea en blanco entre diapositivas. Para nombrar una, escribe [Coro] o Estrofa 2 en su primera línea."
+          }
           className="min-h-[420px] font-serif text-[17px]"
           spellCheck
           accessory={
-            <button
-              type="button"
-              onClick={() => fileInput.current?.click()}
-              className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold text-ink-2 hover:text-ink"
-            >
-              <FileUp aria-hidden className="size-3.5" />
-              Cargar desde .txt
-            </button>
+            !readOnly && (
+              <button
+                type="button"
+                onClick={() => fileInput.current?.click()}
+                className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold text-ink-2 hover:text-ink"
+              >
+                <FileUp aria-hidden className="size-3.5" />
+                Cargar desde .txt
+              </button>
+            )
           }
         />
         <input
@@ -122,13 +163,15 @@ export function SongEditor({ song }: { song?: Song }) {
             event.target.value = "";
           }}
         />
-        <div className="flex flex-wrap items-center gap-3">
-          <SubmitButton size="lg">{song ? "Guardar cambios" : "Guardar canción"}</SubmitButton>
-          <ButtonLink href="/canciones" variant="ghost" size="lg">
-            Cancelar
-          </ButtonLink>
-        </div>
-        {song && (
+        {!readOnly && (
+          <div className="flex flex-wrap items-center gap-3">
+            <SubmitButton size="lg">{song ? "Guardar cambios" : "Guardar canción"}</SubmitButton>
+            <ButtonLink href="/canciones" variant="ghost" size="lg">
+              Cancelar
+            </ButtonLink>
+          </div>
+        )}
+        {song && !readOnly && (
           <div className="border-t border-line pt-5">
             <Button
               variant="ghost"
@@ -145,7 +188,7 @@ export function SongEditor({ song }: { song?: Song }) {
       <section aria-label="Vista previa" className="flex flex-col gap-4">
         <SectionHeader
           accessory={
-            <span className="text-xs text-ink-3 tabular-nums">
+            <span className="text-xs text-ink-2 tabular-nums">
               {plural(sections.length, "diapositiva")}
             </span>
           }

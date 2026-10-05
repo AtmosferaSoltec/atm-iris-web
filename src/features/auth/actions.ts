@@ -1,11 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { fieldErrorsFrom, formValues, GENERIC_ERROR, type FormState } from "@/lib/form-state";
+import { fieldErrorsFrom, formValues, type FormState } from "@/lib/form-state";
 import { clearRecovery, readRecovery, saveRecovery } from "@/server/recovery";
 import { getRepositories } from "@/server/repositories";
-import { AuthError, type AuthResult } from "@/server/repositories/types";
-import { createSession, deleteSession, getSession } from "@/server/session";
+import { errorMessage, isApiError, toFormState } from "@/server/repositories/api/errors";
+import { deleteSession, getSession, startSession } from "@/server/session";
 import {
   NEW_PASSWORD_FIELDS,
   newPasswordSchema,
@@ -21,35 +21,13 @@ type SignInField = (typeof SIGN_IN_FIELDS)[number];
 type SignUpField = (typeof SIGN_UP_FIELDS)[number];
 type NewPasswordField = (typeof NEW_PASSWORD_FIELDS)[number];
 
-const TOO_MANY_ATTEMPTS = "Hiciste demasiados intentos. Espera un minuto y vuelve a intentarlo.";
-
-async function startSession(result: AuthResult): Promise<void> {
-  await createSession({ ...result.session, tokens: result.tokens });
-}
-
-/**
- * Turns a service failure into form state. The API's message is already in
- * Spanish and safe to show; anything unexpected becomes the generic one.
- * `values` must never include a password: it would travel back to the browser.
- */
-function serviceError<F extends string>(
-  error: unknown,
-  values: Partial<Record<F, string>>,
-): FormState<F> {
-  if (!(error instanceof AuthError)) {
-    console.error(error);
-    return { status: "error", message: GENERIC_ERROR, values };
-  }
-  if (error.code === "TOO_MANY_REQUESTS")
-    return { status: "error", message: TOO_MANY_ATTEMPTS, values };
-  if (error.fieldErrors) {
-    return {
-      status: "error",
-      fieldErrors: error.fieldErrors as Partial<Record<F, string>>,
-      values,
-    };
-  }
-  return { status: "error", message: error.message, values };
+/** The session in the cookie, with the API's tokens, for actions that need the current device. */
+async function currentRepositories() {
+  const session = await getSession();
+  return getRepositories({
+    session: session ?? undefined,
+    accessToken: session?.tokens?.accessToken,
+  });
 }
 
 /* ------------------------------------------------------------------ Access */
@@ -59,6 +37,7 @@ export async function signIn(
   formData: FormData,
 ): Promise<FormState<SignInField>> {
   const values = formValues(formData, SIGN_IN_FIELDS);
+  // `values` travel back to the browser: never the password.
   const kept = { email: values.email };
   const parsed = signInSchema.safeParse(values);
   if (!parsed.success) {
@@ -68,7 +47,7 @@ export async function signIn(
   try {
     await startSession(await getRepositories().auth.signIn(parsed.data));
   } catch (error) {
-    return serviceError(error, kept);
+    return toFormState(error, SIGN_IN_FIELDS, { values: kept });
   }
   redirect("/");
 }
@@ -78,11 +57,7 @@ export async function signUp(
   formData: FormData,
 ): Promise<FormState<SignUpField>> {
   const values = formValues(formData, SIGN_UP_FIELDS);
-  const kept = {
-    churchName: values.churchName,
-    leaderName: values.leaderName,
-    email: values.email,
-  };
+  const kept = { churchName: values.churchName, fullName: values.fullName, email: values.email };
   const parsed = signUpSchema.safeParse(values);
   if (!parsed.success) {
     return { status: "error", fieldErrors: fieldErrorsFrom(parsed.error), values: kept };
@@ -91,17 +66,18 @@ export async function signUp(
   try {
     await startSession(await getRepositories().auth.signUp(parsed.data));
   } catch (error) {
-    return serviceError(error, kept);
+    return toFormState(error, SIGN_UP_FIELDS, { values: kept });
   }
   redirect("/");
 }
 
 export async function signOut(): Promise<void> {
-  const session = await getSession();
   // Close the session on the API too, so its tokens stop working right away.
   // If the API is unreachable the cookie still goes: the user asked to leave.
-  await getRepositories(session?.tokens?.accessToken)
-    .auth.signOut()
+  await (
+    await currentRepositories()
+  ).auth
+    .signOut()
     .catch((error: unknown) => console.error(error));
   await deleteSession();
   redirect("/login");
@@ -123,7 +99,7 @@ export async function requestResetCode(
   try {
     await getRepositories().auth.requestPasswordReset(parsed.data.email);
   } catch (error) {
-    return serviceError(error, values);
+    return toFormState(error, ["email"] as const, { values });
   }
   await saveRecovery({ email: parsed.data.email });
   redirect("/recuperar/codigo");
@@ -137,7 +113,7 @@ export async function resendResetCode(): Promise<{ error?: string }> {
     await getRepositories().auth.requestPasswordReset(recovery.email);
     return {};
   } catch (error) {
-    return { error: error instanceof AuthError ? error.message : GENERIC_ERROR };
+    return { error: errorMessage(error) };
   }
 }
 
@@ -158,10 +134,10 @@ export async function verifyResetCode(
   try {
     await getRepositories().auth.verifyResetCode(recovery.email, parsed.data.code);
   } catch (error) {
-    if (error instanceof AuthError && error.code.startsWith("RESET_")) {
+    if (isApiError(error) && error.code.startsWith("RESET_")) {
       return { status: "error", fieldErrors: { code: error.message }, values };
     }
-    return serviceError(error, values);
+    return toFormState(error, ["code"] as const, { values });
   }
   await saveRecovery({ email: recovery.email, code: parsed.data.code });
   redirect("/recuperar/nueva");
@@ -188,11 +164,11 @@ export async function resetPassword(
     });
   } catch (error) {
     // The code expired between steps 2 and 3: start over from step 1.
-    if (error instanceof AuthError && error.code.startsWith("RESET_")) {
+    if (isApiError(error) && error.code.startsWith("RESET_")) {
       await clearRecovery();
       redirect("/recuperar?vencido=1");
     }
-    return serviceError(error, {});
+    return toFormState(error, NEW_PASSWORD_FIELDS);
   }
 
   await clearRecovery();

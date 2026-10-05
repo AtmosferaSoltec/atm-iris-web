@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Newsreader } from "next/font/google";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { IrisBackground } from "@/components/brand/iris-background";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
@@ -12,7 +15,7 @@ const newsreader = Newsreader({
 
 export const metadata: Metadata = {
   title: { default: "Iris", template: "%s · Iris" },
-  description: "Prepara las letras, los servicios y los equipos de tu iglesia.",
+  description: "Prepara las letras, la multimedia, los servicios y el equipo de tu iglesia.",
   robots: { index: false, follow: false },
 };
 
@@ -26,7 +29,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="es" className={`${inter.variable} ${newsreader.variable} h-full`}>
       <body className="min-h-full">
         <IrisBackground />
-        {children}
+        <NuqsAdapter>
+          <TooltipProvider>{children}</TooltipProvider>
+        </NuqsAdapter>
+        <Toaster />
       </body>
     </html>
   );

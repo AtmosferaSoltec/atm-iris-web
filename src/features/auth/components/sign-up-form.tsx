@@ -25,13 +25,13 @@ export function SignUpForm() {
         error={errors.churchName}
       />
       <TextField
-        id="leaderName"
+        id="fullName"
         label="Responsable"
         placeholder="Nombre y apellido"
         autoComplete="name"
         icon={<User />}
-        defaultValue={state.values?.leaderName}
-        error={errors.leaderName}
+        defaultValue={state.values?.fullName}
+        error={errors.fullName}
       />
       <TextField
         id="email"
@@ -56,7 +56,7 @@ export function SignUpForm() {
       <SubmitButton size="lg" className="mt-1 w-full">
         Crear cuenta
       </SubmitButton>
-      <p className="text-center text-xs text-ink-3">
+      <p className="text-center text-xs text-ink-2">
         Al crear tu cuenta aceptas los <span className="font-semibold text-ink-2">Términos</span> y
         la <span className="font-semibold text-ink-2">Política de privacidad</span>.
       </p>

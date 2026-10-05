@@ -1,10 +1,10 @@
-/** Trimmed, case- and accent-insensitive form used to compare names: " José " matches "jose". */
+/**
+ * Contract §2: the form names are compared in. Trimmed, inner spaces collapsed,
+ * diacritics removed (NFD without combining marks) and lowercased:
+ * "  José   Pérez " → "jose perez".
+ */
 export function nameKey(value: string): string {
-  return value
-    .trim()
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLocaleLowerCase("es");
+  return value.trim().replace(/\s+/g, " ").normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 }
 
 /** "Daniel Ruiz" → "DR". */
