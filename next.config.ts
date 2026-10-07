@@ -14,6 +14,12 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactCompiler: true,
   typedRoutes: true,
+  experimental: {
+    // Pages are dynamic, so by default each visit asks the server again. Keep a
+    // visited page 30 s: going back to a tab is instant. Saving, deleting or
+    // uploading revalidates, so a person's own changes never show up stale.
+    staleTimes: { dynamic: 30 },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

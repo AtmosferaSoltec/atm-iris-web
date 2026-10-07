@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import type { ChurchModules } from "@/domain/models";
 import { cn } from "@/lib/cn";
 import { NAV_ITEMS } from "./nav-items";
@@ -12,6 +13,10 @@ function isActive(pathname: string, href: string): boolean {
 
 export function AppNav({ modules }: { modules: ChurchModules }) {
   const pathname = usePathname();
+  // The clicked item lights up at once; the page follows when the server answers.
+  const [clicked, setClicked] = useState<{ href: string; from: string }>();
+  if (clicked && clicked.from !== pathname) setClicked(undefined);
+  const target = clicked?.href ?? pathname;
   const items = NAV_ITEMS.filter((item) => !item.module || modules[item.module]);
 
   return (
@@ -20,11 +25,12 @@ export function AppNav({ modules }: { modules: ChurchModules }) {
       className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible"
     >
       {items.map(({ href, label, icon: Icon }) => {
-        const active = isActive(pathname, href);
+        const active = isActive(target, href);
         return (
           <Link
             key={href}
             href={href}
+            onClick={() => setClicked({ href, from: pathname })}
             aria-current={active ? "page" : undefined}
             className={cn(
               "relative flex h-10 shrink-0 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",

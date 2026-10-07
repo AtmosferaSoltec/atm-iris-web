@@ -121,7 +121,7 @@ export function resetMockWorld(world: MockWorld = createWorld()): void {
 
 /* ---------------------------------------------------------------- Helpers */
 
-const LATENCY_MS = process.env.NODE_ENV === "test" ? 0 : 250;
+const LATENCY_MS = process.env.NODE_ENV === "test" ? 0 : 40;
 export const delay = () => new Promise((resolve) => setTimeout(resolve, LATENCY_MS));
 export const clone = <T>(value: T): T => structuredClone(value);
 export const now = () => new Date().toISOString();

@@ -39,9 +39,20 @@ type Result = Pick<FormState<ServiceTypeField>, "message" | "fieldErrors">;
 function newBlock(): BlockTemplate {
   return {
     id: crypto.randomUUID(),
-    name: "Nuevo bloque",
+    name: "",
     plannedMinutes: BLOCK_MINUTES.default,
   };
+}
+
+/** The +/- buttons move in steps of 5, snapping to the next multiple of 5. */
+const MINUTE_STEP = 5;
+
+function stepMinutes(value: number, direction: 1 | -1): number {
+  const next =
+    direction === 1
+      ? (Math.floor(value / MINUTE_STEP) + 1) * MINUTE_STEP
+      : (Math.ceil(value / MINUTE_STEP) - 1) * MINUTE_STEP;
+  return clampMinutes(next);
 }
 
 function clampMinutes(value: number): number {
@@ -60,6 +71,8 @@ export function ServiceTypeEditor({ serviceType, timeControlEnabled, otherNames 
   const [minute, setMinute] = useState(serviceType?.schedule?.minute ?? 0);
   const [tracksTime, setTracksTime] = useState((serviceType?.blocks.length ?? 0) > 0);
   const [blocks, setBlocks] = useState<BlockTemplate[]>(serviceType?.blocks ?? []);
+  /** The block just added: its name field takes focus, empty and ready to type. */
+  const [focusBlockId, setFocusBlockId] = useState<string>();
 
   const [result, setResult] = useState<Result>({});
   const [isSaving, startSaving] = useTransition();
@@ -75,6 +88,12 @@ export function ServiceTypeEditor({ serviceType, timeControlEnabled, otherNames 
   const blocksError =
     result.fieldErrors?.blocks ??
     (showsBlocks && blocks.length === 0 ? BLOCKS_REQUIRED : undefined);
+
+  function addBlock() {
+    const block = newBlock();
+    setFocusBlockId(block.id);
+    setBlocks((current) => [...current, block]);
+  }
 
   function updateBlock(id: string, change: Partial<BlockTemplate>) {
     setBlocks((current) =>
@@ -94,7 +113,7 @@ export function ServiceTypeEditor({ serviceType, timeControlEnabled, otherNames 
   function setTimeTracking(isOn: boolean) {
     if (isOn) {
       setTracksTime(true);
-      if (blocks.length === 0) setBlocks([newBlock()]);
+      if (blocks.length === 0) addBlock();
     } else if (blocks.length > 0) {
       setIsConfirmingBlockRemoval(true);
     } else {
@@ -265,7 +284,7 @@ export function ServiceTypeEditor({ serviceType, timeControlEnabled, otherNames 
               <span>
                 <span className="block font-semibold">Controlar el tiempo de este servicio</span>
                 <span className="block text-sm text-ink-2">
-                  Divide el servicio en bloques con un tiempo previsto y un responsable.
+                  Divide el servicio en bloques con un tiempo previsto.
                 </span>
               </span>
               <Switch
@@ -292,8 +311,9 @@ export function ServiceTypeEditor({ serviceType, timeControlEnabled, otherNames 
                           value={block.name}
                           onChange={(event) => updateBlock(block.id, { name: event.target.value })}
                           placeholder="Nombre del bloque"
+                          autoFocus={block.id === focusBlockId}
                           className={cn(
-                            controlStyles(!block.name.trim()),
+                            controlStyles(Boolean(blocksError) && !block.name.trim()),
                             "h-10 min-w-40 flex-1 px-3",
                           )}
                         />
@@ -303,10 +323,10 @@ export function ServiceTypeEditor({ serviceType, timeControlEnabled, otherNames 
                           aria-label={`Minutos de ${block.name || "bloque"}`}
                         >
                           <IconButton
-                            label="Menos minutos"
+                            label="Menos 5 minutos"
                             onClick={() =>
                               updateBlock(block.id, {
-                                plannedMinutes: clampMinutes(block.plannedMinutes - 1),
+                                plannedMinutes: stepMinutes(block.plannedMinutes, -1),
                               })
                             }
                             disabled={block.plannedMinutes <= BLOCK_MINUTES.min}
@@ -336,10 +356,10 @@ export function ServiceTypeEditor({ serviceType, timeControlEnabled, otherNames 
                             </span>
                           </label>
                           <IconButton
-                            label="Más minutos"
+                            label="Más 5 minutos"
                             onClick={() =>
                               updateBlock(block.id, {
-                                plannedMinutes: clampMinutes(block.plannedMinutes + 1),
+                                plannedMinutes: stepMinutes(block.plannedMinutes, 1),
                               })
                             }
                             disabled={block.plannedMinutes >= BLOCK_MINUTES.max}
@@ -382,7 +402,7 @@ export function ServiceTypeEditor({ serviceType, timeControlEnabled, otherNames 
                     variant="secondary"
                     size="sm"
                     icon={<Plus className="size-4" />}
-                    onClick={() => setBlocks((current) => [...current, newBlock()])}
+                    onClick={addBlock}
                   >
                     Agregar bloque
                   </Button>
