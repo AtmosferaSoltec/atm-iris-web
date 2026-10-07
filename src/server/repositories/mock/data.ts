@@ -12,6 +12,7 @@ import {
   type MediaAsset,
   type Paginated,
   type Person,
+  type ServicePlanItem,
   type ServiceRecord,
   type ServiceType,
   type Song,
@@ -24,9 +25,11 @@ import { compareNames, nameKey } from "@/lib/text";
 import { ApiError } from "../api/errors";
 import type {
   ChurchRepository,
+  CreateServicePlanItemInput,
   DataRepositories,
   MediaRepository,
   PeopleRepository,
+  ServicePlanRepository,
   ServiceTypeInput,
   ServiceTypeRepository,
   SongInput,
@@ -324,6 +327,10 @@ function songs(session?: UserSession): SongRepository {
       const data = churchOf(session);
       if (!data.songs.some((song) => song.id === id)) throw notFound();
       data.songs = data.songs.filter((song) => song.id !== id);
+      // Sin esto el plan adelantado quedaria con una referencia colgando.
+      data.servicePlan = data.servicePlan.filter(
+        (item) => !(item.kind === "song" && item.refId === id),
+      );
     },
   };
 }
@@ -452,6 +459,10 @@ function media(session?: UserSession): MediaRepository {
       if (!asset) throw notFound();
       data.media = data.media.filter((candidate) => candidate.id !== id);
       mockWorld().files.delete(asset.storageKey);
+      // Sin esto el plan adelantado quedaria con una referencia colgando.
+      data.servicePlan = data.servicePlan.filter(
+        (item) => !(item.kind === "media" && item.refId === id),
+      );
     },
     async downloadUrl(id) {
       await delay();
@@ -461,6 +472,68 @@ function media(session?: UserSession): MediaRepository {
         url: mockStorageUrl(asset.storageKey),
         expiresAt: new Date(Date.now() + UPLOAD_TTL_MS).toISOString(),
       };
+    },
+  };
+}
+
+/* -------------------------------------------------------------------- Plan */
+
+const refNotFound = (kind: CreateServicePlanItemInput["kind"]) =>
+  new ApiError(400, "VALIDATION_FAILED", "Revisa los datos enviados.", {
+    refId: kind === "song" ? "Esa canción no existe." : "Ese medio no existe.",
+  });
+
+function servicePlan(session?: UserSession): ServicePlanRepository {
+  return {
+    async list() {
+      await delay();
+      return clone(churchOf(session).servicePlan).sort((a, b) => a.position - b.position);
+    },
+    async add({ kind, refId }) {
+      await delay();
+      const data = churchOf(session);
+      const exists =
+        kind === "song"
+          ? data.songs.some((song) => song.id === refId)
+          : data.media.some((asset) => asset.id === refId);
+      if (!exists) throw refNotFound(kind);
+
+      const position = data.servicePlan.length;
+      const item: ServicePlanItem = {
+        id: crypto.randomUUID(),
+        kind,
+        refId,
+        position,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+      data.servicePlan.push(item);
+      return clone(item);
+    },
+    async move(id, position) {
+      await delay();
+      const data = churchOf(session);
+      const ordered = [...data.servicePlan].sort((a, b) => a.position - b.position);
+      const from = ordered.findIndex((item) => item.id === id);
+      if (from === -1) throw notFound();
+
+      const [moved] = ordered.splice(from, 1);
+      const to = Math.min(Math.max(position, 0), ordered.length);
+      ordered.splice(to, 0, moved);
+      ordered.forEach((item, index) => {
+        item.position = index;
+        item.updatedAt = now();
+      });
+    },
+    async remove(id) {
+      await delay();
+      const data = churchOf(session);
+      if (!data.servicePlan.some((item) => item.id === id)) throw notFound();
+      data.servicePlan = data.servicePlan.filter((item) => item.id !== id);
+    },
+    async clear() {
+      await delay();
+      churchOf(session).servicePlan = [];
     },
   };
 }
@@ -520,6 +593,7 @@ export function mockDataRepositories(session?: UserSession): DataRepositories {
     serviceTypes: serviceTypes(session),
     songs: songs(session),
     media: media(session),
+    servicePlan: servicePlan(session),
     records: records(session),
   };
 }

@@ -173,6 +173,7 @@ export function emptyChurchData(church: Church): ChurchData {
     songs: [],
     media: [],
     uploads: [],
+    servicePlan: [],
     records: [],
   };
 }

@@ -5,6 +5,7 @@ import type {
   MediaAsset,
   MediaKind,
   Person,
+  ServicePlanItem,
   ServiceRecord,
   ServiceType,
   Song,
@@ -44,6 +45,7 @@ export type ChurchData = {
   songs: Song[];
   media: MockMedia[];
   uploads: MockUpload[];
+  servicePlan: ServicePlanItem[];
   records: ServiceRecord[];
 };
 

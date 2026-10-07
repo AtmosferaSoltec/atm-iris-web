@@ -7,7 +7,9 @@ import type {
   MediaKind,
   Paginated,
   Person,
+  PlanItemKind,
   Schedule,
+  ServicePlanItem,
   ServiceRecord,
   ServiceType,
   Song,
@@ -176,6 +178,21 @@ export interface MediaRepository {
   downloadUrl(id: Id): Promise<{ url: string; expiresAt: string }>;
 }
 
+/* -------------------------------------------------------------------- Plan */
+
+export type CreateServicePlanItemInput = { kind: PlanItemKind; refId: Id };
+
+export interface ServicePlanRepository {
+  /** In order. */
+  list(): Promise<ServicePlanItem[]>;
+  /** Throws VALIDATION_FAILED (`errors.refId`) if the song/media doesn't exist. */
+  add(input: CreateServicePlanItemInput): Promise<ServicePlanItem>;
+  /** Reorders; the rest shift to make room. */
+  move(id: Id, position: number): Promise<void>;
+  remove(id: Id): Promise<void>;
+  clear(): Promise<void>;
+}
+
 /* ------------------------------------------------------------ Time records */
 
 export type RecordListQuery = {
@@ -206,6 +223,7 @@ export type DataRepositories = {
   serviceTypes: ServiceTypeRepository;
   songs: SongRepository;
   media: MediaRepository;
+  servicePlan: ServicePlanRepository;
   records: TimeRecordRepository;
 };
 

@@ -3,6 +3,7 @@ import type {
   Church,
   MediaAsset,
   Person,
+  ServicePlanItem,
   ServiceRecord,
   ServiceType,
   Song,
@@ -67,6 +68,14 @@ export function apiDataRepositories(options: ClientOptions = {}): DataRepositori
       delete: (id) => api(`/media/${segment(id)}`, { method: "DELETE" }),
       downloadUrl: (id) =>
         api<{ url: string; expiresAt: string }>(`/media/${segment(id)}/download-url`),
+    },
+    servicePlan: {
+      list: () => api<ServicePlanItem[]>("/service-plan"),
+      add: (input) => api<ServicePlanItem>("/service-plan", { method: "POST", body: input }),
+      move: (id, position) =>
+        api(`/service-plan/${segment(id)}/position`, { method: "PUT", body: { position } }),
+      remove: (id) => api(`/service-plan/${segment(id)}`, { method: "DELETE" }),
+      clear: () => api("/service-plan", { method: "DELETE" }),
     },
     records: {
       list: (query = {}) => api.page<ServiceRecord>("/service-records", { query }),

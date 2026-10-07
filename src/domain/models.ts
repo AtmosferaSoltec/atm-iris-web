@@ -177,6 +177,24 @@ export type UploadTicket = {
   expiresAt: string;
 };
 
+/* ------------------------------------------------------------ Plan */
+
+export type PlanItemKind = "song" | "media";
+
+/**
+ * A song or a media asset staged ahead for the next service, from any
+ * client (web, iPad, Windows). No history by service — just the current
+ * state, synced to the consoles (contract §15).
+ */
+export type ServicePlanItem = {
+  id: Id;
+  kind: PlanItemKind;
+  refId: Id;
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 /* ----------------------------------------------------------- Time records */
 
 export type BlockRecordStatus = "completed" | "skipped" | "adjusted";
