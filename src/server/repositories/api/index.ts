@@ -55,7 +55,10 @@ export function apiDataRepositories(options: ClientOptions = {}): DataRepositori
       delete: (id) => api(`/songs/${segment(id)}`, { method: "DELETE" }),
     },
     media: {
-      list: (query = {}) => api.page<MediaAsset>("/media", { query }),
+      list: ({ kind, ...query } = {}) =>
+        api.page<MediaAsset>("/media", {
+          query: { ...query, kind: typeof kind === "string" ? kind : kind?.join(",") },
+        }),
       get: (id) => orNull(api<MediaAsset>(`/media/${segment(id)}`)),
       createUpload: (input) => api<UploadTicket>("/media/uploads", { method: "POST", body: input }),
       confirm: (input) => api<MediaAsset>("/media", { method: "POST", body: input }),

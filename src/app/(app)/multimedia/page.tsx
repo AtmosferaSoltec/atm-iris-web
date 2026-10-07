@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { SECTION_KINDS } from "@/domain/media-rules";
 import { MediaLibrary } from "@/features/media/components/media-library";
 import { loadMediaSearchParams } from "@/lib/search-params";
 import { requireSession } from "@/server/dal";
@@ -18,6 +19,7 @@ export default async function MediaPage({ searchParams }: PageProps<"/multimedia
   if (!church.modules.multimedia) notFound();
 
   const media = await repos.media.list({
+    kind: SECTION_KINDS.media,
     isBackground: false,
     search: search.trim() || undefined,
     page: Math.max(1, page),

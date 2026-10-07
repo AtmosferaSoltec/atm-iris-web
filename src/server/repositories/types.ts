@@ -135,7 +135,8 @@ export interface SongRepository {
 /* ------------------------------------------------------------------- Media */
 
 export type MediaListQuery = {
-  kind?: MediaKind;
+  /** One kind or several (`["image", "video"]`). */
+  kind?: MediaKind | readonly MediaKind[];
   search?: string;
   isBackground?: boolean;
   page?: number;

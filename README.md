@@ -3,13 +3,14 @@
 Panel web de Iris para administrar la iglesia. **No proyecta**: la proyección vive en las consolas (iPad y Windows). Desde la web se hace lo administrativo, contra el mismo contrato que usan las consolas (`docs/api-contract.md`):
 
 - **Inicio**: saludo y fecha en la zona de la iglesia, próximo servicio con sus bloques y tarjetas de cada sección.
-- **Canciones**: biblioteca con búsqueda, orden y paginación en el servidor; editor con vista previa de cada diapositiva tal como se ve en el TV; importación de varios `.txt`.
-- **Multimedia**: imágenes, videos y música. La subida va del navegador directo al almacenamiento (URL firmada), con progreso, metadatos medidos en el navegador, cuota visible y fondos para la consola.
+- **Letras**: biblioteca con búsqueda, orden y paginación en el servidor; editor con vista previa de cada diapositiva tal como se ve en el TV; importación de varios `.txt`. (`/canciones` redirige aquí.)
+- **Música**: el repertorio de pistas que suenan en el salón. Se suben varias a la vez y se escuchan desde la lista; las consolas descargan solo las que se agregan a un servicio.
+- **Multimedia** y **Fondos**: imágenes y videos para una ocasión y fondos de la letra. La subida va del navegador directo al almacenamiento (URL firmada), con progreso, metadatos medidos en el navegador y cuota visible.
 - **Servicios**: tipos de servicio con color, horario y bloques de tiempo con responsable sugerido.
 - **Personas**: responsables de bloques.
 - **Tiempos**: registros que guardan las consolas, con ajustes, y resúmenes por periodo, servicio, bloque y persona.
 - **Mi cuenta**: perfil, contraseña y dispositivos con sesión abierta.
-- **Ajustes**: nombre y zona horaria de la iglesia, módulos y almacenamiento.
+- **Ajustes**: nombre y zona horaria de la iglesia, módulos y almacenamiento (los 5 GB se comparten; se ve cuánto ocupa Música, Fondos y Multimedia).
 - **Acceso**: iniciar sesión, crear cuenta y recuperar la contraseña con un código de 6 dígitos.
 
 Cada iglesia tiene una sola cuenta, sin roles ni equipo (contrato §3): quien entra con ella puede hacer todo. La misma cuenta sirve en la web, el iPad y Windows.
@@ -75,7 +76,7 @@ Next.js 16 (App Router) · React 19 + React Compiler · Tailwind CSS 4 · zod ·
 src/
   app/                    Rutas. Páginas delgadas: metadata + carga de datos + la vista del feature
     (auth)/               login, recuperar (3 pasos)
-    (app)/                Con sesión: Inicio, canciones, multimedia, servicios, personas, tiempos,
+    (app)/                Con sesión: Inicio, letras, música, multimedia, fondos, servicios, personas, tiempos,
                           cuenta, ajustes (+ loading, error y not-found propios)
     api/health            Sonda de salud
     api/session/expired   Borra una cookie muerta y manda al login (las páginas no pueden escribir cookies)

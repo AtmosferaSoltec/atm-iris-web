@@ -5,7 +5,7 @@ import { Toaster as Sonner } from "sonner";
 
 export { toast } from "sonner";
 
-/** Short notices after saving ("Canción guardada"), in Iris' floating-panel look. */
+/** Short notices after saving ("Letra guardada"), in Iris' floating-panel look. */
 export function Toaster() {
   return (
     <Sonner

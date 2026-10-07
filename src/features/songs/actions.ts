@@ -8,7 +8,7 @@ import { errorMessage, toFormState } from "@/server/repositories/api/errors";
 import { SONG_FIELDS, songFormSchema, type SongField } from "./schemas";
 
 function revalidateSongs() {
-  revalidatePath("/canciones", "layout");
+  revalidatePath("/letras", "layout");
   revalidatePath("/");
 }
 

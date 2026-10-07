@@ -31,8 +31,8 @@ export function SongEditor({ song }: { song?: Song }) {
     async (previous: FormState<SongField>, formData: FormData) => {
       const next = await saveSong(song?.id ?? null, previous, formData);
       if (next.status === "success") {
-        toast.success("Canción guardada");
-        router.push("/canciones");
+        toast.success("Letra guardada");
+        router.push("/letras");
       }
       return next;
     },
@@ -60,7 +60,7 @@ export function SongEditor({ song }: { song?: Song }) {
         return;
       }
       toast.success(`Se eliminó «${song.title}»`);
-      router.push("/canciones");
+      router.push("/letras");
     });
   }
 
@@ -107,8 +107,8 @@ export function SongEditor({ song }: { song?: Song }) {
           spellCheck
         />
         <div className="flex flex-wrap items-center gap-3">
-          <SubmitButton size="lg">{song ? "Guardar cambios" : "Guardar canción"}</SubmitButton>
-          <ButtonLink href="/canciones" variant="ghost" size="lg">
+          <SubmitButton size="lg">{song ? "Guardar cambios" : "Guardar letra"}</SubmitButton>
+          <ButtonLink href="/letras" variant="ghost" size="lg">
             Cancelar
           </ButtonLink>
         </div>
@@ -120,7 +120,7 @@ export function SongEditor({ song }: { song?: Song }) {
               icon={<Trash2 className="size-4" />}
               onClick={() => setIsConfirmingDelete(true)}
             >
-              Eliminar canción
+              Eliminar letra
             </Button>
           </div>
         )}

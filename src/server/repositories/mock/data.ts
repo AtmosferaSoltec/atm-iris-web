@@ -2,6 +2,7 @@ import {
   backgroundProblem,
   MEDIA_ERRORS,
   MEDIA_RULES,
+  mediaSection,
   tooLargeMessage,
 } from "@/domain/media-rules";
 import {
@@ -15,6 +16,7 @@ import {
   type ServiceType,
   type Song,
   type SongSummary,
+  type StorageUsage,
   type UserSession,
 } from "@/domain/models";
 import { firstLine } from "@/lib/lyrics";
@@ -66,23 +68,43 @@ function blockCounts(records: ServiceRecord[]): Map<Id, number> {
   return counts;
 }
 
+/** What the church's media takes, by section (contract §6); only the quota is stored. */
+function storageOf(data: ChurchData): StorageUsage {
+  const breakdown = { musicBytes: 0, backgroundBytes: 0, mediaBytes: 0 };
+  for (const asset of data.media) {
+    const section = mediaSection(asset);
+    if (section === "music") breakdown.musicBytes += asset.sizeBytes;
+    else if (section === "backgrounds") breakdown.backgroundBytes += asset.sizeBytes;
+    else breakdown.mediaBytes += asset.sizeBytes;
+  }
+  return {
+    usedBytes: breakdown.musicBytes + breakdown.backgroundBytes + breakdown.mediaBytes,
+    quotaBytes: data.church.storage.quotaBytes,
+    breakdown,
+  };
+}
+
 /* ------------------------------------------------------------------ Church */
 
 function church(session?: UserSession): ChurchRepository {
   // Stored: the church's own choice. Returned: what it sees, like the API (contract §6).
-  const view = (stored: Church): Church =>
-    clone({ ...stored, modules: effectiveModules(stored.modules, stored.availableModules) });
+  const view = (data: ChurchData): Church =>
+    clone({
+      ...data.church,
+      modules: effectiveModules(data.church.modules, data.church.availableModules),
+      storage: storageOf(data),
+    });
 
   return {
     async get() {
       await delay();
-      return view(churchOf(session).church);
+      return view(churchOf(session));
     },
     async update(input) {
       await delay();
       const data = churchOf(session);
       Object.assign(data.church, input, { updatedAt: now() });
-      return view(data.church);
+      return view(data);
     },
     async setModules(modules) {
       await delay();
@@ -95,7 +117,7 @@ function church(session?: UserSession): ChurchRepository {
         timeControl: available.timeControl ? modules.timeControl : stored.timeControl,
       };
       data.church.updatedAt = now();
-      return view(data.church);
+      return view(data);
     },
   };
 }
@@ -320,10 +342,11 @@ function media(session?: UserSession): MediaRepository {
     async list({ kind, search, isBackground, page, limit } = {}) {
       await delay();
       const key = nameKey(search ?? "");
+      const kinds = typeof kind === "string" ? [kind] : kind;
       const items = churchOf(session)
         .media.filter(
           (asset) =>
-            (!kind || asset.kind === kind) &&
+            (!kinds || kinds.includes(asset.kind)) &&
             (isBackground === undefined || asset.isBackground === isBackground) &&
             (!key || nameKey(`${asset.title} ${asset.description ?? ""}`).includes(key)),
         )
@@ -349,7 +372,8 @@ function media(session?: UserSession): MediaRepository {
       const pending = data.uploads
         .filter((upload) => new Date(upload.expiresAt).getTime() > Date.now())
         .reduce((total, upload) => total + upload.sizeBytes, 0);
-      if (data.church.storage.usedBytes + pending + sizeBytes > data.church.storage.quotaBytes) {
+      const { usedBytes, quotaBytes } = storageOf(data);
+      if (usedBytes + pending + sizeBytes > quotaBytes) {
         throw new ApiError(413, "STORAGE_QUOTA_EXCEEDED", MEDIA_ERRORS.STORAGE_QUOTA_EXCEEDED);
       }
       const upload = {
@@ -405,7 +429,6 @@ function media(session?: UserSession): MediaRepository {
       };
       data.uploads = data.uploads.filter((candidate) => candidate.id !== upload.id);
       data.media.push(asset);
-      data.church.storage.usedBytes += asset.sizeBytes;
       return toAsset(asset);
     },
     async update(id, patch) {
@@ -428,7 +451,6 @@ function media(session?: UserSession): MediaRepository {
       const asset = data.media.find((candidate) => candidate.id === id);
       if (!asset) throw notFound();
       data.media = data.media.filter((candidate) => candidate.id !== id);
-      data.church.storage.usedBytes = Math.max(0, data.church.storage.usedBytes - asset.sizeBytes);
       mockWorld().files.delete(asset.storageKey);
     },
     async downloadUrl(id) {

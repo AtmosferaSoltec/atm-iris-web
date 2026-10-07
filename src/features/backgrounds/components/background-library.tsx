@@ -42,7 +42,7 @@ const REQUIREMENTS = [
 ];
 
 export function BackgroundLibrary({ backgrounds, urls, storage }: Props) {
-  const upload = useMediaUpload({ background: true });
+  const upload = useMediaUpload({ section: "backgrounds" });
   const fileInput = useRef<HTMLInputElement>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);

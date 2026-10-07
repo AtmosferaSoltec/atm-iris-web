@@ -19,6 +19,7 @@ import {
 // of the ticket (contract §11). These actions only ask for it and confirm it.
 
 function revalidateMedia() {
+  revalidatePath("/musica");
   revalidatePath("/multimedia");
   revalidatePath("/fondos");
   revalidatePath("/ajustes");
@@ -73,6 +74,18 @@ export async function updateMediaDetails(
   }
   revalidateMedia();
   return { status: "success", values };
+}
+
+/** A signed GET (valid for an hour) to play or preview a file on demand. */
+export async function mediaDownloadUrl(id: string): Promise<{ url?: string; error?: string }> {
+  const mediaId = mediaIdSchema.safeParse(id);
+  if (!mediaId.success) return { error: GENERIC_ERROR };
+  try {
+    const { repos } = await authorize();
+    return { url: (await repos.media.downloadUrl(mediaId.data)).url };
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
 }
 
 export async function deleteMedia(id: string): Promise<{ error?: string }> {

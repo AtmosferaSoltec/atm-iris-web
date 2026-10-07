@@ -47,4 +47,41 @@ describe("mock repositories", () => {
       timeControl: true,
     });
   });
+  it("splits the storage by section and lists several kinds at once", async () => {
+    const { repos } = await signedIn();
+    const upload = async (
+      kind: "audio" | "image",
+      contentType: string,
+      size: number,
+      isBackground = false,
+    ) => {
+      const ticket = await repos.media.createUpload({
+        kind,
+        fileName: `archivo.${kind === "audio" ? "mp3" : "png"}`,
+        contentType,
+        sizeBytes: size,
+      });
+      mockWorld().files.set(ticket.uploadId, { contentType, bytes: new Uint8Array(size) });
+      return repos.media.confirm({
+        uploadId: ticket.uploadId,
+        title: "Archivo",
+        width: isBackground ? 1920 : 640,
+        height: isBackground ? 1080 : 360,
+        isBackground,
+      });
+    };
+    const track = await upload("audio", "audio/mpeg", 300);
+    await upload("image", "image/png", 20, true);
+    await upload("image", "image/png", 1000);
+
+    expect((await repos.church.get()).storage).toMatchObject({
+      usedBytes: 1320,
+      breakdown: { musicBytes: 300, backgroundBytes: 20, mediaBytes: 1000 },
+    });
+    expect((await repos.media.list({ kind: ["image", "video"] })).meta.total).toBe(2);
+    expect((await repos.media.list({ kind: "audio" })).meta.total).toBe(1);
+
+    await repos.media.delete(track.id);
+    expect((await repos.church.get()).storage.breakdown.musicBytes).toBe(0);
+  });
 });

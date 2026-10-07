@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { backgroundProblem } from "./media-rules";
+import { backgroundProblem, mediaSection } from "./media-rules";
 
 const image = {
   kind: "image" as const,
@@ -41,5 +41,13 @@ describe("backgroundProblem", () => {
   it("limits a video to 30 seconds", () => {
     expect(backgroundProblem({ ...video, durationSeconds: 30 })).toBeNull();
     expect(backgroundProblem({ ...video, durationSeconds: 31 })).toMatch(/30 segundos/);
+  });
+});
+
+describe("mediaSection", () => {
+  it("puts audio in Música, backgrounds in Fondos and the rest in Multimedia", () => {
+    expect(mediaSection({ kind: "audio", isBackground: false })).toBe("music");
+    expect(mediaSection({ kind: "image", isBackground: true })).toBe("backgrounds");
+    expect(mediaSection({ kind: "video", isBackground: false })).toBe("media");
   });
 });

@@ -34,7 +34,8 @@ const ROWS: Row[] = [
   {
     key: "multimedia",
     title: "Multimedia",
-    description: "Archivos para una ocasión especial del servicio y fondos para las letras.",
+    description:
+      "Música para el salón, archivos para una ocasión especial y fondos para las letras.",
     icon: SquarePlay,
     color: "var(--color-rose)",
   },

@@ -1,5 +1,6 @@
 import { Film, Image as ImageIcon, Music } from "lucide-react";
 import type { MediaAsset, MediaKind } from "@/domain/models";
+import { MEDIA_RULES } from "@/domain/media-rules";
 import { clock, fileSize } from "@/lib/format";
 
 export const KIND_LABELS: Record<MediaKind, { plural: string; singular: string }> = {
@@ -42,5 +43,7 @@ export function fileFacts(asset: MediaAsset): string {
   return parts.join(" · ");
 }
 
-/** What the file picker accepts. */
-export const ACCEPTED_TYPES = Object.keys(EXTENSIONS).join(",");
+/** What the file picker of a section accepts. */
+export function acceptedTypes(kinds: readonly MediaKind[]): string {
+  return kinds.flatMap((kind) => MEDIA_RULES[kind].contentTypes).join(",");
+}

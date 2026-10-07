@@ -7,7 +7,10 @@ import {
   MEDIA_ERRORS,
   MEDIA_RULES,
   mediaKindOf,
+  SECTION_KINDS,
   tooLargeMessage,
+  WRONG_SECTION,
+  type MediaSection,
 } from "@/domain/media-rules";
 import type { MediaKind, UploadTicket } from "@/domain/models";
 import { titleFromFileName } from "@/lib/text";
@@ -38,9 +41,11 @@ class UploadCancelled extends Error {}
 /**
  * Upload queue: each file goes measure → ticket → PUT straight to the storage
  * (with progress, cancellable) → confirm. One file failing doesn't stop the rest.
- * With `background`, files must meet the lyrics-background rules (checked here and by the API).
+ * Each section only takes its kinds; backgrounds must also meet the lyrics-background
+ * rules (checked here and by the API).
  */
-export function useMediaUpload({ background = false }: { background?: boolean } = {}) {
+export function useMediaUpload({ section }: { section: MediaSection }) {
+  const background = section === "backgrounds";
   const [items, setItems] = useState<UploadItem[]>([]);
   const files = useRef(new Map<string, File>());
   const requests = useRef(new Map<string, XMLHttpRequest>());
@@ -57,6 +62,7 @@ export function useMediaUpload({ background = false }: { background?: boolean } 
 
     // Same answer the API would give, without a round trip.
     if (!kind) return fail(MEDIA_ERRORS.UNSUPPORTED_MEDIA_TYPE);
+    if (!SECTION_KINDS[section].includes(kind)) return fail(WRONG_SECTION[section]);
     if (file.size > MEDIA_RULES[kind].maxBytes) return fail(tooLargeMessage(kind));
 
     patch(id, { status: "measuring", error: undefined, canRetry: false, progress: 0 });

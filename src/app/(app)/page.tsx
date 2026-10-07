@@ -35,8 +35,8 @@ export default async function HomePage() {
               Subir multimedia
             </ButtonLink>
           )}
-          <ButtonLink href="/canciones/nueva" icon={<Plus className="size-4" />}>
-            Subir canción
+          <ButtonLink href="/letras/nueva" icon={<Plus className="size-4" />}>
+            Nueva letra
           </ButtonLink>
         </div>
       </div>

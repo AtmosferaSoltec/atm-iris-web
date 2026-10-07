@@ -3,7 +3,8 @@ import {
   House,
   ImagePlay,
   Library,
-  ListMusic,
+  Music,
+  Quote,
   Settings2,
   Timer,
   Users,
@@ -21,7 +22,8 @@ export type NavItem = {
 
 export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Inicio", icon: House },
-  { href: "/canciones", label: "Canciones", icon: ListMusic },
+  { href: "/letras", label: "Letras", icon: Quote },
+  { href: "/musica", label: "Música", icon: Music, module: "multimedia" },
   { href: "/multimedia", label: "Multimedia", icon: Clapperboard, module: "multimedia" },
   { href: "/fondos", label: "Fondos", icon: ImagePlay, module: "multimedia" },
   { href: "/servicios", label: "Servicios", icon: Library },

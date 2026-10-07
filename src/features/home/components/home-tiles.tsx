@@ -1,8 +1,9 @@
-import { Clapperboard, Library, ListMusic, Settings2, Timer, Users } from "lucide-react";
+import { Clapperboard, Library, Quote, Settings2, Timer, Users } from "lucide-react";
 import { AvatarStack } from "@/components/ui/avatar";
 import { Chip, ColorDot } from "@/components/ui/chip";
 import { Tile } from "@/components/ui/tile";
 import type { Church } from "@/domain/models";
+import { SECTION_KINDS } from "@/domain/media-rules";
 import { tracksTime } from "@/domain/rules";
 import { recordTotals, serviceName } from "@/domain/time-statistics";
 import { StorageUsage } from "@/features/church/components/storage-usage";
@@ -19,11 +20,11 @@ export async function SongsTile({ repos }: TileProps) {
   const songs = await repos.songs.list({ sort: "-updatedAt", limit: 3 });
   return (
     <Tile
-      href="/canciones"
-      icon={<ListMusic />}
+      href="/letras"
+      icon={<Quote />}
       color="var(--color-ember)"
-      title="Canciones"
-      subtitle={plural(songs.meta.total, "canción", "canciones")}
+      title="Letras"
+      subtitle={plural(songs.meta.total, "letra")}
     >
       {songs.data.length > 0 && (
         <ul className="flex flex-col gap-2">
@@ -40,7 +41,11 @@ export async function SongsTile({ repos }: TileProps) {
 }
 
 export async function MediaTile({ repos, storage }: TileProps & { storage: Church["storage"] }) {
-  const files = await repos.media.list({ isBackground: false, limit: 1 });
+  const files = await repos.media.list({
+    kind: SECTION_KINDS.media,
+    isBackground: false,
+    limit: 1,
+  });
   return (
     <Tile
       href="/multimedia"

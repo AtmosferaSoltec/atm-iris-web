@@ -17,6 +17,24 @@ export const MEDIA_RULES: Record<MediaKind, { contentTypes: readonly string[]; m
 
 export const MEDIA_KINDS: readonly MediaKind[] = ["image", "video", "audio"];
 
+/**
+ * Where an asset lives in the web (contract §11): Música takes audio, Fondos
+ * the backgrounds and Multimedia the rest of images and videos.
+ */
+export type MediaSection = "music" | "backgrounds" | "media";
+
+export function mediaSection(asset: { kind: MediaKind; isBackground: boolean }): MediaSection {
+  if (asset.kind === "audio") return "music";
+  return asset.isBackground ? "backgrounds" : "media";
+}
+
+/** The kinds each upload section takes. Backgrounds narrow it further (`backgroundProblem`). */
+export const SECTION_KINDS: Record<MediaSection, readonly MediaKind[]> = {
+  music: ["audio"],
+  backgrounds: ["image", "video"],
+  media: ["image", "video"],
+};
+
 /** The kind a file belongs to by its MIME type, or null when Iris doesn't take it. */
 export function mediaKindOf(contentType: string): MediaKind | null {
   return MEDIA_KINDS.find((kind) => MEDIA_RULES[kind].contentTypes.includes(contentType)) ?? null;
@@ -31,6 +49,13 @@ export const MEDIA_ERRORS = {
   STORAGE_QUOTA_EXCEEDED: "No queda espacio en el almacenamiento de tu iglesia.",
   UPLOAD_NOT_FOUND: "El archivo no llegó al almacenamiento. Vuelve a subirlo.",
 } as const;
+
+/** Shown when a file is dropped in the wrong section; the API would take it, the section doesn't. */
+export const WRONG_SECTION: Record<MediaSection, string> = {
+  music: "Aquí solo se sube música: MP3, M4A, AAC o WAV.",
+  backgrounds: "Un fondo es una imagen o un video.",
+  media: "La música se sube en la sección Música.",
+};
 
 export function tooLargeMessage(kind: MediaKind): string {
   const limit = MEDIA_RULES[kind].maxBytes / MB;

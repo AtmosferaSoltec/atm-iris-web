@@ -155,7 +155,11 @@ export function newChurch(id: string, name: string, now: Date): Church {
     timezone: "America/Lima",
     modules: { bible: true, multimedia: true, timeControl: true },
     availableModules: MOCK_AVAILABLE_MODULES,
-    storage: { usedBytes: 0, quotaBytes: 5 * GIB },
+    storage: {
+      usedBytes: 0,
+      quotaBytes: 5 * GIB,
+      breakdown: { musicBytes: 0, backgroundBytes: 0, mediaBytes: 0 },
+    },
     createdAt: timestamp,
     updatedAt: timestamp,
   };

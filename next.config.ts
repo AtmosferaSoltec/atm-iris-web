@@ -20,6 +20,10 @@ const nextConfig: NextConfig = {
     // uploading revalidates, so a person's own changes never show up stale.
     staleTimes: { dynamic: 30 },
   },
+  async redirects() {
+    // The lyrics section was "Canciones" until Música (audio) got its own.
+    return [{ source: "/canciones/:path*", destination: "/letras/:path*", permanent: true }];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

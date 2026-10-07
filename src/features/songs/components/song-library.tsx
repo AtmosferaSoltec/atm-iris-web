@@ -35,11 +35,11 @@ export function SongLibrary({ songs }: Props) {
   return (
     <div className="mx-auto flex max-w-content flex-col gap-8">
       <PageHeader
-        title="Canciones"
-        description="Las letras de tu biblioteca. Lo que guardes aquí aparece en la consola al preparar el servicio."
+        title="Letras"
+        description="Las letras que se proyectan en el TV. Lo que guardes aquí aparece en la consola al preparar el servicio."
         actions={
-          <ButtonLink href="/canciones/nueva" icon={<Plus className="size-4" />}>
-            Nueva canción
+          <ButtonLink href="/letras/nueva" icon={<Plus className="size-4" />}>
+            Nueva letra
           </ButtonLink>
         }
       />
@@ -50,7 +50,7 @@ export function SongLibrary({ songs }: Props) {
             ref={searchRef}
             id="song-search"
             type="search"
-            aria-label="Buscar canciones"
+            aria-label="Buscar letras"
             placeholder="Título, autor o letra"
             icon={<Search />}
             value={query}
@@ -69,21 +69,21 @@ export function SongLibrary({ songs }: Props) {
           {songs.meta.total === 0 && !isFiltered ? (
             <EmptyState
               icon={<ListMusic />}
-              title="Aún no hay canciones"
-              description="Usa «Nueva canción» para escribir la primera letra."
+              title="Aún no hay letras"
+              description="Usa «Nueva letra» para escribir la primera."
             />
           ) : songs.data.length === 0 ? (
             <EmptyState
               icon={<Search />}
               title="Sin resultados"
-              description={`No encontramos canciones para «${params.search}».`}
+              description={`No encontramos letras para «${params.search}».`}
             />
           ) : (
             <ul className="divide-y divide-line">
               {songs.data.map((song) => (
                 <li key={song.id}>
                   <Link
-                    href={`/canciones/${song.id}`}
+                    href={`/letras/${song.id}`}
                     className="group flex items-center gap-4 px-4 py-4 transition-colors hover:bg-surface sm:px-6"
                   >
                     <span className="grid size-10 shrink-0 place-items-center rounded-sm bg-ember/14 text-ember">

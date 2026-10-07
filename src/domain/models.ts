@@ -60,6 +60,13 @@ export function effectiveModules(chosen: ChurchModules, available: ChurchModules
   };
 }
 
+/** Contract §6. One quota per church; the three sections add up to `usedBytes`. */
+export type StorageUsage = {
+  usedBytes: number;
+  quotaBytes: number;
+  breakdown: { musicBytes: number; backgroundBytes: number; mediaBytes: number };
+};
+
 export type Church = {
   id: Id;
   name: string;
@@ -69,7 +76,7 @@ export type Church = {
   modules: ChurchModules;
   /** Modules that exist in Iris today. A module off here is not offered, not even in Ajustes. */
   availableModules: ChurchModules;
-  storage: { usedBytes: number; quotaBytes: number };
+  storage: StorageUsage;
   createdAt: string;
   updatedAt: string;
 };

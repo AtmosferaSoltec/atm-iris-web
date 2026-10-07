@@ -40,6 +40,7 @@ en `../atm-iris-api` (no la modifiques).
 | 06  | [Tiempos](06-tiempos/README.md): registros y resúmenes                                                                        | [x]                                      |
 | 07  | [Inicio y pulido](07-inicio-y-pulido/README.md): panel con datos reales, estados, accesibilidad, móvil                        | [x]                                      |
 | 08  | [Calidad y entrega](08-calidad-y-entrega/README.md): pruebas, documentación, reporte                                          | [x]                                      |
+| 09  | [Música en la nube](09-musica/README.md): sección Música, Canciones → Letras, almacenamiento por sección                      | [x]                                      |
 
 Marca cada casilla al terminar la fase y completa su sección _Desviaciones_.
 

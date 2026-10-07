@@ -4,7 +4,8 @@ import { Panel } from "@/components/ui/panel";
 import { ChurchForm } from "@/features/church/components/church-form";
 import { ModuleSettings } from "@/features/church/components/module-settings";
 import { PlanPicker } from "@/features/church/components/plan-picker";
-import { StorageUsage } from "@/features/church/components/storage-usage";
+import { StorageBreakdown } from "@/features/church/components/storage-usage";
+import { fileSize } from "@/lib/format";
 import { requireSession } from "@/server/dal";
 
 export const metadata: Metadata = { title: "Ajustes" };
@@ -27,13 +28,13 @@ export default async function SettingsPage() {
       </Panel>
       <Panel
         title="Almacenamiento"
-        description="Lo que ocupan los archivos de multimedia de la biblioteca."
+        description={`Los ${fileSize(church.storage.quotaBytes)} de tu plan los comparten la música, los fondos y la multimedia. Las letras no ocupan espacio.`}
       >
-        <StorageUsage usedBytes={church.storage.usedBytes} quotaBytes={church.storage.quotaBytes} />
+        <StorageBreakdown storage={church.storage} />
       </Panel>
       <Panel
         title="Plan"
-        description="Empieza gratis. Si necesitas más espacio para multimedia, elige un plan mayor."
+        description="Empieza gratis. Si necesitas más espacio para música, fondos o multimedia, elige un plan mayor."
       >
         <PlanPicker quotaBytes={church.storage.quotaBytes} />
       </Panel>

@@ -17,7 +17,8 @@ import { cn } from "@/lib/cn";
 import { clock } from "@/lib/format";
 import { mediaSearchParams } from "@/lib/search-params";
 import { useSlashFocus } from "@/lib/use-slash-focus";
-import { ACCEPTED_TYPES, KIND_COLORS, KIND_ICONS } from "../media-format";
+import { SECTION_KINDS } from "@/domain/media-rules";
+import { acceptedTypes, KIND_COLORS, KIND_ICONS } from "../media-format";
 import { useMediaUpload } from "../upload/use-media-upload";
 import { MediaDetailDialog } from "./media-detail-dialog";
 import { UploadQueue } from "./upload-queue";
@@ -38,7 +39,7 @@ export function MediaLibrary({ media, urls, storage }: Props) {
   const [query, setQuery] = useState(params.search);
   const [openId, setOpenId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const upload = useMediaUpload();
+  const upload = useMediaUpload({ section: "media" });
   const fileInput = useRef<HTMLInputElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   useSlashFocus(searchRef);
@@ -65,7 +66,7 @@ export function MediaLibrary({ media, urls, storage }: Props) {
     >
       <PageHeader
         title="Multimedia"
-        description="Imágenes, videos o cualquier archivo para presentar en una ocasión especial. No es un repertorio: sube solo lo que vas a usar."
+        description="Imágenes y videos para presentar en una ocasión especial. No es un repertorio: sube solo lo que vas a usar. La música va en su propia sección."
         actions={
           <>
             <Button icon={<Upload className="size-4" />} onClick={() => fileInput.current?.click()}>
@@ -75,7 +76,7 @@ export function MediaLibrary({ media, urls, storage }: Props) {
               ref={fileInput}
               type="file"
               multiple
-              accept={ACCEPTED_TYPES}
+              accept={acceptedTypes(SECTION_KINDS.media)}
               className="sr-only"
               tabIndex={-1}
               aria-hidden
