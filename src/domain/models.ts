@@ -107,7 +107,6 @@ export type Song = {
   id: Id;
   title: string;
   author: string;
-  copyright: string | null;
   sections: SongSection[];
   createdAt: string;
   updatedAt: string;

@@ -5,14 +5,7 @@ import { fieldErrorsFrom, formValues, GENERIC_ERROR, type FormState } from "@/li
 import { idSchema } from "@/lib/validation";
 import { authorize } from "@/server/dal";
 import { errorMessage, toFormState } from "@/server/repositories/api/errors";
-import type { SongImportResult } from "@/server/repositories/types";
-import {
-  importSongsSchema,
-  SONG_FIELDS,
-  songFormSchema,
-  type ImportSongItem,
-  type SongField,
-} from "./schemas";
+import { SONG_FIELDS, songFormSchema, type SongField } from "./schemas";
 
 function revalidateSongs() {
   revalidatePath("/canciones", "layout");
@@ -56,31 +49,4 @@ export async function deleteSong(songId: string): Promise<{ error?: string }> {
   }
   revalidateSongs();
   return {};
-}
-
-/** The server decides what is a duplicate; the dialog only warns beforehand. */
-export async function importSongs(
-  items: ImportSongItem[],
-): Promise<{ result?: SongImportResult; error?: string }> {
-  const parsed = importSongsSchema.safeParse(items);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? GENERIC_ERROR };
-  try {
-    const { repos } = await authorize();
-    const result = await repos.songs.import(parsed.data);
-    revalidateSongs();
-    return { result };
-  } catch (error) {
-    return { error: errorMessage(error) };
-  }
-}
-
-/** Every title in the library, to warn about duplicates before importing. */
-export async function listSongTitles(): Promise<string[]> {
-  const { repos } = await authorize();
-  const titles: string[] = [];
-  for (let page = 1; ; page += 1) {
-    const { data, meta } = await repos.songs.list({ page, limit: 100 });
-    titles.push(...data.map((song) => song.title));
-    if (page >= meta.totalPages) return titles;
-  }
 }

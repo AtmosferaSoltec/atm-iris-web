@@ -34,3 +34,12 @@ export function compareNames(a: string, b: string): number {
 export function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : pluralForm}`;
 }
+
+/** "Sublime gracia.png" → "Sublime gracia". */
+export function titleFromFileName(fileName: string): string {
+  return fileName
+    .replace(/\.[^.]+$/, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}

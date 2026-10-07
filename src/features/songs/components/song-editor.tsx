@@ -1,8 +1,8 @@
 "use client";
 
-import { Copyright, FileUp, Quote, Trash2, User } from "lucide-react";
+import { Quote, Trash2, User } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useActionState, useRef, useState, useTransition } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { SlidePreview } from "@/components/projection/slide-preview";
 import { Banner } from "@/components/ui/banner";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -17,10 +17,10 @@ import { TextField } from "@/components/ui/text-field";
 import { toast } from "@/components/ui/toaster";
 import type { Song } from "@/domain/models";
 import { idleState, type FormState } from "@/lib/form-state";
-import { formatLyrics, parseLyrics, titleFromFileName } from "@/lib/lyrics";
+import { formatLyrics, parseLyrics } from "@/lib/lyrics";
 import { plural } from "@/lib/text";
 import { deleteSong, saveSong } from "../actions";
-import { IMPORT_LIMITS, type SongField } from "../schemas";
+import type { SongField } from "../schemas";
 
 /** A screen with more lines than this is hard to read from the back of the room. */
 const COMFORTABLE_LINES = 6;
@@ -40,29 +40,15 @@ export function SongEditor({ song }: { song?: Song }) {
   );
   const [title, setTitle] = useState(song?.title ?? "");
   const [author, setAuthor] = useState(song?.author ?? "");
-  const [copyright, setCopyright] = useState(song?.copyright ?? "");
   const [lyrics, setLyrics] = useState(song ? formatLyrics(song.sections) : "");
-  const [fileError, setFileError] = useState<string>();
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDeleting, startDelete] = useTransition();
   const [deleteError, setDeleteError] = useState<string>();
-  const fileInput = useRef<HTMLInputElement>(null);
 
   const sections = parseLyrics(lyrics);
   // A field's error disappears as soon as its value changes from what was submitted.
   const errorFor = (field: SongField, value: string) =>
     value === state.values?.[field] ? state.fieldErrors?.[field] : undefined;
-
-  async function loadFile(file: File | undefined) {
-    if (!file) return;
-    if (file.size > IMPORT_LIMITS.maxFileBytes) {
-      setFileError("El archivo es demasiado grande (máximo 100 KB).");
-      return;
-    }
-    setFileError(undefined);
-    setLyrics(await file.text());
-    if (!title.trim()) setTitle(titleFromFileName(file.name));
-  }
 
   function confirmDelete() {
     if (!song) return;
@@ -109,48 +95,16 @@ export function SongEditor({ song }: { song?: Song }) {
             error={errorFor("author", author)}
           />
         </div>
-        <TextField
-          id="copyright"
-          label="Derechos de autor"
-          placeholder="Opcional"
-          icon={<Copyright />}
-          value={copyright}
-          onChange={(event) => setCopyright(event.target.value)}
-          error={errorFor("copyright", copyright)}
-          hint="Ej. Dominio público"
-        />
         <TextArea
           id="lyrics"
           label="Letra"
-          placeholder={"[Estrofa 1]\nSublime gracia del Señor\nque a un pecador salvó\n\n[Coro]\n…"}
+          placeholder={"#Estrofa 1\nSublime gracia del Señor\nque a un pecador salvó\n\n#Coro\n…"}
           value={lyrics}
           onChange={(event) => setLyrics(event.target.value)}
-          error={errorFor("lyrics", lyrics) ?? fileError}
-          hint="Deja una línea en blanco entre diapositivas. Para nombrar una, escribe [Coro] o Estrofa 2 en su primera línea."
+          error={errorFor("lyrics", lyrics)}
+          hint="Deja una línea en blanco entre diapositivas. Para nombrar una, escribe # y el nombre en su primera línea (por ejemplo #Coro). Es opcional."
           className="min-h-[420px] font-serif text-[17px]"
           spellCheck
-          accessory={
-            <button
-              type="button"
-              onClick={() => fileInput.current?.click()}
-              className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold text-ink-2 hover:text-ink"
-            >
-              <FileUp aria-hidden className="size-3.5" />
-              Cargar desde .txt
-            </button>
-          }
-        />
-        <input
-          ref={fileInput}
-          type="file"
-          accept=".txt,text/plain"
-          className="sr-only"
-          tabIndex={-1}
-          aria-hidden
-          onChange={(event) => {
-            void loadFile(event.target.files?.[0]);
-            event.target.value = "";
-          }}
         />
         <div className="flex flex-wrap items-center gap-3">
           <SubmitButton size="lg">{song ? "Guardar cambios" : "Guardar canción"}</SubmitButton>

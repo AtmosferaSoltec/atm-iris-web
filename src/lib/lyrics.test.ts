@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { firstLine, formatLyrics, parseLyrics, titleFromFileName } from "./lyrics";
+import { firstLine, formatLyrics, parseLyrics } from "./lyrics";
 
 describe("parseLyrics", () => {
   it("splits sections on blank lines and trims lines", () => {
@@ -10,25 +10,50 @@ describe("parseLyrics", () => {
     ]);
   });
 
-  it("reads bracketed and well-known labels", () => {
-    const sections = parseLyrics("[Estrofa 1]\nA\n\nCoro:\nB\n\npuente\nC\n\nFinal:\nD");
-    expect(sections.map((s) => s.label)).toEqual(["Estrofa 1", "Coro", "Puente", "Final"]);
+  it("reads a label from a first line that starts with #", () => {
+    const sections = parseLyrics("#Estrofa 1\nA\n\n# Coro\nB\n\n#Lo que quieras\nC\n\nD");
+    expect(sections.map((s) => s.label)).toEqual(["Estrofa 1", "Coro", "Lo que quieras", null]);
     expect(sections.map((s) => s.text)).toEqual(["A", "B", "C", "D"]);
   });
 
+  it("only the third and fifth slides of ten lines carry a label", () => {
+    const lines = Array.from({ length: 10 }, (_, i) => `L${i + 1}`);
+    const raw = [
+      lines.slice(0, 2).join("\n"),
+      lines.slice(2, 4).join("\n"),
+      `#Verso\n${lines.slice(4, 6).join("\n")}`,
+      lines.slice(6, 8).join("\n"),
+      `#Coro\n${lines.slice(8).join("\n")}`,
+    ].join("\n\n");
+    expect(parseLyrics(raw).map((s) => s.label)).toEqual([null, null, "Verso", null, "Coro"]);
+  });
+
+  it("does not treat the old [Coro] or Coro: forms as labels", () => {
+    const sections = parseLyrics("[Coro]\nA\n\nCoro:\nB");
+    expect(sections.map((s) => s.label)).toEqual([null, null]);
+    expect(sections[0].text).toBe("[Coro]\nA");
+  });
+
   it("applies a lone label to the next section", () => {
-    expect(parseLyrics("[Coro]\n\nSanto es el Señor")).toEqual([
+    expect(parseLyrics("#Coro\n\nSanto es el Señor")).toEqual([
       { label: "Coro", text: "Santo es el Señor" },
     ]);
   });
 
-  it("does not treat lyric lines ending with a colon as labels", () => {
-    const [section] = parseLyrics("Y cuando en Sion por siglos mil brillando:\nyo cantaré");
-    expect(section.label).toBeNull();
+  it("ignores a # with no name", () => {
+    expect(parseLyrics("#\nA")).toEqual([{ label: null, text: "A" }]);
   });
 
-  it("returns nothing for blank input", () => {
+  it("handles Windows line endings and blank lines with spaces", () => {
+    expect(parseLyrics("#Coro\r\nSanto, santo\r\n   \r\nDigno es el Cordero\r\n")).toEqual([
+      { label: "Coro", text: "Santo, santo" },
+      { label: null, text: "Digno es el Cordero" },
+    ]);
+  });
+
+  it("returns nothing for blank input or a label alone", () => {
     expect(parseLyrics(" \n\n ")).toEqual([]);
+    expect(parseLyrics("#Coro\n\n")).toEqual([]);
   });
 });
 
@@ -42,37 +67,9 @@ describe("formatLyrics", () => {
   });
 });
 
-describe("helpers", () => {
-  it("derives a title from a file name", () => {
-    expect(titleFromFileName("sublime_gracia-final.txt")).toBe("sublime gracia final");
-  });
-
+describe("firstLine", () => {
   it("returns the first projected line", () => {
     expect(firstLine([{ text: "Uno\nDos" }])).toBe("Uno");
     expect(firstLine([])).toBeNull();
-  });
-});
-
-describe("importing .txt files", () => {
-  it("handles Windows line endings and blank lines with spaces", () => {
-    const sections = parseLyrics("[Coro]\r\nSanto, santo\r\n   \r\nDigno es el Cordero\r\n");
-    expect(sections).toEqual([
-      { label: "Coro", text: "Santo, santo" },
-      { label: null, text: "Digno es el Cordero" },
-    ]);
-  });
-
-  it("names numbered and pre-chorus sections", () => {
-    const sections = parseLyrics("Estrofa 2\nA\n\nPre-coro\nB\n\nINTRO:\nC");
-    expect(sections.map((s) => s.label)).toEqual(["Estrofa 2", "Pre-coro", "INTRO"]);
-  });
-
-  it("uses the file name, without extension, as the title", () => {
-    expect(titleFromFileName("Cuán grande es Él.txt")).toBe("Cuán grande es Él");
-    expect(titleFromFileName("  dos   espacios .TXT")).toBe("dos espacios");
-  });
-
-  it("finds no slides in an empty file", () => {
-    expect(parseLyrics("[Coro]\n\n")).toEqual([]);
   });
 });

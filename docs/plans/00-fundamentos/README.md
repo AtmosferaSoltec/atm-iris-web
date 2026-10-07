@@ -25,7 +25,7 @@ Anota estas decisiones en el `README.md` (sección Arquitectura).
 
 - `src/domain/models.ts`: alinea con `docs/api-contract.md`. Agrega `Role`, `Permission`, `SessionView` (lo que la web
   guarda de la sesión: usuario, iglesia con `timezone`, rol, permisos, iglesias), `Church` (con `modules` y `storage`),
-  `Member`, `Invitation`, `InvitationPreview`, `DeviceSession`, `SongSummary`, `Song` (con `copyright`), `MediaAsset`,
+  `Member`, `Invitation`, `InvitationPreview`, `DeviceSession`, `SongSummary`, `Song`, `MediaAsset`,
   `UploadTicket`, `ServiceRecord` con `serviceTypeName`, `Person` con `blockCount`, `Paginated<T>`.
   Los nombres de campos son los del contrato (por ejemplo `fullName`; elimina `leaderName` en todo el repo).
 - `UserSession` (lo que viaja en la cookie) pasa a ser `{ userId, email, fullName, church: { id, name, timezone }, role,

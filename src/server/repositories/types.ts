@@ -118,7 +118,6 @@ export interface ServiceTypeRepository {
 export type SongInput = {
   title: string;
   author: string;
-  copyright: string | null;
   sections: { label: string | null; text: string }[];
 };
 
@@ -126,19 +125,12 @@ export type SongSort = "title" | "-updatedAt";
 
 export type SongListQuery = { search?: string; page?: number; limit?: number; sort?: SongSort };
 
-export type SongImportResult = {
-  created: SongSummary[];
-  skipped: { title: string; reason: "duplicate" }[];
-};
-
 export interface SongRepository {
   list(query?: SongListQuery): Promise<Paginated<SongSummary>>;
   get(id: Id): Promise<Song | null>;
   create(input: SongInput): Promise<Song>;
   update(id: Id, input: SongInput): Promise<Song>;
   delete(id: Id): Promise<void>;
-  /** Skips titles already in the library (by nameKey). 1–50 at a time. */
-  import(inputs: SongInput[]): Promise<SongImportResult>;
 }
 
 /* ------------------------------------------------------------------- Media */

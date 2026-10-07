@@ -248,7 +248,6 @@ function songs(session?: UserSession): SongRepository {
       id: existing?.id ?? crypto.randomUUID(),
       title: input.title,
       author: input.author,
-      copyright: input.copyright,
       sections: input.sections.map((section) => ({ id: crypto.randomUUID(), ...section })),
       createdAt: existing?.createdAt ?? now(),
       updatedAt: now(),
@@ -299,25 +298,6 @@ function songs(session?: UserSession): SongRepository {
       const data = churchOf(session);
       if (!data.songs.some((song) => song.id === id)) throw notFound();
       data.songs = data.songs.filter((song) => song.id !== id);
-    },
-    async import(inputs) {
-      await delay();
-      const data = churchOf(session);
-      const taken = new Set(data.songs.map((song) => nameKey(song.title)));
-      const created: SongSummary[] = [];
-      const skipped: { title: string; reason: "duplicate" }[] = [];
-      for (const input of inputs) {
-        const key = nameKey(input.title);
-        if (taken.has(key)) {
-          skipped.push({ title: input.title, reason: "duplicate" });
-          continue;
-        }
-        taken.add(key);
-        const song = toSong(input);
-        data.songs.push(song);
-        created.push(toSummary(song));
-      }
-      return clone({ created, skipped });
     },
   };
 }

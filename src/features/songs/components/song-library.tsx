@@ -1,10 +1,10 @@
 "use client";
 
-import { ChevronRight, FileUp, ListMusic, Plus, Quote, Search } from "lucide-react";
+import { ChevronRight, ListMusic, Plus, Quote, Search } from "lucide-react";
 import Link from "next/link";
 import { debounce, useQueryStates } from "nuqs";
 import { useRef, useState, useTransition } from "react";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
@@ -15,7 +15,6 @@ import { cn } from "@/lib/cn";
 import { songSearchParams } from "@/lib/search-params";
 import { plural } from "@/lib/text";
 import { useSlashFocus } from "@/lib/use-slash-focus";
-import { ImportSongsDialog } from "./import-songs-dialog";
 
 type Props = { songs: Paginated<SongSummary> };
 
@@ -28,7 +27,6 @@ export function SongLibrary({ songs }: Props) {
   });
   // The field answers at once; the URL (and the server) follow 300 ms later.
   const [query, setQuery] = useState(params.search);
-  const [isImporting, setIsImporting] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   useSlashFocus(searchRef);
 
@@ -40,18 +38,9 @@ export function SongLibrary({ songs }: Props) {
         title="Canciones"
         description="Las letras de tu biblioteca. Lo que guardes aquí aparece en la consola al preparar el servicio."
         actions={
-          <>
-            <Button
-              variant="secondary"
-              icon={<FileUp className="size-4" />}
-              onClick={() => setIsImporting(true)}
-            >
-              Importar .txt
-            </Button>
-            <ButtonLink href="/canciones/nueva" icon={<Plus className="size-4" />}>
-              Nueva canción
-            </ButtonLink>
-          </>
+          <ButtonLink href="/canciones/nueva" icon={<Plus className="size-4" />}>
+            Nueva canción
+          </ButtonLink>
         }
       />
 
@@ -81,7 +70,7 @@ export function SongLibrary({ songs }: Props) {
             <EmptyState
               icon={<ListMusic />}
               title="Aún no hay canciones"
-              description="Usa los botones de arriba para crear la primera o importar varias a la vez desde archivos .txt."
+              description="Usa «Nueva canción» para escribir la primera letra."
             />
           ) : songs.data.length === 0 ? (
             <EmptyState
@@ -126,8 +115,6 @@ export function SongLibrary({ songs }: Props) {
           className="border-t border-line px-4 py-3 sm:px-6"
         />
       </Surface>
-
-      {isImporting && <ImportSongsDialog onClose={() => setIsImporting(false)} />}
     </div>
   );
 }

@@ -9,7 +9,7 @@ import type {
   SongSummary,
   UploadTicket,
 } from "@/domain/models";
-import type { DataRepositories, SongImportResult } from "../types";
+import type { DataRepositories } from "../types";
 import { createApiClient, orNull, segment, type ClientOptions } from "./client";
 
 // Implementation against atm-iris-api, route by route from docs/api-contract.md.
@@ -45,8 +45,6 @@ export function apiDataRepositories(options: ClientOptions = {}): DataRepositori
       create: (input) => api<Song>("/songs", { method: "POST", body: input }),
       update: (id, input) => api<Song>(`/songs/${segment(id)}`, { method: "PUT", body: input }),
       delete: (id) => api(`/songs/${segment(id)}`, { method: "DELETE" }),
-      import: (songs) =>
-        api<SongImportResult>("/songs/import", { method: "POST", body: { songs } }),
     },
     media: {
       list: (query = {}) => api.page<MediaAsset>("/media", { query }),

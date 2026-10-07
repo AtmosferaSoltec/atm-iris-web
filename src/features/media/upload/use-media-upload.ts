@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { toast } from "@/components/ui/toaster";
 import { MEDIA_ERRORS, MEDIA_RULES, mediaKindOf, tooLargeMessage } from "@/domain/media-rules";
 import type { MediaKind, UploadTicket } from "@/domain/models";
-import { titleFromFileName } from "@/lib/lyrics";
+import { titleFromFileName } from "@/lib/text";
 import { confirmUpload, requestUpload } from "../actions";
 import { measureMedia } from "./measure";
 

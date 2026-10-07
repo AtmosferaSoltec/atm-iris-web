@@ -27,7 +27,7 @@ Unitarias (Vitest, `src/**/*.test.ts`) — al menos:
 Interfaz (Playwright, `pnpm add -D @playwright/test`, `e2e/`, contra `pnpm dev` en **modo mock** para que no dependa de la API):
 
 - Login, crear cuenta con errores, recuperación en 3 pasos (código `123456` del mock).
-- Canciones: crear, buscar, importar `.txt`.
+- Canciones: crear, buscar.
 - Servicios: crear con bloques, duplicado.
 - Personas: agregar, duplicado, renombrar.
 - Equipo: invitar, cambiar rol, `LAST_OWNER`.
@@ -52,7 +52,7 @@ Entrega el reporte de `00-fundamentos/plataforma.md` §6 y pregunta al usuario s
 
 - **Integración con la API real** (`AUTH_SOURCE=api`, `DATA_SOURCE=api`, cuenta `pastor@vidanueva.org`): todas las
   páginas cargan y funcionan personas (crear, duplicado, borrar), servicios con bloques (crear, editar con PUT,
-  borrar), canciones (crear, buscar, importar, borrar), invitaciones (enviar, revocar), módulos, dispositivos y
+  borrar), canciones (crear, buscar, borrar), invitaciones (enviar, revocar), módulos, dispositivos y
   "Mi cuenta". Los datos de prueba se borraron al terminar.
   **Pendiente del API**: la subida de multimedia falla porque MinIO rechaza por CORS el `PUT` del navegador
   (`http://localhost:3000` → `http://localhost:9000/iris-media/…`). El bucket necesita CORS para `PUT`/`GET`

@@ -22,43 +22,40 @@ const PEOPLE_NAMES = [
   "Pablo Castro",
 ];
 
-const SONGS: { title: string; author: string; copyright?: string; lyrics: string }[] = [
+const SONGS: { title: string; author: string; lyrics: string }[] = [
   {
     title: "Oh, qué amigo nos es Cristo",
     author: "Joseph M. Scriven",
-    copyright: "Dominio público",
     lyrics:
-      "[Estrofa 1]\n¡Oh, qué amigo nos es Cristo!\nÉl llevó nuestro dolor,\ny nos manda que llevemos\ntodo a Dios en oración.",
+      "#Estrofa 1\n¡Oh, qué amigo nos es Cristo!\nÉl llevó nuestro dolor,\ny nos manda que llevemos\ntodo a Dios en oración.",
   },
   {
     title: "Roca de la eternidad",
     author: "Augustus M. Toplady",
-    copyright: "Dominio público",
     lyrics:
-      "[Estrofa 1]\nRoca de la eternidad,\nfuiste abierta tú por mí;\nsé mi escondedero fiel,\nsolo encuentro paz en ti.",
+      "#Estrofa 1\nRoca de la eternidad,\nfuiste abierta tú por mí;\nsé mi escondedero fiel,\nsolo encuentro paz en ti.",
   },
   {
     title: "Cariñoso Salvador",
     author: "Charles Wesley",
     lyrics:
-      "[Estrofa 1]\nCariñoso Salvador,\nhuyo de la tempestad\na tu seno protector,\nfiándome de tu bondad.",
+      "#Estrofa 1\nCariñoso Salvador,\nhuyo de la tempestad\na tu seno protector,\nfiándome de tu bondad.",
   },
   {
     title: "Sublime gracia",
     author: "John Newton",
-    copyright: "Dominio público",
     lyrics: [
-      "[Estrofa 1]\nSublime gracia del Señor\nque a un pecador salvó;\nfui ciego mas hoy veo yo,\nperdido y Él me halló.",
-      "[Estrofa 2]\nSu gracia me enseñó a temer,\nmis dudas ahuyentó;\n¡oh cuán precioso fue a mi ser\ncuando Él me transformó!",
-      "[Estrofa 3]\nEn los peligros o aflicción\nque yo he tenido aquí,\nsu gracia siempre me libró\ny me guiará feliz.",
-      "[Estrofa 4]\nY cuando en Sion por siglos mil\nbrillando esté cual sol,\nyo cantaré por siempre allí\nsu amor que me salvó.",
+      "#Estrofa 1\nSublime gracia del Señor\nque a un pecador salvó;\nfui ciego mas hoy veo yo,\nperdido y Él me halló.",
+      "#Estrofa 2\nSu gracia me enseñó a temer,\nmis dudas ahuyentó;\n¡oh cuán precioso fue a mi ser\ncuando Él me transformó!",
+      "#Estrofa 3\nEn los peligros o aflicción\nque yo he tenido aquí,\nsu gracia siempre me libró\ny me guiará feliz.",
+      "#Estrofa 4\nY cuando en Sion por siglos mil\nbrillando esté cual sol,\nyo cantaré por siempre allí\nsu amor que me salvó.",
     ].join("\n\n"),
   },
   {
     title: "Santo, santo, santo",
     author: "Reginald Heber",
     lyrics:
-      "[Estrofa 1]\n¡Santo, santo, santo! Señor omnipotente,\nsiempre el labio mío loores te dará;\n¡Santo, santo, santo! te adoro reverente,\nDios en tres personas, bendita Trinidad.",
+      "#Estrofa 1\n¡Santo, santo, santo! Señor omnipotente,\nsiempre el labio mío loores te dará;\n¡Santo, santo, santo! te adoro reverente,\nDios en tres personas, bendita Trinidad.",
   },
   {
     title: "Castillo fuerte",
@@ -173,7 +170,6 @@ export function sampleSongs(now: Date, titles?: string[]): Song[] {
     id: crypto.randomUUID(),
     title: song.title,
     author: song.author,
-    copyright: song.copyright ?? null,
     sections: parseLyrics(song.lyrics).map((section) => ({ id: crypto.randomUUID(), ...section })),
     createdAt: timestamp,
     // Spread a little so "Recientes" has an order.

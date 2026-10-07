@@ -35,7 +35,7 @@ en `../atm-iris-api` (no la modifiques).
 | 01  | [Login y sesiones](01-login/README.md)                                                                                        | [x] ya hecha (con ajustes en la fase 02) |
 | 02  | [Cuenta y equipo](02-cuenta-y-equipo/README.md): perfil, contraseña, dispositivos, cambio de iglesia, equipo, invitaciones    | [x]                                      |
 | 03  | [Iglesia](03-iglesia/README.md): ajustes, módulos, personas, servicios contra el contrato                                     | [x]                                      |
-| 04  | [Canciones](04-canciones/README.md): búsqueda en el servidor, paginación, importación                                         | [x]                                      |
+| 04  | [Canciones](04-canciones/README.md): búsqueda en el servidor y paginación                                         | [x]                                      |
 | 05  | [Multimedia](05-multimedia/README.md): subida directa al almacenamiento, biblioteca, fondos                                   | [x]                                      |
 | 06  | [Tiempos](06-tiempos/README.md): registros y resúmenes                                                                        | [x]                                      |
 | 07  | [Inicio y pulido](07-inicio-y-pulido/README.md): panel con datos reales, estados, accesibilidad, móvil                        | [x]                                      |
