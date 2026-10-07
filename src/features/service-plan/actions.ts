@@ -74,8 +74,21 @@ export async function searchSongsForPlan(query: string): Promise<SongSummary[]> 
   return page.data;
 }
 
+/** Música: audio tracks only. */
+export async function searchMusicForPlan(query: string): Promise<MediaAsset[]> {
+  const { repos } = await authorize();
+  const page = await repos.media.list({ kind: "audio", search: query, limit: 20 });
+  return page.data;
+}
+
+/** Multimedia: images and videos, never the ones that are only a lyrics background (those stay in Fondos). */
 export async function searchMediaForPlan(query: string): Promise<MediaAsset[]> {
   const { repos } = await authorize();
-  const page = await repos.media.list({ search: query, limit: 20 });
+  const page = await repos.media.list({
+    kind: ["image", "video"],
+    isBackground: false,
+    search: query,
+    limit: 20,
+  });
   return page.data;
 }

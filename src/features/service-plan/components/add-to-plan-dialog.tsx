@@ -9,9 +9,14 @@ import { TextField } from "@/components/ui/text-field";
 import { toast } from "@/components/ui/toaster";
 import type { MediaAsset, SongSummary } from "@/domain/models";
 import { KIND_ICONS, KIND_LABELS } from "@/features/media/media-format";
-import { addPlanItem, searchMediaForPlan, searchSongsForPlan } from "../actions";
+import {
+  addPlanItem,
+  searchMediaForPlan,
+  searchMusicForPlan,
+  searchSongsForPlan,
+} from "../actions";
 
-type Tab = "song" | "media";
+type Tab = "song" | "music" | "media";
 
 export function AddToPlanDialog({
   canAddMedia,
@@ -25,6 +30,7 @@ export function AddToPlanDialog({
   const [tab, setTab] = useState<Tab>("song");
   const [query, setQuery] = useState("");
   const [songs, setSongs] = useState<SongSummary[]>([]);
+  const [music, setMusic] = useState<MediaAsset[]>([]);
   const [media, setMedia] = useState<MediaAsset[]>([]);
   const [isSearching, startSearch] = useTransition();
   const [addingId, setAddingId] = useState<string | null>(null);
@@ -35,13 +41,14 @@ export function AddToPlanDialog({
     const handle = setTimeout(() => {
       startSearch(async () => {
         if (tab === "song") setSongs(await searchSongsForPlan(query));
+        else if (tab === "music") setMusic(await searchMusicForPlan(query));
         else setMedia(await searchMediaForPlan(query));
       });
     }, 250);
     return () => clearTimeout(handle);
   }, [tab, query]);
 
-  function add(kind: Tab, refId: string, title: string) {
+  function add(kind: "song" | "media", refId: string, title: string) {
     setAddingId(refId);
     startSearch(async () => {
       const result = await addPlanItem(kind, refId);
@@ -58,14 +65,16 @@ export function AddToPlanDialog({
           title: song.title,
           subtitle: song.author || null,
           icon: <Quote className="size-4" />,
+          kind: "song" as const,
         }))
-      : media.map((asset) => {
+      : (tab === "music" ? music : media).map((asset) => {
           const Icon = KIND_ICONS[asset.kind];
           return {
             id: asset.id,
             title: asset.title,
             subtitle: KIND_LABELS[asset.kind].singular,
             icon: <Icon className="size-4" />,
+            kind: "media" as const,
           };
         });
 
@@ -88,6 +97,7 @@ export function AddToPlanDialog({
             }}
             options={[
               { value: "song", label: "Letras" },
+              { value: "music", label: "Música" },
               { value: "media", label: "Multimedia" },
             ]}
           />
@@ -96,7 +106,13 @@ export function AddToPlanDialog({
         <TextField
           id="plan-search"
           icon={<Search className="size-4" />}
-          placeholder={tab === "song" ? "Buscar canción…" : "Buscar multimedia…"}
+          placeholder={
+            tab === "song"
+              ? "Buscar canción…"
+              : tab === "music"
+                ? "Buscar pista…"
+                : "Buscar multimedia…"
+          }
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           autoFocus
@@ -111,7 +127,7 @@ export function AddToPlanDialog({
               subtitle={result.subtitle}
               isAdded={existing.has(result.id)}
               isAdding={addingId === result.id}
-              onAdd={() => add(tab, result.id, result.title)}
+              onAdd={() => add(result.kind, result.id, result.title)}
             />
           ))}
           {!isSearching && results.length === 0 && (
@@ -120,7 +136,9 @@ export function AddToPlanDialog({
                 ? "Sin resultados."
                 : tab === "song"
                   ? "Aún no hay canciones."
-                  : "Aún no hay multimedia."}
+                  : tab === "music"
+                    ? "Aún no hay pistas en Música."
+                    : "Aún no hay multimedia."}
             </p>
           )}
         </ul>
