@@ -30,7 +30,7 @@ export async function requestUpload(
   const parsed = uploadRequestSchema.safeParse(input);
   if (!parsed.success) return { error: GENERIC_ERROR };
   try {
-    const { repos } = await authorize("media.manage");
+    const { repos } = await authorize();
     return { ticket: await repos.media.createUpload(parsed.data) };
   } catch (error) {
     return { error: errorMessage(error) };
@@ -43,7 +43,7 @@ export async function confirmUpload(
   const parsed = confirmUploadSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? GENERIC_ERROR };
   try {
-    const { repos } = await authorize("media.manage");
+    const { repos } = await authorize();
     const asset = await repos.media.confirm(parsed.data);
     revalidateMedia();
     return { asset };
@@ -65,7 +65,7 @@ export async function updateMediaDetails(
     return { status: "error", fieldErrors: fieldErrorsFrom(parsed.error), values };
   }
   try {
-    const { repos } = await authorize("media.manage");
+    const { repos } = await authorize();
     await repos.media.update(mediaId.data, parsed.data);
   } catch (error) {
     return toFormState(error, MEDIA_FIELDS, { values });
@@ -81,7 +81,7 @@ export async function setMediaBackground(
   const mediaId = mediaIdSchema.safeParse(id);
   if (!mediaId.success) return { error: GENERIC_ERROR };
   try {
-    const { repos } = await authorize("media.manage");
+    const { repos } = await authorize();
     await repos.media.update(mediaId.data, { isBackground: Boolean(isBackground) });
   } catch (error) {
     return { error: errorMessage(error) };
@@ -94,7 +94,7 @@ export async function deleteMedia(id: string): Promise<{ error?: string }> {
   const mediaId = mediaIdSchema.safeParse(id);
   if (!mediaId.success) return { error: GENERIC_ERROR };
   try {
-    const { repos } = await authorize("media.manage");
+    const { repos } = await authorize();
     await repos.media.delete(mediaId.data);
   } catch (error) {
     return { error: errorMessage(error) };

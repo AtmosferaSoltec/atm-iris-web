@@ -7,31 +7,17 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { toast } from "@/components/ui/toaster";
 import type { UserSession } from "@/domain/models";
-import { switchChurch } from "@/features/account/actions";
 import { signOut } from "@/features/auth/actions";
 import { cn } from "@/lib/cn";
-import { ROLE_LABELS } from "@/lib/permissions";
 import { accountInitials } from "@/lib/text";
 
-/** Sidebar account block: church switcher (when there's more than one), Mi cuenta, Cerrar sesión. */
+/** Sidebar account block: Mi cuenta and Cerrar sesión. */
 export function AccountMenu({ session, compact }: { session: UserSession; compact?: boolean }) {
   const [isPending, startTransition] = useTransition();
-
-  function chooseChurch(churchId: string) {
-    if (churchId === session.church.id) return;
-    startTransition(async () => {
-      const result = await switchChurch(churchId);
-      if (result?.error) toast.error(result.error);
-    });
-  }
 
   return (
     <DropdownMenu>
@@ -68,22 +54,6 @@ export function AccountMenu({ session, compact }: { session: UserSession; compac
           <p className="truncate text-sm font-semibold">{session.fullName}</p>
           <p className="truncate text-xs text-ink-2">{session.email}</p>
         </div>
-        {session.churches.length > 1 && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Iglesias</DropdownMenuLabel>
-            <DropdownMenuRadioGroup value={session.church.id} onValueChange={chooseChurch}>
-              {session.churches.map((church) => (
-                <DropdownMenuRadioItem key={church.id} value={church.id}>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate">{church.name}</span>
-                    <span className="block text-xs text-ink-2">{ROLE_LABELS[church.role]}</span>
-                  </span>
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </>
-        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/cuenta">

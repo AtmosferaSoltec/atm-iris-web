@@ -51,14 +51,22 @@ export function encryptSession(payload: SessionPayload): Promise<string> {
 }
 
 /**
- * Cookies written before the session carried permissions (phase 01) are
+ * Cookies written before the session carried the church's time zone are
  * treated as missing, so their owners sign in again instead of crashing pages.
+ * Fields from older versions (role, permissions, churches) are dropped.
  */
 export async function decryptSession(token: string | undefined): Promise<SessionPayload | null> {
   const payload = await unseal<SessionPayload & { iat?: number; exp?: number }>(token);
-  if (!payload || !Array.isArray(payload.permissions) || !payload.church?.timezone) return null;
-  // The JWT's own claims aren't part of the session.
-  const { iat: _iat, exp: _exp, ...session } = payload;
+  if (!payload || !payload.church?.timezone) return null;
+  // The JWT's own claims, and the role fields older cookies carried, aren't part of the session.
+  const {
+    iat: _iat,
+    exp: _exp,
+    role: _role,
+    permissions: _permissions,
+    churches: _churches,
+    ...session
+  } = payload as typeof payload & { role?: unknown; permissions?: unknown; churches?: unknown };
   return session;
 }
 

@@ -28,7 +28,7 @@ const TIME_ZONE_OPTIONS: ComboboxOption[] = listTimeZones().map((zone) => ({
   hint: () => nowIn(zone.id),
 }));
 
-export function ChurchForm({ church, canManage }: { church: Church; canManage: boolean }) {
+export function ChurchForm({ church }: { church: Church }) {
   const [timezone, setTimezone] = useState(church.timezone);
   const [state, action] = useActionState(
     async (previous: FormState<ChurchField>, formData: FormData) => {
@@ -48,7 +48,6 @@ export function ChurchForm({ church, canManage }: { church: Church; canManage: b
         icon={<Building2 />}
         defaultValue={state.values?.name ?? church.name}
         error={state.fieldErrors?.name}
-        readOnly={!canManage}
       />
       <Combobox
         id="timezone"
@@ -61,13 +60,10 @@ export function ChurchForm({ church, canManage }: { church: Church; canManage: b
         searchPlaceholder="Buscar ciudad o región"
         emptyText="No encontramos esa zona"
         error={state.fieldErrors?.timezone}
-        disabled={!canManage}
       />
-      {canManage && (
-        <div>
-          <SubmitButton>Guardar</SubmitButton>
-        </div>
-      )}
+      <div>
+        <SubmitButton>Guardar</SubmitButton>
+      </div>
     </form>
   );
 }

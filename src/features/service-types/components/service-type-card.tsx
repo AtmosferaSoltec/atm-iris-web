@@ -9,18 +9,15 @@ import { blocksSummary, scheduleSummary } from "@/lib/format";
 const cardStyles =
   "group relative flex w-full flex-col gap-4 overflow-hidden rounded-xl surface-panel p-6 pt-7";
 
-/** Opens the editor for roles that can edit; a plain card for the rest. */
+/** A card that opens the service's editor. */
 export function ServiceTypeCard({
   type,
   timeControlEnabled,
-  canEdit,
 }: {
   type: ServiceType;
   timeControlEnabled: boolean;
-  canEdit: boolean;
 }) {
   const content = <ServiceTypeCardContent type={type} timeControlEnabled={timeControlEnabled} />;
-  if (!canEdit) return <article className={cardStyles}>{content}</article>;
   return (
     <Link
       href={`/servicios/${type.id}`}

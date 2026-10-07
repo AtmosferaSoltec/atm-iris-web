@@ -1,8 +1,7 @@
 import "server-only";
 import type { Route } from "next";
-import { notFound, redirect } from "next/navigation";
-import type { Permission, UserSession } from "@/domain/models";
-import { can } from "@/lib/permissions";
+import { redirect } from "next/navigation";
+import type { UserSession } from "@/domain/models";
 import { ApiError } from "./repositories/api/errors";
 import { getRepositories, type Repositories } from "./repositories";
 import { deleteSession, getSession } from "./session";
@@ -14,7 +13,7 @@ import type { SessionTokens } from "./session-token";
 export type AuthorizedContext = {
   session: UserSession;
   repos: Repositories;
-  /** For actions that rewrite the cookie (profile, church switch). */
+  /** For actions that rewrite the cookie (profile, church name). */
   tokens?: SessionTokens;
 };
 
@@ -42,24 +41,11 @@ export async function requireSession(): Promise<AuthorizedContext> {
   return context;
 }
 
-/**
- * For pages that need a permission. Without it the page doesn't exist for this
- * role (404, like the API: a 403 would confirm it's there).
- */
-export async function requirePermission(permission: Permission): Promise<AuthorizedContext> {
-  const context = await requireSession();
-  if (!can(context.session, permission)) notFound();
-  return context;
-}
-
 /** For Server Actions: throws instead of redirecting mid-mutation. */
-export async function authorize(permission?: Permission): Promise<AuthorizedContext> {
+export async function authorize(): Promise<AuthorizedContext> {
   const context = await currentContext();
   if (!context)
     throw new ApiError(401, "UNAUTHORIZED", "Tu sesión expiró. Vuelve a iniciar sesión.");
-  if (permission && !can(context.session, permission)) {
-    throw new ApiError(403, "FORBIDDEN", "Tu rol no permite hacer esto.");
-  }
   return context;
 }
 

@@ -1,10 +1,7 @@
 import "server-only";
 import type {
   Church,
-  Invitation,
-  InvitationPreview,
   MediaAsset,
-  Member,
   Person,
   ServiceRecord,
   ServiceType,
@@ -12,39 +9,13 @@ import type {
   SongSummary,
   UploadTicket,
 } from "@/domain/models";
-import type { DataRepositories, SongImportResult, TeamRepository } from "../types";
-import { toAuthResult, WEB_CLIENT, type ApiAuthResult } from "./auth";
+import type { DataRepositories, SongImportResult } from "../types";
 import { createApiClient, orNull, segment, type ClientOptions } from "./client";
 
 // Implementation against atm-iris-api, route by route from docs/api-contract.md.
 
-/** Contract §7. Accounts data: it follows AUTH_SOURCE (see ../index.ts). */
-export function apiTeam(options: ClientOptions = {}): TeamRepository {
-  const api = createApiClient(options);
-  return {
-    listMembers: () => api<Member[]>("/members"),
-    updateMemberRole: (id, role) =>
-      api<Member>(`/members/${segment(id)}`, { method: "PATCH", body: { role } }),
-    removeMember: (id) => api(`/members/${segment(id)}`, { method: "DELETE" }),
-    listInvitations: () => api<Invitation[]>("/invitations"),
-    invite: (input) => api<Invitation>("/invitations", { method: "POST", body: input }),
-    resendInvitation: (id) =>
-      api<Invitation>(`/invitations/${segment(id)}/resend`, { method: "POST" }),
-    revokeInvitation: (id) => api(`/invitations/${segment(id)}`, { method: "DELETE" }),
-    lookupInvitation: (token) =>
-      api<InvitationPreview>("/invitations/lookup", { query: { token } }),
-    acceptInvitation: async (input) =>
-      toAuthResult(
-        await api<ApiAuthResult>("/invitations/accept", {
-          method: "POST",
-          body: { ...input, client: WEB_CLIENT },
-        }),
-      ),
-  };
-}
-
 /** Contract §6, §8–§11, §14. */
-export function apiDataRepositories(options: ClientOptions = {}): Omit<DataRepositories, "team"> {
+export function apiDataRepositories(options: ClientOptions = {}): DataRepositories {
   const api = createApiClient(options);
 
   return {

@@ -20,7 +20,6 @@ type Props = {
   timeZone: string;
   now: string;
   firstYear: number;
-  canManage: boolean;
 };
 
 /** Tab, filters and the selected record live in the URL; the server loads what they ask for. */
@@ -52,7 +51,6 @@ export function TimesView(props: Props) {
             types={props.types}
             people={props.people}
             timeZone={props.timeZone}
-            canManage={props.canManage}
             serviceFilter={params.service}
             selectedId={params.record}
             onServiceFilter={(service) =>

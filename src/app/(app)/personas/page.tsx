@@ -5,13 +5,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Surface } from "@/components/ui/surface";
 import { PeopleManager } from "@/features/people/components/people-manager";
-import { can } from "@/lib/permissions";
 import { requireSession } from "@/server/dal";
 
 export const metadata: Metadata = { title: "Personas" };
 
 export default async function PeoplePage() {
-  const { session, repos } = await requireSession();
+  const { repos } = await requireSession();
   const [{ modules }, people] = await Promise.all([repos.church.get(), repos.people.list()]);
 
   return (
@@ -19,7 +18,7 @@ export default async function PeoplePage() {
       <PageHeader title="Personas" description="Quienes dirigen los bloques de tus servicios." />
       <Surface className="p-6 sm:p-8">
         {modules.timeControl ? (
-          <PeopleManager people={people} canManage={can(session, "people.manage")} />
+          <PeopleManager people={people} />
         ) : (
           <EmptyState
             icon={<Timer />}

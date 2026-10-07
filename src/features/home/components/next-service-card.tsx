@@ -13,11 +13,10 @@ type Props = {
   next: NextService | null;
   people: Person[];
   timeControl: boolean;
-  canEditServices: boolean;
 };
 
 /** The iPad's home hero, without "Iniciar servicio": the web doesn't project. */
-export function NextServiceCard({ next, people, timeControl, canEditServices }: Props) {
+export function NextServiceCard({ next, people, timeControl }: Props) {
   if (!next) {
     return (
       <Hero color="var(--color-violet)">
@@ -28,13 +27,11 @@ export function NextServiceCard({ next, people, timeControl, canEditServices }: 
           <p className="max-w-md text-[15px] text-ink-2">
             Configura tus tipos de servicio y, si quieres, sus bloques de tiempo.
           </p>
-          {canEditServices && (
-            <div>
-              <ButtonLink href="/servicios/nuevo" size="lg" icon={<Plus className="size-4" />}>
-                Configurar servicios
-              </ButtonLink>
-            </div>
-          )}
+          <div>
+            <ButtonLink href="/servicios/nuevo" size="lg" icon={<Plus className="size-4" />}>
+              Configurar servicios
+            </ButtonLink>
+          </div>
         </div>
       </Hero>
     );

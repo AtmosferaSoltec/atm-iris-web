@@ -1,4 +1,4 @@
-import type { Id, UserSession } from "@/domain/models";
+import type { UserSession } from "@/domain/models";
 import { ApiError } from "../api/errors";
 import type { AuthResult, AuthService } from "../types";
 import { emptyChurchData, newChurch } from "./seed";
@@ -24,20 +24,8 @@ const RESET_CODE_INVALID = () =>
     "El código no es válido o ya venció. Solicita uno nuevo.",
   );
 
-/** Opens a device session for `user` and signs into `churchId` (or the last one used). */
-export function startMockSession(world: MockWorld, user: MockUser, churchId?: Id): AuthResult {
-  const target =
-    churchId ??
-    world.lastChurch[user.id] ??
-    world.churches.find((data) => data.members.some((member) => member.userId === user.id))?.church
-      .id;
-  if (!target) {
-    throw new ApiError(
-      403,
-      "NO_CHURCH_ACCESS",
-      "Tu cuenta no tiene acceso a ninguna iglesia activa.",
-    );
-  }
+/** Opens a device session for `user`, signed into the church of the account. */
+export function startMockSession(world: MockWorld, user: MockUser): AuthResult {
   const id = crypto.randomUUID();
   world.sessions.push({
     id,
@@ -48,8 +36,7 @@ export function startMockSession(world: MockWorld, user: MockUser, churchId?: Id
     lastUsedAt: now(),
     ipAddress: "127.0.0.1",
   });
-  world.lastChurch[user.id] = target;
-  return { session: sessionFor(world, user, target, id) };
+  return { session: sessionFor(world, user, id) };
 }
 
 function currentUser(world: MockWorld, session: UserSession): MockUser {
@@ -71,9 +58,8 @@ function currentUser(world: MockWorld, session: UserSession): MockUser {
 }
 
 /**
- * Like the iPad demo, any email signs in: a seeded account
- * (pastor@, admin@ or operador@vidanueva.org) as itself and any other as the
- * pastor. "error@…" simulates bad credentials.
+ * Like the iPad demo, any email signs in: the seeded account
+ * (pastor@vidanueva.org) as itself and any other as the pastor. "error@…" simulates bad credentials.
  */
 export function mockAuth(session?: UserSession): AuthService {
   return {
@@ -104,15 +90,17 @@ export function mockAuth(session?: UserSession): AuthService {
           { email: "Ya existe una cuenta con ese correo." },
         );
       }
-      const user: MockUser = { id: crypto.randomUUID(), email, fullName, password };
       const church = newChurch(crypto.randomUUID(), churchName, new Date());
+      const user: MockUser = {
+        id: crypto.randomUUID(),
+        churchId: church.id,
+        email,
+        fullName,
+        password,
+      };
       world.users.push(user);
-      world.churches.push(
-        emptyChurchData(church, [
-          { id: crypto.randomUUID(), userId: user.id, role: "owner", joinedAt: now() },
-        ]),
-      );
-      return startMockSession(world, user, church.id);
+      world.churches.push(emptyChurchData(church));
+      return startMockSession(world, user);
     },
 
     async refresh() {
@@ -163,12 +151,7 @@ export function mockAuth(session?: UserSession): AuthService {
       await delay();
       const signedIn = requireSignedIn(session);
       const world = mockWorld();
-      return sessionFor(
-        world,
-        currentUser(world, signedIn),
-        signedIn.church.id,
-        signedIn.sessionId,
-      );
+      return sessionFor(world, currentUser(world, signedIn), signedIn.sessionId);
     },
 
     async updateProfile(fullName) {
@@ -177,7 +160,7 @@ export function mockAuth(session?: UserSession): AuthService {
       const world = mockWorld();
       const user = currentUser(world, signedIn);
       user.fullName = fullName;
-      return sessionFor(world, user, signedIn.church.id, signedIn.sessionId);
+      return sessionFor(world, user, signedIn.sessionId);
     },
 
     async changePassword({ currentPassword, password }) {
@@ -199,16 +182,6 @@ export function mockAuth(session?: UserSession): AuthService {
       world.sessions = world.sessions.filter(
         (device) => device.userId !== user.id || device.id === signedIn.sessionId,
       );
-    },
-
-    async switchChurch(churchId) {
-      await delay();
-      const signedIn = requireSignedIn(session);
-      const world = mockWorld();
-      const user = currentUser(world, signedIn);
-      const result = sessionFor(world, user, churchId, signedIn.sessionId);
-      world.lastChurch[user.id] = churchId;
-      return { session: result };
     },
 
     async listSessions() {

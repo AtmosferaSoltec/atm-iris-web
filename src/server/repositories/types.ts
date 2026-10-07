@@ -3,14 +3,10 @@ import type {
   ChurchModules,
   DeviceSession,
   Id,
-  Invitation,
-  InvitationPreview,
   MediaAsset,
   MediaKind,
-  Member,
   Paginated,
   Person,
-  Role,
   Schedule,
   ServiceRecord,
   ServiceType,
@@ -68,31 +64,9 @@ export interface AuthService {
   updateProfile(fullName: string): Promise<UserSession>;
   /** Closes the account's other sessions. */
   changePassword(input: ChangePasswordInput): Promise<void>;
-  /** Same session, another church, new tokens. */
-  switchChurch(churchId: Id): Promise<AuthResult>;
   listSessions(): Promise<DeviceSession[]>;
   /** Revoking the current one equals signing out. */
   revokeSession(id: Id): Promise<void>;
-}
-
-/* -------------------------------------------------------------------- Team */
-
-export type AcceptInvitationInput = { token: string; fullName?: string; password: string };
-
-export interface TeamRepository {
-  /** Active members, by name. */
-  listMembers(): Promise<Member[]>;
-  updateMemberRole(id: Id, role: Role): Promise<Member>;
-  removeMember(id: Id): Promise<void>;
-  /** Pending ones. */
-  listInvitations(): Promise<Invitation[]>;
-  invite(input: { email: string; role: Role }): Promise<Invitation>;
-  resendInvitation(id: Id): Promise<Invitation>;
-  revokeInvitation(id: Id): Promise<void>;
-  /** Public. Throws INVITATION_INVALID. */
-  lookupInvitation(token: string): Promise<InvitationPreview>;
-  /** Public. Signs into the inviting church. */
-  acceptInvitation(input: AcceptInvitationInput): Promise<AuthResult>;
 }
 
 /* ------------------------------------------------------------------ Church */
@@ -235,7 +209,6 @@ export interface TimeRecordRepository {
 }
 
 export type DataRepositories = {
-  team: TeamRepository;
   church: ChurchRepository;
   people: PeopleRepository;
   serviceTypes: ServiceTypeRepository;

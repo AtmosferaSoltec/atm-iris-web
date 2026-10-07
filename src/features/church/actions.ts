@@ -18,15 +18,12 @@ export async function updateChurch(
     return { status: "error", fieldErrors: fieldErrorsFrom(parsed.error), values };
   }
   try {
-    const { repos, session, tokens } = await authorize("church.manage");
+    const { repos, session, tokens } = await authorize();
     const church = await repos.church.update(parsed.data);
     // Name and zone travel in the session (sidebar, dates): keep the cookie in step.
     await createSession({
       ...session,
       church: { id: church.id, name: church.name, timezone: church.timezone },
-      churches: session.churches.map((item) =>
-        item.id === church.id ? { ...item, name: church.name } : item,
-      ),
       tokens,
     });
   } catch (error) {
@@ -40,7 +37,7 @@ export async function saveModules(modules: ChurchModules): Promise<{ error?: str
   const parsed = modulesSchema.safeParse(modules);
   if (!parsed.success) return { error: GENERIC_ERROR };
   try {
-    const { repos } = await authorize("modules.manage");
+    const { repos } = await authorize();
     await repos.church.setModules(parsed.data);
   } catch (error) {
     return { error: errorMessage(error) };

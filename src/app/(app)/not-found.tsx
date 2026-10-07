@@ -10,7 +10,7 @@ export default function AppNotFound() {
       <EmptyState
         icon={<Compass />}
         title="No encontramos esta página"
-        description="Puede que se haya eliminado, que el enlace esté incompleto o que tu rol no tenga acceso."
+        description="Puede que se haya eliminado o que el enlace esté incompleto."
         action={<ButtonLink href="/">Volver al inicio</ButtonLink>}
       />
     </Surface>

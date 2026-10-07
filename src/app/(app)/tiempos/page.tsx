@@ -8,7 +8,6 @@ import type { ServiceRecord } from "@/domain/models";
 import { blockNames, dateRange } from "@/domain/time-statistics";
 import { TimesView } from "@/features/times/components/times-view";
 import { periodFromParams } from "@/features/times/period";
-import { can } from "@/lib/permissions";
 import { loadTimeSearchParams } from "@/lib/search-params";
 import { zonedParts } from "@/lib/zoned-time";
 import { requireSession } from "@/server/dal";
@@ -30,7 +29,7 @@ async function loadAllRecords(
 }
 
 export default async function TimesPage({ searchParams }: PageProps<"/tiempos">) {
-  const { session, repos } = await requireSession();
+  const { repos } = await requireSession();
   const [church, params, types, people, newest] = await Promise.all([
     repos.church.get(),
     loadTimeSearchParams(searchParams),
@@ -81,7 +80,6 @@ export default async function TimesPage({ searchParams }: PageProps<"/tiempos">)
       timeZone={timeZone}
       now={now.toISOString()}
       firstYear={firstYear}
-      canManage={can(session, "records.manage")}
     />
   );
 }

@@ -34,7 +34,7 @@ export async function saveServiceType(
   const data = parsed.data;
 
   try {
-    const { repos } = await authorize("serviceTypes.manage");
+    const { repos } = await authorize();
     const [existing, church] = await Promise.all([
       data.id ? repos.serviceTypes.get(data.id) : Promise.resolve(null),
       repos.church.get(),
@@ -76,7 +76,7 @@ export async function deleteServiceType(id: string): Promise<{ error?: string }>
   const parsed = idSchema.safeParse(id);
   if (!parsed.success) return { error: GENERIC_ERROR };
   try {
-    const { repos } = await authorize("serviceTypes.manage");
+    const { repos } = await authorize();
     await repos.serviceTypes.delete(parsed.data);
   } catch (error) {
     return { error: errorMessage(error) };

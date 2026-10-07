@@ -5,10 +5,9 @@ import { redirect } from "next/navigation";
 import { fieldErrorsFrom, formValues, GENERIC_ERROR, type FormState } from "@/lib/form-state";
 import { authorize } from "@/server/dal";
 import { errorMessage, toFormState } from "@/server/repositories/api/errors";
-import { createSession, deleteSession, startSession } from "@/server/session";
+import { createSession, deleteSession } from "@/server/session";
 import {
   changePasswordSchema,
-  churchIdSchema,
   PASSWORD_FIELDS,
   PROFILE_FIELDS,
   profileSchema,
@@ -29,7 +28,7 @@ export async function updateProfile(
   try {
     const { repos, tokens } = await authorize();
     const session = await repos.auth.updateProfile(parsed.data.fullName);
-    // The name shows in the sidebar and the team: keep the cookie in step.
+    // The name shows in the sidebar: keep the cookie in step.
     await createSession({ ...session, tokens });
   } catch (error) {
     return toFormState(error, PROFILE_FIELDS, { values });
@@ -86,20 +85,4 @@ export async function signOutEverywhere(): Promise<{ error?: string }> {
   }
   await deleteSession();
   redirect("/login");
-}
-
-/** Same device, another church: new tokens, new permissions, back to Inicio. */
-export async function switchChurch(rawChurchId: string): Promise<{ error?: string }> {
-  const churchId = churchIdSchema.safeParse(rawChurchId);
-  if (!churchId.success) return { error: GENERIC_ERROR };
-  try {
-    const { repos, session, tokens } = await authorize();
-    if (churchId.data === session.church.id) return {};
-    const result = await repos.auth.switchChurch(churchId.data);
-    await startSession({ session: result.session, tokens: result.tokens ?? tokens });
-  } catch (error) {
-    return { error: errorMessage(error) };
-  }
-  revalidatePath("/", "layout");
-  redirect("/");
 }

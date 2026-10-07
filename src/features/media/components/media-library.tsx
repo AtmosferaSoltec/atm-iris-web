@@ -27,10 +27,9 @@ type Props = {
   /** Signed download URLs by asset id (valid for an hour). */
   urls: Record<string, string | null>;
   storage: Church["storage"];
-  canManage: boolean;
 };
 
-export function MediaLibrary({ media, urls, storage, canManage }: Props) {
+export function MediaLibrary({ media, urls, storage }: Props) {
   const [isLoading, startTransition] = useTransition();
   const [params, setParams] = useQueryStates(mediaSearchParams, {
     shallow: false,
@@ -51,14 +50,13 @@ export function MediaLibrary({ media, urls, storage, canManage }: Props) {
   function onDrop(event: DragEvent) {
     event.preventDefault();
     setIsDragging(false);
-    if (canManage && event.dataTransfer.files.length > 0) upload.addFiles(event.dataTransfer.files);
+    if (event.dataTransfer.files.length > 0) upload.addFiles(event.dataTransfer.files);
   }
 
   return (
     <div
       className="mx-auto flex max-w-content flex-col gap-8"
       onDragOver={(event) => {
-        if (!canManage) return;
         event.preventDefault();
         setIsDragging(true);
       }}
@@ -71,29 +69,24 @@ export function MediaLibrary({ media, urls, storage, canManage }: Props) {
         title="Multimedia"
         description="Imágenes, videos y música para proyectar y reproducir en el servicio."
         actions={
-          canManage && (
-            <>
-              <Button
-                icon={<Upload className="size-4" />}
-                onClick={() => fileInput.current?.click()}
-              >
-                Subir archivos
-              </Button>
-              <input
-                ref={fileInput}
-                type="file"
-                multiple
-                accept={ACCEPTED_TYPES}
-                className="sr-only"
-                tabIndex={-1}
-                aria-hidden
-                onChange={(event) => {
-                  if (event.target.files) upload.addFiles(event.target.files);
-                  event.target.value = "";
-                }}
-              />
-            </>
-          )
+          <>
+            <Button icon={<Upload className="size-4" />} onClick={() => fileInput.current?.click()}>
+              Subir archivos
+            </Button>
+            <input
+              ref={fileInput}
+              type="file"
+              multiple
+              accept={ACCEPTED_TYPES}
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden
+              onChange={(event) => {
+                if (event.target.files) upload.addFiles(event.target.files);
+                event.target.value = "";
+              }}
+            />
+          </>
         }
       />
 
@@ -160,11 +153,7 @@ export function MediaLibrary({ media, urls, storage, canManage }: Props) {
               <EmptyState
                 icon={<Icon />}
                 title={`Aún no hay ${kind === "audio" ? "música" : KIND_LABELS[kind].plural.toLowerCase()}`}
-                description={
-                  canManage
-                    ? "Sube archivos con el botón o arrástralos a esta página."
-                    : "Cuando alguien del equipo suba archivos, aparecerán aquí."
-                }
+                description="Sube archivos con el botón o arrástralos a esta página."
               />
             )
           ) : kind === "audio" ? (
@@ -223,7 +212,6 @@ export function MediaLibrary({ media, urls, storage, canManage }: Props) {
           key={open.id}
           asset={open}
           url={urls[open.id] ?? null}
-          canManage={canManage}
           onClose={() => setOpenId(null)}
         />
       )}

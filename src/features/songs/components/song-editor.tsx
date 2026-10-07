@@ -25,8 +25,7 @@ import { IMPORT_LIMITS, type SongField } from "../schemas";
 /** A screen with more lines than this is hard to read from the back of the room. */
 const COMFORTABLE_LINES = 6;
 
-/** `readOnly`: roles without `songs.manage` see the song and its preview, nothing to change. */
-export function SongEditor({ song, readOnly = false }: { song?: Song; readOnly?: boolean }) {
+export function SongEditor({ song }: { song?: Song }) {
   const router = useRouter();
   const [state, action] = useActionState(
     async (previous: FormState<SongField>, formData: FormData) => {
@@ -99,7 +98,6 @@ export function SongEditor({ song, readOnly = false }: { song?: Song; readOnly?:
             onChange={(event) => setTitle(event.target.value)}
             error={errorFor("title", title)}
             autoFocus={!song}
-            readOnly={readOnly}
           />
           <TextField
             id="author"
@@ -109,7 +107,6 @@ export function SongEditor({ song, readOnly = false }: { song?: Song; readOnly?:
             value={author}
             onChange={(event) => setAuthor(event.target.value)}
             error={errorFor("author", author)}
-            readOnly={readOnly}
           />
         </div>
         <TextField
@@ -120,8 +117,7 @@ export function SongEditor({ song, readOnly = false }: { song?: Song; readOnly?:
           value={copyright}
           onChange={(event) => setCopyright(event.target.value)}
           error={errorFor("copyright", copyright)}
-          hint={readOnly ? undefined : "Ej. Dominio público"}
-          readOnly={readOnly}
+          hint="Ej. Dominio público"
         />
         <TextArea
           id="lyrics"
@@ -130,25 +126,18 @@ export function SongEditor({ song, readOnly = false }: { song?: Song; readOnly?:
           value={lyrics}
           onChange={(event) => setLyrics(event.target.value)}
           error={errorFor("lyrics", lyrics) ?? fileError}
-          readOnly={readOnly}
-          hint={
-            readOnly
-              ? undefined
-              : "Deja una línea en blanco entre diapositivas. Para nombrar una, escribe [Coro] o Estrofa 2 en su primera línea."
-          }
+          hint="Deja una línea en blanco entre diapositivas. Para nombrar una, escribe [Coro] o Estrofa 2 en su primera línea."
           className="min-h-[420px] font-serif text-[17px]"
           spellCheck
           accessory={
-            !readOnly && (
-              <button
-                type="button"
-                onClick={() => fileInput.current?.click()}
-                className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold text-ink-2 hover:text-ink"
-              >
-                <FileUp aria-hidden className="size-3.5" />
-                Cargar desde .txt
-              </button>
-            )
+            <button
+              type="button"
+              onClick={() => fileInput.current?.click()}
+              className="inline-flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold text-ink-2 hover:text-ink"
+            >
+              <FileUp aria-hidden className="size-3.5" />
+              Cargar desde .txt
+            </button>
           }
         />
         <input
@@ -163,15 +152,13 @@ export function SongEditor({ song, readOnly = false }: { song?: Song; readOnly?:
             event.target.value = "";
           }}
         />
-        {!readOnly && (
-          <div className="flex flex-wrap items-center gap-3">
-            <SubmitButton size="lg">{song ? "Guardar cambios" : "Guardar canción"}</SubmitButton>
-            <ButtonLink href="/canciones" variant="ghost" size="lg">
-              Cancelar
-            </ButtonLink>
-          </div>
-        )}
-        {song && !readOnly && (
+        <div className="flex flex-wrap items-center gap-3">
+          <SubmitButton size="lg">{song ? "Guardar cambios" : "Guardar canción"}</SubmitButton>
+          <ButtonLink href="/canciones" variant="ghost" size="lg">
+            Cancelar
+          </ButtonLink>
+        </div>
+        {song && (
           <div className="border-t border-line pt-5">
             <Button
               variant="ghost"

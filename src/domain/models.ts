@@ -5,30 +5,12 @@ export type Id = string;
 
 /* ---------------------------------------------------------------- Accounts */
 
-export type Role = "owner" | "admin" | "operator";
 export type Platform = "web" | "ios" | "windows";
-
-/** Contract §3. Clients decide what to show from these, never from the role name. */
-export type Permission =
-  | "church.manage"
-  | "modules.manage"
-  | "members.manage"
-  | "songs.manage"
-  | "media.manage"
-  | "serviceTypes.manage"
-  | "people.manage"
-  | "records.write"
-  | "records.manage";
-
-export type ChurchSummary = { id: Id; name: string; role: Role };
 
 /** `GET /auth/me` (contract §4). */
 export type SessionView = {
   user: { id: Id; email: string; fullName: string };
   church: { id: Id; name: string; timezone: string };
-  role: Role;
-  permissions: Permission[];
-  churches: ChurchSummary[];
   session: { id: Id; platform: Platform; deviceName: string | null };
 };
 
@@ -40,9 +22,6 @@ export type UserSession = {
   email: string;
   fullName: string;
   church: { id: Id; name: string; timezone: string };
-  role: Role;
-  permissions: Permission[];
-  churches: ChurchSummary[];
 };
 
 export type DeviceSession = {
@@ -53,33 +32,6 @@ export type DeviceSession = {
   lastUsedAt: string;
   ipAddress: string | null;
   isCurrent: boolean;
-};
-
-export type Member = {
-  /** Membership id. */
-  id: Id;
-  user: { id: Id; email: string; fullName: string };
-  role: Role;
-  joinedAt: string;
-  isCurrentUser: boolean;
-};
-
-export type Invitation = {
-  id: Id;
-  email: string;
-  role: Role;
-  invitedBy: { id: Id; fullName: string };
-  expiresAt: string;
-  createdAt: string;
-};
-
-export type InvitationPreview = {
-  churchName: string;
-  email: string;
-  role: Role;
-  invitedByName: string;
-  expiresAt: string;
-  hasAccount: boolean;
 };
 
 /* ------------------------------------------------------------------ Church */

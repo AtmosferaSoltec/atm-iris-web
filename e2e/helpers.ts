@@ -2,8 +2,6 @@ import { deflateSync } from "node:zlib";
 import { expect, type Page } from "@playwright/test";
 
 export const OWNER = "pastor@vidanueva.org";
-export const ADMIN = "admin@vidanueva.org";
-export const OPERATOR = "operador@vidanueva.org";
 
 /** Mock sign-in: any password works for the seeded accounts. */
 export async function signIn(page: Page, email = OWNER) {

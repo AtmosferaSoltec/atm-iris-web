@@ -1,21 +1,12 @@
-import {
-  Clapperboard,
-  Library,
-  ListMusic,
-  Settings2,
-  Timer,
-  UserRoundCog,
-  Users,
-} from "lucide-react";
+import { Clapperboard, Library, ListMusic, Settings2, Timer, Users } from "lucide-react";
 import { AvatarStack } from "@/components/ui/avatar";
 import { Chip, ColorDot } from "@/components/ui/chip";
 import { Tile } from "@/components/ui/tile";
-import type { Church, UserSession } from "@/domain/models";
+import type { Church } from "@/domain/models";
 import { tracksTime } from "@/domain/rules";
 import { recordTotals, serviceName } from "@/domain/time-statistics";
 import { StorageUsage } from "@/features/church/components/storage-usage";
 import { overtime, shortWeekdayDate } from "@/lib/format";
-import { can } from "@/lib/permissions";
 import { plural } from "@/lib/text";
 import type { Repositories } from "@/server/repositories/types";
 
@@ -162,32 +153,6 @@ export async function TimesTile({ repos, timeZone }: TileProps & { timeZone: str
           )}
         </p>
       )}
-    </Tile>
-  );
-}
-
-export async function TeamTile({ repos, session }: TileProps & { session: UserSession }) {
-  const canManage = can(session, "members.manage");
-  const [members, invitations] = await Promise.all([
-    repos.team.listMembers(),
-    canManage ? repos.team.listInvitations() : Promise.resolve([]),
-  ]);
-  return (
-    <Tile
-      href="/equipo"
-      icon={<UserRoundCog />}
-      color="var(--color-indigo)"
-      title="Equipo"
-      subtitle={plural(members.length, "miembro", "miembros")}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <AvatarStack names={members.map((member) => member.user.fullName)} />
-        {canManage && invitations.length > 0 && (
-          <span className="text-sm text-ink-2">
-            {plural(invitations.length, "invitación pendiente", "invitaciones pendientes")}
-          </span>
-        )}
-      </div>
     </Tile>
   );
 }

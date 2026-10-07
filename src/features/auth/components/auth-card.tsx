@@ -4,7 +4,7 @@ import { IrisWordmark } from "@/components/brand/iris-mark";
 import { BackLink } from "@/components/ui/back-link";
 import { Surface } from "@/components/ui/surface";
 
-/** Narrow centered card with the wordmark and a way back to the login (recovery, invitations). */
+/** Narrow centered card with the wordmark and a way back to the login (recovery). */
 export function AuthCard({ children }: { children: ReactNode }) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col justify-center gap-8 px-4 py-12">

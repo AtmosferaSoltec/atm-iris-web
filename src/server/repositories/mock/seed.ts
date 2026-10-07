@@ -7,7 +7,7 @@ import type {
   Song,
 } from "@/domain/models";
 import { parseLyrics } from "@/lib/lyrics";
-import type { ChurchData, MockMembership } from "./world";
+import type { ChurchData } from "./world";
 
 // Same sample church as the iPad app (IRIS_SPEC §11). Hymn texts are public domain.
 
@@ -155,11 +155,9 @@ export function newChurch(id: string, name: string, now: Date): Church {
   };
 }
 
-export function emptyChurchData(church: Church, members: MockMembership[]): ChurchData {
+export function emptyChurchData(church: Church): ChurchData {
   return {
     church,
-    members,
-    invitations: [],
     people: [],
     serviceTypes: [],
     songs: [],

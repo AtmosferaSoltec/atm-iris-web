@@ -20,8 +20,6 @@ import {
 
 /** Only for visitors without a session. */
 const GUEST_PATHS = ["/login", "/recuperar"];
-/** Open to everyone: an invitation may be for another account than the one signed in. */
-const OPEN_PATHS = ["/invitacion"];
 const SESSION_OVER = new Set(["INVALID_REFRESH_TOKEN", "UNAUTHORIZED", "VALIDATION_FAILED"]);
 
 const matches = (pathname: string, paths: string[]) =>
@@ -30,11 +28,10 @@ const matches = (pathname: string, paths: string[]) =>
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isGuestOnly = matches(pathname, GUEST_PATHS);
-  const isOpen = matches(pathname, OPEN_PATHS);
   const session = await decryptSession(request.cookies.get(SESSION_COOKIE)?.value);
 
   if (!session) {
-    return isGuestOnly || isOpen ? NextResponse.next() : redirectTo("/login", request);
+    return isGuestOnly ? NextResponse.next() : redirectTo("/login", request);
   }
   if (isGuestOnly) return redirectTo("/", request);
 
@@ -42,7 +39,7 @@ export async function proxy(request: NextRequest) {
 
   const refreshed = await refresh(session, request);
   if (refreshed === "expired") {
-    const response = isOpen ? NextResponse.next() : redirectTo("/login", request);
+    const response = redirectTo("/login", request);
     response.cookies.delete(SESSION_COOKIE);
     return response;
   }

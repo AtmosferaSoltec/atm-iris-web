@@ -1,3 +1,6 @@
+> **Retirado en parte (2026-10-06).** Ya no hay equipo, roles, invitaciones ni cambio de iglesia: cada iglesia tiene una sola cuenta.
+> Este plan queda como historial. Lo vigente está en `docs/api-contract.md` §3.
+
 # 02 · Cuenta y equipo
 
 ## Objetivo

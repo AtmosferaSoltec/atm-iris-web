@@ -34,7 +34,7 @@ export async function saveSong(
   if (id && !id.success) return { status: "error", message: GENERIC_ERROR, values };
 
   try {
-    const { repos } = await authorize("songs.manage");
+    const { repos } = await authorize();
     if (id) await repos.songs.update(id.data, parsed.data);
     else await repos.songs.create(parsed.data);
   } catch (error) {
@@ -49,7 +49,7 @@ export async function deleteSong(songId: string): Promise<{ error?: string }> {
   const id = idSchema.safeParse(songId);
   if (!id.success) return { error: GENERIC_ERROR };
   try {
-    const { repos } = await authorize("songs.manage");
+    const { repos } = await authorize();
     await repos.songs.delete(id.data);
   } catch (error) {
     return { error: errorMessage(error) };
@@ -65,7 +65,7 @@ export async function importSongs(
   const parsed = importSongsSchema.safeParse(items);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? GENERIC_ERROR };
   try {
-    const { repos } = await authorize("songs.manage");
+    const { repos } = await authorize();
     const result = await repos.songs.import(parsed.data);
     revalidateSongs();
     return { result };
@@ -76,7 +76,7 @@ export async function importSongs(
 
 /** Every title in the library, to warn about duplicates before importing. */
 export async function listSongTitles(): Promise<string[]> {
-  const { repos } = await authorize("songs.manage");
+  const { repos } = await authorize();
   const titles: string[] = [];
   for (let page = 1; ; page += 1) {
     const { data, meta } = await repos.songs.list({ page, limit: 100 });

@@ -16,7 +16,7 @@ import { nameKey, plural } from "@/lib/text";
 import { addPerson, deletePerson, renamePerson } from "../actions";
 import { PERSON_DUPLICATE } from "../schemas";
 
-type Props = { people: Person[]; canManage: boolean };
+type Props = { people: Person[] };
 
 function isTaken(people: Person[], name: string, exceptId?: string): boolean {
   const key = nameKey(name);
@@ -25,7 +25,7 @@ function isTaken(people: Person[], name: string, exceptId?: string): boolean {
   );
 }
 
-export function PeopleManager({ people, canManage }: Props) {
+export function PeopleManager({ people }: Props) {
   const [renaming, setRenaming] = useState<Person | null>(null);
   const [deleting, setDeleting] = useState<Person | null>(null);
   const [deleteError, setDeleteError] = useState<string>();
@@ -46,7 +46,7 @@ export function PeopleManager({ people, canManage }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      {canManage && <AddPersonForm people={people} />}
+      <AddPersonForm people={people} />
 
       {people.length === 0 ? (
         <EmptyState
@@ -64,26 +64,24 @@ export function PeopleManager({ people, canManage }: Props) {
               <span className="text-sm text-ink-2 tabular-nums">
                 {plural(person.blockCount, "bloque")}
               </span>
-              {canManage && (
-                <div className="flex gap-2 transition-opacity lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100">
-                  <IconButton
-                    label={`Renombrar a ${person.name}`}
-                    onClick={() => setRenaming(person)}
-                  >
-                    <Pencil />
-                  </IconButton>
-                  <IconButton
-                    label={`Eliminar a ${person.name}`}
-                    onClick={() => {
-                      setDeleteError(undefined);
-                      setDeleting(person);
-                    }}
-                    className="hover:text-danger"
-                  >
-                    <Trash2 />
-                  </IconButton>
-                </div>
-              )}
+              <div className="flex gap-2 transition-opacity lg:opacity-0 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100">
+                <IconButton
+                  label={`Renombrar a ${person.name}`}
+                  onClick={() => setRenaming(person)}
+                >
+                  <Pencil />
+                </IconButton>
+                <IconButton
+                  label={`Eliminar a ${person.name}`}
+                  onClick={() => {
+                    setDeleteError(undefined);
+                    setDeleting(person);
+                  }}
+                  className="hover:text-danger"
+                >
+                  <Trash2 />
+                </IconButton>
+              </div>
             </li>
           ))}
         </ul>

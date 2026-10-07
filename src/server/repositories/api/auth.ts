@@ -20,9 +20,6 @@ export function toUserSession(view: SessionView): UserSession {
       name: view.church.name,
       timezone: view.church.timezone,
     },
-    role: view.role,
-    permissions: view.permissions,
-    churches: view.churches,
   };
 }
 
@@ -58,8 +55,6 @@ export function apiAuth(options: ClientOptions = {}): AuthService {
     updateProfile: async (fullName) =>
       toUserSession(await api<SessionView>("/auth/me", { method: "PATCH", body: { fullName } })),
     changePassword: (input) => post("/auth/change-password", input),
-    switchChurch: async (churchId) =>
-      toAuthResult(await post<ApiAuthResult>("/auth/switch-church", { churchId })),
     listSessions: () => api<DeviceSession[]>("/auth/sessions"),
     revokeSession: (id) => api(`/auth/sessions/${segment(id)}`, { method: "DELETE" }),
   };

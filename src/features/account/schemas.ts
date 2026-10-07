@@ -22,5 +22,4 @@ export const changePasswordSchema = z
     message: "Las contraseñas no coinciden.",
   });
 
-export const churchIdSchema = idSchema;
 export const sessionIdSchema = idSchema;

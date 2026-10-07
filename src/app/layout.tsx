@@ -15,7 +15,7 @@ const newsreader = Newsreader({
 
 export const metadata: Metadata = {
   title: { default: "Iris", template: "%s · Iris" },
-  description: "Prepara las letras, la multimedia, los servicios y el equipo de tu iglesia.",
+  description: "Prepara las letras, la multimedia y los servicios de tu iglesia.",
   robots: { index: false, follow: false },
 };
 

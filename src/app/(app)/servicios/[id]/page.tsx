@@ -3,13 +3,13 @@ import { notFound } from "next/navigation";
 import { BackLink } from "@/components/ui/back-link";
 import { PageHeader } from "@/components/ui/page-header";
 import { ServiceTypeEditor } from "@/features/service-types/components/service-type-editor";
-import { requirePermission } from "@/server/dal";
+import { requireSession } from "@/server/dal";
 
 export const metadata: Metadata = { title: "Editar servicio" };
 
 export default async function EditServiceTypePage({ params }: PageProps<"/servicios/[id]">) {
   const { id } = await params;
-  const { repos } = await requirePermission("serviceTypes.manage");
+  const { repos } = await requireSession();
   const [serviceType, types, people, { modules }] = await Promise.all([
     repos.serviceTypes.get(id),
     repos.serviceTypes.list(),

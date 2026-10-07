@@ -20,7 +20,6 @@ type Props = {
   types: ServiceType[];
   people: Person[];
   timeZone: string;
-  canManage: boolean;
   serviceFilter: string;
   selectedId: string;
   onServiceFilter: (id: string) => void;
@@ -32,7 +31,6 @@ export function RecordsTab({
   types,
   people,
   timeZone,
-  canManage,
   serviceFilter,
   selectedId,
   onServiceFilter,
@@ -121,7 +119,6 @@ export function RecordsTab({
             types={types}
             people={people}
             timeZone={timeZone}
-            canManage={canManage}
             onDeleted={() => onSelect("")}
           />
         ) : (

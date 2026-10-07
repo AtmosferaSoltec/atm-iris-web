@@ -35,7 +35,7 @@ export async function addPerson(
     };
   }
   try {
-    const { repos } = await authorize("people.manage");
+    const { repos } = await authorize();
     await repos.people.create(parsed.data);
   } catch (error) {
     return toFormState(error, NAME_FIELD, { values: { name: raw }, codes: NAME_TAKEN });
@@ -50,7 +50,7 @@ export async function renamePerson(id: string, name: string): Promise<{ error?: 
   if (!personId.success) return { error: GENERIC_ERROR };
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   try {
-    const { repos } = await authorize("people.manage");
+    const { repos } = await authorize();
     await repos.people.rename(personId.data, parsed.data);
   } catch (error) {
     return { error: errorMessage(error) };
@@ -63,7 +63,7 @@ export async function deletePerson(id: string): Promise<{ error?: string }> {
   const personId = personIdSchema.safeParse(id);
   if (!personId.success) return { error: GENERIC_ERROR };
   try {
-    const { repos } = await authorize("people.manage");
+    const { repos } = await authorize();
     await repos.people.delete(personId.data);
   } catch (error) {
     return { error: errorMessage(error) };
@@ -82,7 +82,7 @@ export async function findOrAddPerson(
   const parsed = personNameSchema.safeParse(rawName);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   try {
-    const { repos } = await authorize("people.manage");
+    const { repos } = await authorize();
     const people = await repos.people.list();
     const match = people.find((candidate) => nameKey(candidate.name) === nameKey(parsed.data));
     const person = match ?? (await repos.people.create(parsed.data));

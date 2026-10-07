@@ -31,7 +31,6 @@ import {
   mockWorld,
   notFound,
   now,
-  requirePermission,
   type ChurchData,
   type MockMedia,
 } from "./world";
@@ -70,14 +69,12 @@ function church(session?: UserSession): ChurchRepository {
     },
     async update(input) {
       await delay();
-      requirePermission(session, "church.manage");
       const data = churchOf(session);
       Object.assign(data.church, input, { updatedAt: now() });
       return clone(data.church);
     },
     async setModules(modules) {
       await delay();
-      requirePermission(session, "modules.manage");
       const data = churchOf(session);
       data.church.modules = { ...modules };
       data.church.updatedAt = now();
@@ -116,7 +113,6 @@ function people(session?: UserSession): PeopleRepository {
     },
     async create(name) {
       await delay();
-      requirePermission(session, "people.manage");
       const data = churchOf(session);
       checkPersonName(data, name);
       const person: Person = {
@@ -131,7 +127,6 @@ function people(session?: UserSession): PeopleRepository {
     },
     async rename(id, name) {
       await delay();
-      requirePermission(session, "people.manage");
       const data = churchOf(session);
       const person = data.people.find((candidate) => candidate.id === id);
       if (!person) throw notFound();
@@ -142,7 +137,6 @@ function people(session?: UserSession): PeopleRepository {
     },
     async delete(id) {
       await delay();
-      requirePermission(session, "people.manage");
       const data = churchOf(session);
       if (!data.people.some((person) => person.id === id)) throw notFound();
       data.people = data.people.filter((person) => person.id !== id);
@@ -200,7 +194,6 @@ function serviceTypes(session?: UserSession): ServiceTypeRepository {
     },
     async create(input) {
       await delay();
-      requirePermission(session, "serviceTypes.manage");
       const data = churchOf(session);
       const type = build(data, input);
       data.serviceTypes.push(type);
@@ -208,7 +201,6 @@ function serviceTypes(session?: UserSession): ServiceTypeRepository {
     },
     async update(id, input) {
       await delay();
-      requirePermission(session, "serviceTypes.manage");
       const data = churchOf(session);
       const index = data.serviceTypes.findIndex((type) => type.id === id);
       const type = build(
@@ -222,7 +214,6 @@ function serviceTypes(session?: UserSession): ServiceTypeRepository {
     },
     async delete(id) {
       await delay();
-      requirePermission(session, "serviceTypes.manage");
       const data = churchOf(session);
       if (!data.serviceTypes.some((type) => type.id === id)) throw notFound();
       data.serviceTypes = data.serviceTypes.filter((type) => type.id !== id);
@@ -290,14 +281,12 @@ function songs(session?: UserSession): SongRepository {
     },
     async create(input) {
       await delay();
-      requirePermission(session, "songs.manage");
       const song = toSong(input);
       churchOf(session).songs.push(song);
       return clone(song);
     },
     async update(id, input) {
       await delay();
-      requirePermission(session, "songs.manage");
       const data = churchOf(session);
       const index = data.songs.findIndex((song) => song.id === id);
       const song = toSong(input, data.songs[index] ?? ({ id, createdAt: now() } as Song));
@@ -307,14 +296,12 @@ function songs(session?: UserSession): SongRepository {
     },
     async delete(id) {
       await delay();
-      requirePermission(session, "songs.manage");
       const data = churchOf(session);
       if (!data.songs.some((song) => song.id === id)) throw notFound();
       data.songs = data.songs.filter((song) => song.id !== id);
     },
     async import(inputs) {
       await delay();
-      requirePermission(session, "songs.manage");
       const data = churchOf(session);
       const taken = new Set(data.songs.map((song) => nameKey(song.title)));
       const created: SongSummary[] = [];
@@ -367,7 +354,6 @@ function media(session?: UserSession): MediaRepository {
     },
     async createUpload({ kind, fileName, contentType, sizeBytes }) {
       await delay();
-      requirePermission(session, "media.manage");
       const data = churchOf(session);
       const rules = MEDIA_RULES[kind];
       if (!rules.contentTypes.includes(contentType)) {
@@ -400,7 +386,6 @@ function media(session?: UserSession): MediaRepository {
     },
     async confirm(input) {
       await delay();
-      requirePermission(session, "media.manage");
       const data = churchOf(session);
       const upload = data.uploads.find((candidate) => candidate.id === input.uploadId);
       const file = mockWorld().files.get(input.uploadId);
@@ -430,7 +415,6 @@ function media(session?: UserSession): MediaRepository {
     },
     async update(id, patch) {
       await delay();
-      requirePermission(session, "media.manage");
       const asset = churchOf(session).media.find((candidate) => candidate.id === id);
       if (!asset) throw notFound();
       if (patch.title !== undefined) asset.title = patch.title;
@@ -443,7 +427,6 @@ function media(session?: UserSession): MediaRepository {
     },
     async delete(id) {
       await delay();
-      requirePermission(session, "media.manage");
       const data = churchOf(session);
       const asset = data.media.find((candidate) => candidate.id === id);
       if (!asset) throw notFound();
@@ -485,7 +468,6 @@ function records(session?: UserSession): TimeRecordRepository {
     },
     async adjustBlock(recordId, blockId, patch) {
       await delay();
-      requirePermission(session, "records.manage");
       const data = churchOf(session);
       const record = data.records.find((candidate) => candidate.id === recordId);
       const block = record?.blocks.find((candidate) => candidate.id === blockId);
@@ -505,7 +487,6 @@ function records(session?: UserSession): TimeRecordRepository {
     },
     async delete(id) {
       await delay();
-      requirePermission(session, "records.manage");
       const data = churchOf(session);
       if (!data.records.some((record) => record.id === id)) throw notFound();
       data.records = data.records.filter((record) => record.id !== id);
@@ -513,7 +494,7 @@ function records(session?: UserSession): TimeRecordRepository {
   };
 }
 
-export function mockDataRepositories(session?: UserSession): Omit<DataRepositories, "team"> {
+export function mockDataRepositories(session?: UserSession): DataRepositories {
   return {
     church: church(session),
     people: people(session),

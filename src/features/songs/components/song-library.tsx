@@ -18,10 +18,10 @@ import { plural } from "@/lib/text";
 import { useSlashFocus } from "@/lib/use-slash-focus";
 import { ImportSongsDialog } from "./import-songs-dialog";
 
-type Props = { songs: Paginated<SongSummary>; canManage: boolean };
+type Props = { songs: Paginated<SongSummary> };
 
 /** Search, sort and page live in the URL; the server loads each result page. */
-export function SongLibrary({ songs, canManage }: Props) {
+export function SongLibrary({ songs }: Props) {
   const [isLoading, startTransition] = useTransition();
   const [params, setParams] = useQueryStates(songSearchParams, {
     shallow: false,
@@ -41,20 +41,18 @@ export function SongLibrary({ songs, canManage }: Props) {
         title="Canciones"
         description="Las letras de tu biblioteca. Lo que guardes aquí aparece en la consola al preparar el servicio."
         actions={
-          canManage && (
-            <>
-              <Button
-                variant="secondary"
-                icon={<FileUp className="size-4" />}
-                onClick={() => setIsImporting(true)}
-              >
-                Importar .txt
-              </Button>
-              <ButtonLink href="/canciones/nueva" icon={<Plus className="size-4" />}>
-                Nueva canción
-              </ButtonLink>
-            </>
-          )
+          <>
+            <Button
+              variant="secondary"
+              icon={<FileUp className="size-4" />}
+              onClick={() => setIsImporting(true)}
+            >
+              Importar .txt
+            </Button>
+            <ButtonLink href="/canciones/nueva" icon={<Plus className="size-4" />}>
+              Nueva canción
+            </ButtonLink>
+          </>
         }
       />
 
@@ -94,16 +92,8 @@ export function SongLibrary({ songs, canManage }: Props) {
             <EmptyState
               icon={<ListMusic />}
               title="Aún no hay canciones"
-              description={
-                canManage
-                  ? "Crea la primera o importa varias a la vez desde archivos .txt."
-                  : "Cuando alguien del equipo agregue canciones, aparecerán aquí."
-              }
-              action={
-                canManage ? (
-                  <ButtonLink href="/canciones/nueva">Crear la primera</ButtonLink>
-                ) : undefined
-              }
+              description="Crea la primera o importa varias a la vez desde archivos .txt."
+              action={<ButtonLink href="/canciones/nueva">Crear la primera</ButtonLink>}
             />
           ) : songs.data.length === 0 ? (
             <EmptyState
@@ -149,7 +139,7 @@ export function SongLibrary({ songs, canManage }: Props) {
         />
       </Surface>
 
-      {canManage && isImporting && <ImportSongsDialog onClose={() => setIsImporting(false)} />}
+      {isImporting && <ImportSongsDialog onClose={() => setIsImporting(false)} />}
     </div>
   );
 }

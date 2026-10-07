@@ -20,11 +20,10 @@ type Props = {
   asset: MediaAsset;
   /** Signed download URL; null when it couldn't be fetched. */
   url: string | null;
-  canManage: boolean;
   onClose: () => void;
 };
 
-export function MediaDetailDialog({ asset, url, canManage, onClose }: Props) {
+export function MediaDetailDialog({ asset, url, onClose }: Props) {
   const [isBackground, setIsBackground] = useState(asset.isBackground);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string>();
@@ -70,30 +69,26 @@ export function MediaDetailDialog({ asset, url, canManage, onClose }: Props) {
         <Preview asset={asset} url={url} />
 
         <div className="flex flex-col gap-5">
-          {canManage ? (
-            <form action={action} className="flex flex-col gap-4" noValidate>
-              {state.message && <Banner tone="error">{state.message}</Banner>}
-              <TextField
-                id="title"
-                label="Título"
-                defaultValue={state.values?.title ?? asset.title}
-                error={state.fieldErrors?.title}
-              />
-              <TextArea
-                id="description"
-                label="Descripción"
-                placeholder="Opcional"
-                defaultValue={state.values?.description ?? asset.description ?? ""}
-                error={state.fieldErrors?.description}
-                className="min-h-24"
-              />
-              <div>
-                <SubmitButton variant="secondary">Guardar</SubmitButton>
-              </div>
-            </form>
-          ) : (
-            asset.description && <p className="text-sm text-ink-2">{asset.description}</p>
-          )}
+          <form action={action} className="flex flex-col gap-4" noValidate>
+            {state.message && <Banner tone="error">{state.message}</Banner>}
+            <TextField
+              id="title"
+              label="Título"
+              defaultValue={state.values?.title ?? asset.title}
+              error={state.fieldErrors?.title}
+            />
+            <TextArea
+              id="description"
+              label="Descripción"
+              placeholder="Opcional"
+              defaultValue={state.values?.description ?? asset.description ?? ""}
+              error={state.fieldErrors?.description}
+              className="min-h-24"
+            />
+            <div>
+              <SubmitButton variant="secondary">Guardar</SubmitButton>
+            </div>
+          </form>
 
           {asset.kind === "image" && (
             <label className="flex items-center justify-between gap-4 rounded-md bg-surface p-4 ring-1 ring-line ring-inset">
@@ -107,26 +102,24 @@ export function MediaDetailDialog({ asset, url, canManage, onClose }: Props) {
                 label="Usar como fondo en la consola"
                 checked={isBackground}
                 onCheckedChange={toggleBackground}
-                disabled={!canManage || isPending}
+                disabled={isPending}
               />
             </label>
           )}
 
-          {canManage && (
-            <div className="mt-auto border-t border-line pt-4">
-              <Button
-                variant="ghost"
-                className="text-danger hover:text-danger"
-                icon={<Trash2 className="size-4" />}
-                onClick={() => {
-                  setDeleteError(undefined);
-                  setIsConfirmingDelete(true);
-                }}
-              >
-                Eliminar
-              </Button>
-            </div>
-          )}
+          <div className="mt-auto border-t border-line pt-4">
+            <Button
+              variant="ghost"
+              className="text-danger hover:text-danger"
+              icon={<Trash2 className="size-4" />}
+              onClick={() => {
+                setDeleteError(undefined);
+                setIsConfirmingDelete(true);
+              }}
+            >
+              Eliminar
+            </Button>
+          </div>
         </div>
       </div>
 

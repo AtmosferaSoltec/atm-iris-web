@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MediaLibrary } from "@/features/media/components/media-library";
-import { can } from "@/lib/permissions";
 import { loadMediaSearchParams } from "@/lib/search-params";
 import { requireSession } from "@/server/dal";
 
@@ -11,7 +10,7 @@ export const metadata: Metadata = { title: "Multimedia" };
 const PAGE_SIZE = 20;
 
 export default async function MediaPage({ searchParams }: PageProps<"/multimedia">) {
-  const { session, repos } = await requireSession();
+  const { repos } = await requireSession();
   const [church, { kind, search, page }] = await Promise.all([
     repos.church.get(),
     loadMediaSearchParams(searchParams),
@@ -37,12 +36,5 @@ export default async function MediaPage({ searchParams }: PageProps<"/multimedia
     ),
   );
 
-  return (
-    <MediaLibrary
-      media={media}
-      urls={urls}
-      storage={church.storage}
-      canManage={can(session, "media.manage")}
-    />
-  );
+  return <MediaLibrary media={media} urls={urls} storage={church.storage} />;
 }

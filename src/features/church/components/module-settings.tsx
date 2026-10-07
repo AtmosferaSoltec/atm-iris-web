@@ -4,7 +4,6 @@ import { BookOpen, Quote, SquarePlay, Timer } from "lucide-react";
 import { useRef, useState } from "react";
 import { Banner } from "@/components/ui/banner";
 import { Switch } from "@/components/ui/switch";
-import { Tooltip } from "@/components/ui/tooltip";
 import type { ChurchModules, ModuleKey } from "@/domain/models";
 import { GENERIC_ERROR } from "@/lib/form-state";
 import { saveModules } from "../actions";
@@ -50,15 +49,9 @@ const ROWS: Row[] = [
 
 /**
  * Switches save immediately, one after another; a failed save flips the switch
- * back. Without `modules.manage` they are shown off-limits with the reason.
+ * back.
  */
-export function ModuleSettings({
-  initialModules,
-  canManage,
-}: {
-  initialModules: ChurchModules;
-  canManage: boolean;
-}) {
+export function ModuleSettings({ initialModules }: { initialModules: ChurchModules }) {
   const [modules, setModules] = useState(initialModules);
   const [error, setError] = useState<string>();
   const queue = useRef(Promise.resolve());
@@ -105,20 +98,12 @@ export function ModuleSettings({
                   </Banner>
                 )}
               </div>
-              {canManage || isLyrics ? (
-                <Switch
-                  label={title}
-                  checked={checked}
-                  disabled={isLyrics}
-                  onCheckedChange={(value) => !isLyrics && toggle(key, value)}
-                />
-              ) : (
-                <Tooltip content="Solo administradores">
-                  <span tabIndex={0} className="inline-flex rounded-full">
-                    <Switch label={title} checked={checked} disabled onCheckedChange={() => {}} />
-                  </span>
-                </Tooltip>
-              )}
+              <Switch
+                label={title}
+                checked={checked}
+                disabled={isLyrics}
+                onCheckedChange={(value) => !isLyrics && toggle(key, value)}
+              />
             </li>
           );
         })}

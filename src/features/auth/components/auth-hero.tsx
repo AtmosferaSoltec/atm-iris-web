@@ -11,7 +11,7 @@ export function AuthHero() {
           Que cada palabra <em className="text-accent pr-1">ilumine</em> el templo.
         </h1>
         <p className="max-w-md text-lg text-ink-2">
-          Sube las letras, arma tus servicios y organiza a tu equipo desde cualquier navegador.
+          Sube las letras, arma tus servicios y organiza tu iglesia desde cualquier navegador.
         </p>
       </div>
       <ProjectionShowcase />

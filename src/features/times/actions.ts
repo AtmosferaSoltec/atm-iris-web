@@ -26,7 +26,7 @@ export async function adjustBlockDuration(
   if (!ref.success) return { error: GENERIC_ERROR };
   if (!actual.success) return { error: actual.error.issues[0].message };
   try {
-    const { repos } = await authorize("records.manage");
+    const { repos } = await authorize();
     await repos.records.adjustBlock(ref.data.recordId, ref.data.blockId, {
       actualSeconds: actual.data,
     });
@@ -47,7 +47,7 @@ export async function changeBlockLeader(
   const leader = leaderSchema.safeParse(personId);
   if (!ref.success || !leader.success) return { error: GENERIC_ERROR };
   try {
-    const { repos } = await authorize("records.manage");
+    const { repos } = await authorize();
     await repos.records.adjustBlock(ref.data.recordId, ref.data.blockId, { personId: leader.data });
   } catch (error) {
     return { error: errorMessage(error) };
@@ -60,7 +60,7 @@ export async function deleteRecord(id: string): Promise<Result> {
   const recordId = recordIdSchema.safeParse(id);
   if (!recordId.success) return { error: GENERIC_ERROR };
   try {
-    const { repos } = await authorize("records.manage");
+    const { repos } = await authorize();
     await repos.records.delete(recordId.data);
   } catch (error) {
     return { error: errorMessage(error) };

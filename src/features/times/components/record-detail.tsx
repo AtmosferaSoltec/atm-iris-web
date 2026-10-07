@@ -32,11 +32,10 @@ type Props = {
   types: ServiceType[];
   people: Person[];
   timeZone: string;
-  canManage: boolean;
   onDeleted: () => void;
 };
 
-export function RecordDetail({ record, types, people, timeZone, canManage, onDeleted }: Props) {
+export function RecordDetail({ record, types, people, timeZone, onDeleted }: Props) {
   const [adjusting, setAdjusting] = useState<BlockRecord | null>(null);
   const [reassigning, setReassigning] = useState<BlockRecord | null>(null);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -115,25 +114,23 @@ export function RecordDetail({ record, types, people, timeZone, canManage, onDel
                       </p>
                     </div>
                   )}
-                  {canManage && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <IconButton label={`Opciones del bloque ${block.name}`}>
-                          <Ellipsis />
-                        </IconButton>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onSelect={() => setAdjusting(block)}>
-                          <Timer aria-hidden />
-                          Ajustar duración…
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setReassigning(block)}>
-                          <UserRound aria-hidden />
-                          Cambiar responsable
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <IconButton label={`Opciones del bloque ${block.name}`}>
+                        <Ellipsis />
+                      </IconButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onSelect={() => setAdjusting(block)}>
+                        <Timer aria-hidden />
+                        Ajustar duración…
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setReassigning(block)}>
+                        <UserRound aria-hidden />
+                        Cambiar responsable
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 {!skipped && (
                   <div className="flex items-center gap-3">
@@ -153,21 +150,19 @@ export function RecordDetail({ record, types, people, timeZone, canManage, onDel
         </ul>
       </section>
 
-      {canManage && (
-        <div className="border-t border-line pt-5">
-          <Button
-            variant="ghost"
-            className="text-danger hover:text-danger"
-            icon={<Trash2 className="size-4" />}
-            onClick={() => {
-              setDeleteError(undefined);
-              setIsConfirmingDelete(true);
-            }}
-          >
-            Eliminar registro
-          </Button>
-        </div>
-      )}
+      <div className="border-t border-line pt-5">
+        <Button
+          variant="ghost"
+          className="text-danger hover:text-danger"
+          icon={<Trash2 className="size-4" />}
+          onClick={() => {
+            setDeleteError(undefined);
+            setIsConfirmingDelete(true);
+          }}
+        >
+          Eliminar registro
+        </Button>
+      </div>
 
       {adjusting && (
         <AdjustDurationDialog

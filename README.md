@@ -8,12 +8,11 @@ Panel web de Iris para administrar la iglesia. **No proyecta**: la proyección v
 - **Servicios**: tipos de servicio con color, horario y bloques de tiempo con responsable sugerido.
 - **Personas**: responsables de bloques.
 - **Tiempos**: registros que guardan las consolas, con ajustes, y resúmenes por periodo, servicio, bloque y persona.
-- **Equipo**: miembros, roles (dueño, administrador, operador) e invitaciones por correo; página pública `/invitacion` para aceptarlas.
-- **Mi cuenta**: perfil, contraseña y dispositivos con sesión abierta. Cambio de iglesia desde el menú de cuenta.
+- **Mi cuenta**: perfil, contraseña y dispositivos con sesión abierta.
 - **Ajustes**: nombre y zona horaria de la iglesia, módulos y almacenamiento.
 - **Acceso**: iniciar sesión, crear cuenta y recuperar la contraseña con un código de 6 dígitos.
 
-Cada acción aparece solo si el rol de la sesión tiene el permiso (contrato §3); el API la rechaza igual.
+Cada iglesia tiene una sola cuenta, sin roles ni equipo (contrato §3): quien entra con ella puede hacer todo. La misma cuenta sirve en la web, el iPad y Windows.
 
 ## Requisitos
 
@@ -52,10 +51,8 @@ Cuenta de desarrollo (la siembra la API): `pastor@vidanueva.org` / `vidanueva123
 
 `AUTH_SOURCE=mock DATA_SOURCE=mock pnpm dev`. Los datos viven en memoria y se reinician al reiniciar el servidor:
 
-- Cuentas: `pastor@vidanueva.org` (dueño), `admin@vidanueva.org` (administrador) y `operador@vidanueva.org` (operador). Cualquier contraseña sirve para entrar; cualquier otro correo entra como el pastor y `error@…` simula credenciales incorrectas. Para cambiar la contraseña o aceptar una invitación con cuenta existente, la contraseña es `vidanueva123`.
+- Cuenta: `pastor@vidanueva.org` (Iglesia Vida Nueva). Cualquier contraseña sirve para entrar; cualquier otro correo entra como el pastor y `error@…` simula credenciales incorrectas. La contraseña de ejemplo es `vidanueva123`.
 - Recuperación: el código es siempre `123456` (también sale en el log del servidor).
-- Invitación pendiente de ejemplo: `/invitacion?token=invitacion-de-prueba`. Las nuevas imprimen su enlace en el log.
-- Dos iglesias (Vida Nueva y Betania) para probar el cambio de iglesia.
 - Los mismos datos de ejemplo del iPad (8 personas, 3 servicios, 10 registros de tiempos, himnos de dominio público).
 - La multimedia se guarda en memoria a través de `/api/mock-storage/[key]`, que solo existe con `DATA_SOURCE=mock`.
 
@@ -63,7 +60,7 @@ Cuenta de desarrollo (la siembra la API): `pastor@vidanueva.org` / `vidanueva123
 
 | Variable         | Por defecto           | Descripción                                                                                                              |
 | ---------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `AUTH_SOURCE`    | `mock`                | Cuentas: acceso, sesión, dispositivos, miembros e invitaciones. `api` (atm-iris-api) o `mock`                            |
+| `AUTH_SOURCE`    | `mock`                | Cuentas: acceso, sesión y dispositivos. `api` (atm-iris-api) o `mock`                                                    |
 | `DATA_SOURCE`    | `mock`                | Contenido de la iglesia: ajustes, personas, servicios, canciones, multimedia y tiempos. `api` o `mock`                   |
 | `API_URL`        | —                     | URL de atm-iris-api **con** `/api/v1`. Obligatoria si alguna fuente es `api`. Local: `http://localhost:3020/api/v1`      |
 | `SESSION_SECRET` | secreto de desarrollo | Cifra la cookie de sesión (lleva los tokens). **Obligatoria en producción**, ≥ 32 caracteres (`openssl rand -base64 32`) |
@@ -77,9 +74,9 @@ Next.js 16 (App Router) · React 19 + React Compiler · Tailwind CSS 4 · zod ·
 ```
 src/
   app/                    Rutas. Páginas delgadas: metadata + carga de datos + la vista del feature
-    (auth)/               login, recuperar (3 pasos), invitacion (pública)
+    (auth)/               login, recuperar (3 pasos)
     (app)/                Con sesión: Inicio, canciones, multimedia, servicios, personas, tiempos,
-                          equipo, cuenta, ajustes (+ loading, error y not-found propios)
+                          cuenta, ajustes (+ loading, error y not-found propios)
     api/health            Sonda de salud
     api/session/expired   Borra una cookie muerta y manda al login (las páginas no pueden escribir cookies)
     api/mock-storage      Almacenamiento simulado (solo DATA_SOURCE=mock)
@@ -90,7 +87,7 @@ src/
     brand/ projection/ service/
   features/<feature>/     actions.ts (Server Actions) · schemas.ts (zod) · components/
   domain/                 Modelos del contrato y reglas puras: tiempos, próximo servicio, multimedia
-  lib/                    Utilidades puras: letras, formatos, zona horaria, permisos, parámetros de la URL
+  lib/                    Utilidades puras: letras, formatos, zona horaria, parámetros de la URL
   server/                 Solo servidor
     env.ts                Variables de entorno validadas
     session*.ts           Sesión cifrada en cookie httpOnly
@@ -115,12 +112,12 @@ src/
 
 ### Principios
 
-1. **Datos detrás de interfaces.** Las pantallas usan `repos.songs`, `repos.media`, etc. y no saben si son mocks o la API. Cada interfaz tiene dos implementaciones a la par: `api/` y `mock/` (mismas reglas: duplicados por _nameKey_, permisos, `LAST_OWNER`, cuota).
-2. **Permisos, no roles.** La web decide qué mostrar con `permissions` de la sesión (`can()`, `PermissionGate`); las páginas que el rol no puede usar responden "no encontrado" (`requirePermission`) y las acciones vuelven a comprobarlo (`authorize(permission)`).
+1. **Datos detrás de interfaces.** Las pantallas usan `repos.songs`, `repos.media`, etc. y no saben si son mocks o la API. Cada interfaz tiene dos implementaciones a la par: `api/` y `mock/` (mismas reglas: duplicados por _nameKey_, cuota).
+2. **Una cuenta por iglesia.** No hay roles ni permisos: las pantallas muestran todo y las acciones solo exigen una sesión válida (`requireSession`, `authorize`).
 3. **Errores del API tal cual.** `ApiError` lleva `code`, `message` y `errors`; `toFormState` los pone en el campo del formulario o en el aviso general.
 4. **Zona de la iglesia.** Fechas, saludos, "hoy" y periodos se calculan en `church.timezone` (`src/lib/zoned-time.ts`), nunca en la del navegador ni la del servidor.
 5. **Tokens centralizados** en `src/app/globals.css` (`@theme`). Las vistas no usan colores ni medidas sueltos.
-6. **Lógica pura y probada** en `lib/` y `domain/` (letras, formatos, estadísticas de tiempos, próximo servicio, permisos).
+6. **Lógica pura y probada** en `lib/` y `domain/` (letras, formatos, estadísticas de tiempos, próximo servicio).
 
 ### Formato de letras
 
@@ -142,7 +139,7 @@ Mi corazón entona la canción
 El navegador nunca ve los tokens de la API:
 
 1. Las Server Actions llaman a `/auth/*` de la API desde el servidor de Next.
-2. Los tokens (access de 15 min y refresh de 60 días) se guardan **cifrados** (JWE A256GCM) en la cookie `httpOnly` `iris_session`, junto con lo que la web necesita de la sesión: usuario, iglesia (con zona horaria), rol, permisos e iglesias.
+2. Los tokens (access de 15 min y refresh de 60 días) se guardan **cifrados** (JWE A256GCM) en la cookie `httpOnly` `iris_session`, junto con lo que la web necesita de la sesión: usuario e iglesia (con zona horaria).
 3. `src/proxy.ts` corre antes de cada página y Server Action. Si al access token le queda menos de un minuto, lo renueva y reescribe la cookie. Si la API rechaza el refresh, borra la cookie y manda al login. Si la API no responde, deja pasar la petición y lo intenta en la siguiente.
 4. Si una llamada de datos responde `401` (sesión cerrada desde otro dispositivo, contraseña cambiada…), el DAL borra la cookie y vuelve al login.
 5. Las llamadas reenvían `X-Forwarded-For`, para que el límite de intentos de la API sea por visitante.
@@ -152,8 +149,8 @@ El navegador nunca ve los tokens de la API:
 
 ## Pruebas
 
-- **Unitarias** (`pnpm test`, Vitest, `src/**/*.test.ts`): letras, `nameKey`, formatos y fechas en zona horaria, estadísticas de tiempos (incluidas las cifras del iPad), próximo servicio, permisos contra la tabla del contrato, mappers del cliente API, `toFormState` y mocks. Corren en CI.
-- **Interfaz** (`pnpm test:e2e`, Playwright, `e2e/`): acceso y recuperación, canciones, servicios, personas, equipo, multimedia, tiempos y lo que no ve un operador. Construye la app y la sirve en el puerto 3200 en modo mock, así no depende de la API ni choca con un `pnpm dev` abierto. La primera vez: `pnpm exec playwright install chromium`.
+- **Unitarias** (`pnpm test`, Vitest, `src/**/*.test.ts`): letras, `nameKey`, formatos y fechas en zona horaria, estadísticas de tiempos (incluidas las cifras del iPad), próximo servicio, mappers del cliente API, `toFormState` y mocks. Corren en CI.
+- **Interfaz** (`pnpm test:e2e`, Playwright, `e2e/`): acceso y recuperación, canciones, servicios, personas, multimedia y tiempos. Construye la app y la sirve en el puerto 3200 en modo mock, así no depende de la API ni choca con un `pnpm dev` abierto. La primera vez: `pnpm exec playwright install chromium`.
 
 ## Despliegue
 
