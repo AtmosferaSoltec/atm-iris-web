@@ -78,7 +78,6 @@ export type BlockTemplate = {
   id: Id;
   name: string;
   plannedMinutes: number;
-  defaultPersonId: Id | null;
 };
 
 export type ServiceType = {

@@ -21,14 +21,12 @@ describe("mock repositories", () => {
     expect((await repos.records.list()).meta.total).toBe(10);
   });
 
-  it("deleting a person clears it as suggested leader but keeps records", async () => {
+  it("deleting a person keeps the records that name them", async () => {
     const { repos, session } = await signedIn();
-    const culto = (await repos.serviceTypes.list()).find((t) => t.name === "Culto general")!;
-    const leaderId = culto.blocks[0].defaultPersonId!;
+    const church = mockWorld().churches.find((data) => data.church.id === session.church.id)!;
+    const leaderId = church.records[0].blocks.find((b) => b.personId)!.personId!;
     await repos.people.delete(leaderId);
 
-    expect((await repos.serviceTypes.get(culto.id))?.blocks[0].defaultPersonId).toBeNull();
-    const church = mockWorld().churches.find((data) => data.church.id === session.church.id)!;
     expect(church.records.some((r) => r.blocks.some((b) => b.personId === leaderId))).toBe(true);
     expect(session.church.id).toBe(MOCK_IDS.vidaNueva);
   });

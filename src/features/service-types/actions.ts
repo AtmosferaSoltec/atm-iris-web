@@ -49,7 +49,6 @@ export async function saveServiceType(
       ...(existingIds.has(block.id) && { id: block.id }),
       name: block.name,
       plannedMinutes: block.plannedMinutes,
-      defaultPersonId: block.defaultPersonId,
     }));
     const input = {
       name: data.name,

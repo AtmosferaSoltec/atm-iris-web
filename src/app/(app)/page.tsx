@@ -89,12 +89,6 @@ async function NextServiceSection({
   now: Date;
   timeControl: boolean;
 }) {
-  const [types, people] = await Promise.all([repos.serviceTypes.list(), repos.people.list()]);
-  return (
-    <NextServiceCard
-      next={nextService(types, now, timeZone)}
-      people={people}
-      timeControl={timeControl}
-    />
-  );
+  const types = await repos.serviceTypes.list();
+  return <NextServiceCard next={nextService(types, now, timeZone)} timeControl={timeControl} />;
 }

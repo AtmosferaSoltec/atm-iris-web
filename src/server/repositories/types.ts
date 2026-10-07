@@ -91,7 +91,6 @@ export type BlockTemplateInput = {
   id?: Id;
   name: string;
   plannedMinutes: number;
-  defaultPersonId: Id | null;
 };
 
 export type ServiceTypeInput = {

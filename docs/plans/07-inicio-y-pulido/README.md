@@ -14,7 +14,7 @@ Fases 02–06.
 - Saludo actual (fecha y saludo en la **zona de la iglesia**, no la del navegador ni la del servidor).
 - **Próximo servicio** (tarjeta grande, como el hero del iPad pero sin "Iniciar servicio"): el tipo con horario más próximo
   desde ahora en la zona de la iglesia (hasta 2 h después de su inicio cuenta como "Servicio de hoy"), con color, horario,
-  `BlockTimeline` y lista de bloques con responsable sugerido. Sin tipos: "Crea tu primer servicio" + "Configurar servicios".
+  `BlockTimeline` y lista de bloques con su duración. Sin tipos: "Crea tu primer servicio" + "Configurar servicios".
   La regla vive en `src/domain/next-service.ts` (función pura con `now` y zona inyectados).
 - Tarjetas: Canciones (total + 3 recientes) · Multimedia (conteo por tipo + barra de cuota; si el módulo está encendido) ·
   Servicios · Personas y Tiempos (último registro: "Culto general · dom 27 sept · +16:10"; si `timeControl`) · Equipo

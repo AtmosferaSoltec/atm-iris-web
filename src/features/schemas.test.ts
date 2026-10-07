@@ -42,7 +42,7 @@ describe("serviceTypeDraftSchema", () => {
     color: "#FFB547",
     schedule: { weekday: 1, hour: 10, minute: 0 },
     tracksTime: true,
-    blocks: [{ id: "b1", name: "Prédica", plannedMinutes: 40, defaultPersonId: null }],
+    blocks: [{ id: "b1", name: "Prédica", plannedMinutes: 40 }],
   };
 
   it("accepts a valid draft", () => {

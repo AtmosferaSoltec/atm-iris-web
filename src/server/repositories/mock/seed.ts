@@ -65,7 +65,7 @@ const SONGS: { title: string; author: string; lyrics: string }[] = [
   },
 ];
 
-/** "Culto general" blocks: planned minutes and suggested leader. */
+/** "Culto general" blocks: planned minutes and who led each one in the sample records. */
 const CULTO_BLOCKS = [
   { name: "Bienvenida", minutes: 10, leader: "Carlos Pérez" },
   { name: "Alabanzas", minutes: 15, leader: "Ana Torres" },
@@ -201,7 +201,6 @@ export function sampleContent(
       id: id(),
       name: block.name,
       plannedMinutes: block.minutes,
-      defaultPersonId: personId(block.leader),
     })),
     createdAt: timestamp,
     updatedAt: timestamp,

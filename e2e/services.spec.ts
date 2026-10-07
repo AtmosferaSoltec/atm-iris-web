@@ -10,8 +10,7 @@ test("creates a service with blocks", async ({ page }) => {
   await page.getByRole("switch", { name: "Tiene horario fijo" }).click();
   await page.getByRole("radio", { name: "Vie" }).click();
   await page.getByRole("switch", { name: "Controlar el tiempo de este servicio" }).click();
-  await page.getByRole("combobox", { name: /Responsable de/ }).click();
-  await page.getByRole("option", { name: "Ana Torres" }).click();
+  await expect(page.getByRole("combobox", { name: /Responsable de/ })).toHaveCount(0);
   await page.getByRole("button", { name: "Agregar bloque" }).click();
   await page.getByLabel("Nombre del bloque 2").fill("Oración");
   await page.getByRole("button", { name: "Guardar" }).click();

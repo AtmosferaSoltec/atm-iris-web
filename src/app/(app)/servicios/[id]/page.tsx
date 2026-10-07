@@ -10,10 +10,9 @@ export const metadata: Metadata = { title: "Editar servicio" };
 export default async function EditServiceTypePage({ params }: PageProps<"/servicios/[id]">) {
   const { id } = await params;
   const { repos } = await requireSession();
-  const [serviceType, types, people, { modules }] = await Promise.all([
+  const [serviceType, types, { modules }] = await Promise.all([
     repos.serviceTypes.get(id),
     repos.serviceTypes.list(),
-    repos.people.list(),
     repos.church.get(),
   ]);
   if (!serviceType) notFound();
@@ -24,7 +23,6 @@ export default async function EditServiceTypePage({ params }: PageProps<"/servic
       <PageHeader title="Editar servicio" />
       <ServiceTypeEditor
         serviceType={serviceType}
-        people={people}
         timeControlEnabled={modules.timeControl}
         otherNames={types.filter((type) => type.id !== id).map((type) => type.name)}
       />

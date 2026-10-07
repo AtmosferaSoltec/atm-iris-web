@@ -5,27 +5,23 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Banner } from "@/components/ui/banner";
 import { Button, ButtonLink, IconButton } from "@/components/ui/button";
-import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/dialog";
 import { controlStyles } from "@/components/ui/field";
-import { NativeSelect, Select } from "@/components/ui/select";
+import { NativeSelect } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Surface } from "@/components/ui/surface";
 import { TextField } from "@/components/ui/text-field";
 import { toast } from "@/components/ui/toaster";
 import { BlockTimeline } from "@/components/service/block-timeline";
-import type { BlockTemplate, Person, ServiceType } from "@/domain/models";
+import type { BlockTemplate, ServiceType } from "@/domain/models";
 import { BLOCK_MINUTES, plannedSeconds, SERVICE_PALETTE } from "@/domain/rules";
 import { cn } from "@/lib/cn";
 import { durationSummary, shortWeekdayName } from "@/lib/format";
 import type { FormState } from "@/lib/form-state";
-import { compareNames, nameKey } from "@/lib/text";
-import { findOrAddPerson } from "@/features/people/actions";
+import { nameKey } from "@/lib/text";
 import { deleteServiceType, saveServiceType } from "../actions";
 import { BLOCKS_REQUIRED, SERVICE_TYPE_DUPLICATE, type ServiceTypeField } from "../schemas";
 
-/** Radix Select can't use "" as a value. */
-const NO_PERSON = "none";
-const ADD_PERSON = "__add_person__";
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7];
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 const MINUTES = Array.from({ length: 12 }, (_, index) => index * 5);
@@ -33,7 +29,6 @@ const pad = (value: number) => String(value).padStart(2, "0");
 
 type Props = {
   serviceType?: ServiceType;
-  people: Person[];
   timeControlEnabled: boolean;
   /** Names of the other service types, to flag duplicates before saving. */
   otherNames: string[];
@@ -46,7 +41,6 @@ function newBlock(): BlockTemplate {
     id: crypto.randomUUID(),
     name: "Nuevo bloque",
     plannedMinutes: BLOCK_MINUTES.default,
-    defaultPersonId: null,
   };
 }
 
@@ -56,12 +50,7 @@ function clampMinutes(value: number): number {
 }
 
 /** Works on a local copy; only "Guardar" persists (IRIS_SPEC §6.8). */
-export function ServiceTypeEditor({
-  serviceType,
-  people: initialPeople,
-  timeControlEnabled,
-  otherNames,
-}: Props) {
+export function ServiceTypeEditor({ serviceType, timeControlEnabled, otherNames }: Props) {
   const router = useRouter();
   const [name, setName] = useState(serviceType?.name ?? "");
   const [color, setColor] = useState(serviceType?.color ?? SERVICE_PALETTE[0].value);
@@ -71,14 +60,12 @@ export function ServiceTypeEditor({
   const [minute, setMinute] = useState(serviceType?.schedule?.minute ?? 0);
   const [tracksTime, setTracksTime] = useState((serviceType?.blocks.length ?? 0) > 0);
   const [blocks, setBlocks] = useState<BlockTemplate[]>(serviceType?.blocks ?? []);
-  const [people, setPeople] = useState(initialPeople);
 
   const [result, setResult] = useState<Result>({});
   const [isSaving, startSaving] = useTransition();
   const [isConfirmingBlockRemoval, setIsConfirmingBlockRemoval] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDeleting, startDeleting] = useTransition();
-  const [addPersonForBlock, setAddPersonForBlock] = useState<string | null>(null);
 
   const showsBlocks = timeControlEnabled && tracksTime;
   const hasEmptyBlockName = showsBlocks && blocks.some((block) => !block.name.trim());
@@ -360,27 +347,6 @@ export function ServiceTypeEditor({
                             <Plus />
                           </IconButton>
                         </div>
-                        <Select
-                          id={`block-${block.id}-person`}
-                          ariaLabel={`Responsable de ${block.name || "bloque"}`}
-                          value={block.defaultPersonId ?? NO_PERSON}
-                          onValueChange={(value) => {
-                            if (value === ADD_PERSON) setAddPersonForBlock(block.id);
-                            else
-                              updateBlock(block.id, {
-                                defaultPersonId: value === NO_PERSON ? null : value,
-                              });
-                          }}
-                          options={[
-                            { value: NO_PERSON, label: "Sin responsable" },
-                            ...[...people]
-                              .sort((a, b) => compareNames(a.name, b.name))
-                              .map((person) => ({ value: person.id, label: person.name })),
-                          ]}
-                          footer={[{ value: ADD_PERSON, label: "Agregar persona…" }]}
-                          className="h-10 pl-3"
-                          containerClassName="min-w-44 flex-1 sm:max-w-56"
-                        />
                         <div className="ml-auto flex items-center gap-1">
                           <IconButton
                             label="Mover arriba"
@@ -484,84 +450,6 @@ export function ServiceTypeEditor({
         description="Sus tiempos guardados se conservan."
         confirmLabel="Eliminar"
       />
-      <AddPersonDialog
-        open={addPersonForBlock !== null}
-        onClose={() => setAddPersonForBlock(null)}
-        onAdded={(person) => {
-          setPeople((current) =>
-            current.some((p) => p.id === person.id) ? current : [...current, person],
-          );
-          if (addPersonForBlock) updateBlock(addPersonForBlock, { defaultPersonId: person.id });
-          setAddPersonForBlock(null);
-        }}
-      />
     </form>
-  );
-}
-
-function AddPersonDialog({
-  open,
-  onClose,
-  onAdded,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onAdded: (person: Person) => void;
-}) {
-  const [name, setName] = useState("");
-  const [error, setError] = useState<string>();
-  const [isPending, startTransition] = useTransition();
-
-  function close() {
-    setName("");
-    setError(undefined);
-    onClose();
-  }
-
-  function add() {
-    startTransition(async () => {
-      const result = await findOrAddPerson(name);
-      if (result.person) {
-        setName("");
-        setError(undefined);
-        onAdded(result.person);
-      } else setError(result.error);
-    });
-  }
-
-  return (
-    <Dialog
-      open={open}
-      onClose={close}
-      title="Agregar persona"
-      size="sm"
-      footer={
-        <>
-          <Button variant="ghost" onClick={close}>
-            Cancelar
-          </Button>
-          <Button onClick={add} isLoading={isPending}>
-            Agregar
-          </Button>
-        </>
-      }
-    >
-      {/* A nested form would submit the editor; Enter is handled here instead. */}
-      <TextField
-        id="new-person"
-        aria-label="Nombre y apellido"
-        placeholder="Nombre y apellido"
-        value={name}
-        onChange={(event) => setName(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            add();
-          }
-        }}
-        error={error}
-        autoFocus
-      />
-    </Dialog>
   );
 }

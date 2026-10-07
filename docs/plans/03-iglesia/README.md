@@ -36,7 +36,7 @@ Reemplaza `/modulos` (deja `/modulos` redirigiendo a `/ajustes`):
   con `nameKey` de `src/lib/text.ts`, que debe ser **idéntico** a la regla del contrato §2: colapsa espacios internos).
 - Permisos: sin `people.manage` / `serviceTypes.manage` se ocultan "Agregar", editar, borrar; las páginas siguen visibles.
 - Editor de servicio: con el módulo de tiempo apagado, **reenvía los bloques existentes intactos** al guardar (contrato §9).
-- `select` de responsable con el nuevo primitivo (incluye "Agregar persona…").
+- Las plantillas no piden responsable: el responsable rota cada semana y se registra en cada servicio (fase 06).
 
 ## Criterios de aceptación
 

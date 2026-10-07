@@ -4,19 +4,17 @@ import { IrisMark } from "@/components/brand/iris-mark";
 import { BlockTimeline } from "@/components/service/block-timeline";
 import { ButtonLink } from "@/components/ui/button";
 import { ColorDot } from "@/components/ui/chip";
-import type { Person } from "@/domain/models";
 import type { NextService } from "@/domain/next-service";
 import { plannedSeconds, spectrumColor, tracksTime } from "@/domain/rules";
 import { blocksSummary, scheduleSummary, timeOfDay } from "@/lib/format";
 
 type Props = {
   next: NextService | null;
-  people: Person[];
   timeControl: boolean;
 };
 
 /** The iPad's home hero, without "Iniciar servicio": the web doesn't project. */
-export function NextServiceCard({ next, people, timeControl }: Props) {
+export function NextServiceCard({ next, timeControl }: Props) {
   if (!next) {
     return (
       <Hero color="var(--color-violet)">
@@ -44,7 +42,6 @@ export function NextServiceCard({ next, people, timeControl }: Props) {
     : next.isToday
       ? `Hoy · ${timeOfDay(type.schedule.hour, type.schedule.minute)}`
       : scheduleSummary(type.schedule);
-  const leader = (id: string | null) => people.find((person) => person.id === id)?.name;
 
   return (
     <Hero color={type.color}>
@@ -82,9 +79,6 @@ export function NextServiceCard({ next, people, timeControl }: Props) {
                 <li key={block.id} className="flex items-center gap-2.5 text-sm">
                   <ColorDot color={spectrumColor(index)} />
                   <span className="min-w-0 flex-1 truncate font-medium">{block.name}</span>
-                  <span className="truncate text-ink-2">
-                    {leader(block.defaultPersonId) ?? "Sin responsable"}
-                  </span>
                   <span className="w-14 text-right text-ink-2 tabular-nums">
                     {block.plannedMinutes} min
                   </span>

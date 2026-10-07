@@ -28,7 +28,6 @@ export const serviceTypeDraftSchema = z
           id: z.string().min(1),
           name: z.string().trim().min(1, "Escribe el nombre del bloque.").max(60),
           plannedMinutes: z.number().int().min(BLOCK_MINUTES.min).max(BLOCK_MINUTES.max),
-          defaultPersonId: z.string().min(1).nullable(),
         }),
       )
       .max(30),

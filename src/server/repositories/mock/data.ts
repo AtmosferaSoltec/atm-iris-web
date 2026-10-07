@@ -140,13 +140,6 @@ function people(session?: UserSession): PeopleRepository {
       const data = churchOf(session);
       if (!data.people.some((person) => person.id === id)) throw notFound();
       data.people = data.people.filter((person) => person.id !== id);
-      for (const type of data.serviceTypes) {
-        if (!type.blocks.some((block) => block.defaultPersonId === id)) continue;
-        type.blocks = type.blocks.map((block) =>
-          block.defaultPersonId === id ? { ...block, defaultPersonId: null } : block,
-        );
-        type.updatedAt = now();
-      }
     },
   };
 }
@@ -161,11 +154,6 @@ function serviceTypes(session?: UserSession): ServiceTypeRepository {
         name: "Ya existe un servicio con ese nombre.",
       });
     }
-    for (const block of input.blocks) {
-      if (block.defaultPersonId && !data.people.some((p) => p.id === block.defaultPersonId)) {
-        throw new ApiError(400, "VALIDATION_FAILED", "Un responsable sugerido ya no existe.");
-      }
-    }
     return {
       id: existing?.id ?? crypto.randomUUID(),
       name: input.name,
@@ -176,7 +164,6 @@ function serviceTypes(session?: UserSession): ServiceTypeRepository {
         id: block.id ?? crypto.randomUUID(),
         name: block.name,
         plannedMinutes: block.plannedMinutes,
-        defaultPersonId: block.defaultPersonId,
       })),
       createdAt: existing?.createdAt ?? now(),
       updatedAt: now(),
