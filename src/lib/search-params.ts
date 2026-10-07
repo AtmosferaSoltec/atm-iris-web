@@ -9,12 +9,9 @@ export const searchParser = parseAsString.withDefault("");
 
 /* ---------------------------------------------------------------- Songs */
 
-export const SONG_SORTS = ["title", "-updatedAt"] as const;
-
 export const songSearchParams = {
   search: searchParser,
   page: pageParser,
-  sort: parseAsStringLiteral(SONG_SORTS).withDefault("title"),
 };
 export const loadSongSearchParams = createLoader(songSearchParams);
 

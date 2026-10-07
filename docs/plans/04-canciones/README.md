@@ -19,10 +19,10 @@ El mock implementa búsqueda sin acentos (con `nameKey`) y paginación igual que
 
 ### `/canciones`
 
-- `search`, `page` y `sort` en la URL con `nuqs` (`shallow: false` para que el servidor vuelva a cargar).
+- `search` y `page` en la URL con `nuqs` (`shallow: false` para que el servidor vuelva a cargar).
   Campo de búsqueda con espera de 300 ms antes de actualizar la URL. Mantén el foco al recargar.
 - Lista con `SongSummary` (ya no hay secciones en la lista). Paginación al pie: "1–20 de 134" + anterior/siguiente.
-- Orden: "Título" o "Recientes" (`sort=-updatedAt`).
+- Orden: siempre por título; la pantalla solo tiene el buscador (sin selector de orden).
 - Sin `songs.manage`: sin "Nueva canción" ni "Importar .txt"; la fila abre el editor en **solo lectura** (vista previa).
 
 ### Editor (`/canciones/nueva`, `/canciones/[id]`)
@@ -44,8 +44,7 @@ El mock implementa búsqueda sin acentos (con `nameKey`) y paginación igual que
 
 ## Desviaciones
 
-- **Orden**: `SegmentedControl` "Título | Recientes" en la URL (`sort`). Con búsqueda el API ordena por relevancia y
-  el control no cambia el resultado; se deja visible para no mover la barra al escribir.
+- **Orden**: ya no hay selector; la web pide siempre `sort=title`. Con búsqueda el API ordena por relevancia.
 - **Duplicados antes de importar**: el diálogo pide todos los títulos con `listSongTitles` (páginas de 100) al
   abrirse y marca "Ya está en tu biblioteca" / "Repetida en esta importación" al pintar, así funciona aunque los
   títulos lleguen después de soltar los archivos. La decisión final es del servidor (`skipped`).

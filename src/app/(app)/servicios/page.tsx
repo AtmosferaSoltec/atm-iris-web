@@ -29,8 +29,7 @@ export default async function ServiceTypesPage() {
           <EmptyState
             icon={<Library />}
             title="Aún no hay servicios"
-            description="Configura el culto general, la reunión de jóvenes o la escuela dominical."
-            action={<ButtonLink href="/servicios/nuevo">Crear el primero</ButtonLink>}
+            description="Usa «Nuevo servicio» para configurar el culto general, la reunión de jóvenes o la escuela dominical."
           />
         </Surface>
       ) : (

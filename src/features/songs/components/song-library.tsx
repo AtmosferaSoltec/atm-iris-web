@@ -8,7 +8,6 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
-import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Surface } from "@/components/ui/surface";
 import { TextField } from "@/components/ui/text-field";
 import type { Paginated, SongSummary } from "@/domain/models";
@@ -20,7 +19,7 @@ import { ImportSongsDialog } from "./import-songs-dialog";
 
 type Props = { songs: Paginated<SongSummary> };
 
-/** Search, sort and page live in the URL; the server loads each result page. */
+/** Search and page live in the URL; the server loads each result page. */
 export function SongLibrary({ songs }: Props) {
   const [isLoading, startTransition] = useTransition();
   const [params, setParams] = useQueryStates(songSearchParams, {
@@ -75,16 +74,6 @@ export function SongLibrary({ songs }: Props) {
             }}
             containerClassName="w-full sm:max-w-md"
           />
-          <SegmentedControl
-            label="Ordenar por"
-            className="w-full sm:ml-auto sm:w-auto"
-            value={params.sort}
-            onChange={(sort) => void setParams({ sort, page: null })}
-            options={[
-              { value: "title", label: "Título" },
-              { value: "-updatedAt", label: "Recientes" },
-            ]}
-          />
         </div>
 
         <div className={cn("transition-opacity", isLoading && "opacity-60")} aria-busy={isLoading}>
@@ -92,8 +81,7 @@ export function SongLibrary({ songs }: Props) {
             <EmptyState
               icon={<ListMusic />}
               title="Aún no hay canciones"
-              description="Crea la primera o importa varias a la vez desde archivos .txt."
-              action={<ButtonLink href="/canciones/nueva">Crear la primera</ButtonLink>}
+              description="Usa los botones de arriba para crear la primera o importar varias a la vez desde archivos .txt."
             />
           ) : songs.data.length === 0 ? (
             <EmptyState
