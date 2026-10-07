@@ -51,7 +51,14 @@ const ROWS: Row[] = [
  * Switches save immediately, one after another; a failed save flips the switch
  * back.
  */
-export function ModuleSettings({ initialModules }: { initialModules: ChurchModules }) {
+export function ModuleSettings({
+  initialModules,
+  available,
+}: {
+  initialModules: ChurchModules;
+  /** Modules switched off for all of Iris are not offered at all (contract §6). */
+  available: ChurchModules;
+}) {
   const [modules, setModules] = useState(initialModules);
   const [error, setError] = useState<string>();
   const queue = useRef(Promise.resolve());
@@ -78,35 +85,40 @@ export function ModuleSettings({ initialModules }: { initialModules: ChurchModul
     <div className="flex flex-col gap-4">
       {error && <Banner tone="error">{error}</Banner>}
       <ul className="divide-y divide-line">
-        {ROWS.map(({ key, title, description, icon: Icon, color }) => {
-          const isLyrics = key === "lyrics";
-          const checked = isLyrics ? true : modules[key];
-          return (
-            <li key={key} className="flex items-center gap-4 py-5 first:pt-0 last:pb-0">
-              <span
-                className="grid size-10 shrink-0 place-items-center rounded-sm"
-                style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, transparent)` }}
-              >
-                <Icon aria-hidden className="size-5" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold">{title}</p>
-                <p className="text-sm text-ink-2">{description}</p>
-                {key === "timeControl" && !modules.timeControl && (
-                  <Banner tone="info" className="mt-3">
-                    Los tiempos guardados se conservan. Puedes volver a activarlo cuando quieras.
-                  </Banner>
-                )}
-              </div>
-              <Switch
-                label={title}
-                checked={checked}
-                disabled={isLyrics}
-                onCheckedChange={(value) => !isLyrics && toggle(key, value)}
-              />
-            </li>
-          );
-        })}
+        {ROWS.filter(({ key }) => key === "lyrics" || available[key]).map(
+          ({ key, title, description, icon: Icon, color }) => {
+            const isLyrics = key === "lyrics";
+            const checked = isLyrics ? true : modules[key];
+            return (
+              <li key={key} className="flex items-center gap-4 py-5 first:pt-0 last:pb-0">
+                <span
+                  className="grid size-10 shrink-0 place-items-center rounded-sm"
+                  style={{
+                    color,
+                    backgroundColor: `color-mix(in srgb, ${color} 14%, transparent)`,
+                  }}
+                >
+                  <Icon aria-hidden className="size-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">{title}</p>
+                  <p className="text-sm text-ink-2">{description}</p>
+                  {key === "timeControl" && !modules.timeControl && (
+                    <Banner tone="info" className="mt-3">
+                      Los tiempos guardados se conservan. Puedes volver a activarlo cuando quieras.
+                    </Banner>
+                  )}
+                </div>
+                <Switch
+                  label={title}
+                  checked={checked}
+                  disabled={isLyrics}
+                  onCheckedChange={(value) => !isLyrics && toggle(key, value)}
+                />
+              </li>
+            );
+          },
+        )}
       </ul>
     </div>
   );

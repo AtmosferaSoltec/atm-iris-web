@@ -23,7 +23,7 @@ export default async function SettingsPage() {
         title="Módulos"
         description="Elige qué partes de Iris usa tu iglesia. Lo que apagues desaparece de la consola."
       >
-        <ModuleSettings initialModules={church.modules} />
+        <ModuleSettings initialModules={church.modules} available={church.availableModules} />
       </Panel>
       <Panel
         title="Almacenamiento"

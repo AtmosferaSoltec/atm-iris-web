@@ -5,6 +5,7 @@ import type {
   ServiceRecord,
   ServiceType,
   Song,
+  ChurchModules,
 } from "@/domain/models";
 import { parseLyrics } from "@/lib/lyrics";
 import type { ChurchData } from "./world";
@@ -139,6 +140,13 @@ const RECORD_SAMPLES: Sample[][] = [
 
 const GIB = 1024 * 1024 * 1024;
 
+/** Same as production today (`system_features`): the Bible is off for all of Iris. */
+export const MOCK_AVAILABLE_MODULES: ChurchModules = {
+  bible: false,
+  multimedia: true,
+  timeControl: true,
+};
+
 export function newChurch(id: string, name: string, now: Date): Church {
   const timestamp = now.toISOString();
   return {
@@ -146,6 +154,7 @@ export function newChurch(id: string, name: string, now: Date): Church {
     name,
     timezone: "America/Lima",
     modules: { bible: true, multimedia: true, timeControl: true },
+    availableModules: MOCK_AVAILABLE_MODULES,
     storage: { usedBytes: 0, quotaBytes: 5 * GIB },
     createdAt: timestamp,
     updatedAt: timestamp,

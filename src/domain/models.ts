@@ -45,12 +45,30 @@ export type ChurchModules = {
 
 export type ModuleKey = keyof ChurchModules;
 
+/** Every module exists. What a church gets when the API doesn't say otherwise. */
+export const ALL_MODULES: ChurchModules = { bible: true, multimedia: true, timeControl: true };
+
+/**
+ * The church's modules as it sees them: its own choice, minus what is switched off for all
+ * of Iris (`availableModules`, contract §6).
+ */
+export function effectiveModules(chosen: ChurchModules, available: ChurchModules): ChurchModules {
+  return {
+    bible: chosen.bible && available.bible,
+    multimedia: chosen.multimedia && available.multimedia,
+    timeControl: chosen.timeControl && available.timeControl,
+  };
+}
+
 export type Church = {
   id: Id;
   name: string;
   /** IANA zone. "Today", schedules and summaries are computed in it. */
   timezone: string;
+  /** What the church sees on (contract §6): its choice, minus what Iris has switched off. */
   modules: ChurchModules;
+  /** Modules that exist in Iris today. A module off here is not offered, not even in Ajustes. */
+  availableModules: ChurchModules;
   storage: { usedBytes: number; quotaBytes: number };
   createdAt: string;
   updatedAt: string;

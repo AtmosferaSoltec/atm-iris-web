@@ -9,10 +9,16 @@ import type {
   SongSummary,
   UploadTicket,
 } from "@/domain/models";
+import { ALL_MODULES } from "@/domain/models";
 import type { DataRepositories } from "../types";
 import { createApiClient, orNull, segment, type ClientOptions } from "./client";
 
 // Implementation against atm-iris-api, route by route from docs/api-contract.md.
+
+/** An API from before the system switches doesn't send `availableModules`: everything exists. */
+function withAvailableModules(church: Church): Church {
+  return { ...church, availableModules: church.availableModules ?? ALL_MODULES };
+}
 
 /** Contract §6, §8–§11, §14. */
 export function apiDataRepositories(options: ClientOptions = {}): DataRepositories {
@@ -20,9 +26,11 @@ export function apiDataRepositories(options: ClientOptions = {}): DataRepositori
 
   return {
     church: {
-      get: () => api<Church>("/church"),
-      update: (input) => api<Church>("/church", { method: "PATCH", body: input }),
-      setModules: (modules) => api<Church>("/church/modules", { method: "PUT", body: modules }),
+      get: () => api<Church>("/church").then(withAvailableModules),
+      update: (input) =>
+        api<Church>("/church", { method: "PATCH", body: input }).then(withAvailableModules),
+      setModules: (modules) =>
+        api<Church>("/church/modules", { method: "PUT", body: modules }).then(withAvailableModules),
     },
     people: {
       list: () => api<Person[]>("/people"),

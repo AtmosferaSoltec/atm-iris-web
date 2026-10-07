@@ -4,16 +4,18 @@ import {
   MEDIA_RULES,
   tooLargeMessage,
 } from "@/domain/media-rules";
-import type {
-  Id,
-  MediaAsset,
-  Paginated,
-  Person,
-  ServiceRecord,
-  ServiceType,
-  Song,
-  SongSummary,
-  UserSession,
+import {
+  effectiveModules,
+  type Church,
+  type Id,
+  type MediaAsset,
+  type Paginated,
+  type Person,
+  type ServiceRecord,
+  type ServiceType,
+  type Song,
+  type SongSummary,
+  type UserSession,
 } from "@/domain/models";
 import { firstLine } from "@/lib/lyrics";
 import { compareNames, nameKey } from "@/lib/text";
@@ -67,23 +69,33 @@ function blockCounts(records: ServiceRecord[]): Map<Id, number> {
 /* ------------------------------------------------------------------ Church */
 
 function church(session?: UserSession): ChurchRepository {
+  // Stored: the church's own choice. Returned: what it sees, like the API (contract §6).
+  const view = (stored: Church): Church =>
+    clone({ ...stored, modules: effectiveModules(stored.modules, stored.availableModules) });
+
   return {
     async get() {
       await delay();
-      return clone(churchOf(session).church);
+      return view(churchOf(session).church);
     },
     async update(input) {
       await delay();
       const data = churchOf(session);
       Object.assign(data.church, input, { updatedAt: now() });
-      return clone(data.church);
+      return view(data.church);
     },
     async setModules(modules) {
       await delay();
       const data = churchOf(session);
-      data.church.modules = { ...modules };
+      const { availableModules: available, modules: stored } = data.church;
+      // A module switched off for all of Iris keeps the choice it had.
+      data.church.modules = {
+        bible: available.bible ? modules.bible : stored.bible,
+        multimedia: available.multimedia ? modules.multimedia : stored.multimedia,
+        timeControl: available.timeControl ? modules.timeControl : stored.timeControl,
+      };
       data.church.updatedAt = now();
-      return clone(data.church);
+      return view(data.church);
     },
   };
 }

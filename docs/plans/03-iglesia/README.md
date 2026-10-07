@@ -59,3 +59,7 @@ Reemplaza `/modulos` (deja `/modulos` redirigiendo a `/ajustes`):
 - **`Select`**: pinta él mismo la etiqueta seleccionada e ignora el `""` que emite el `<select>` oculto de Radix
   cuando la opción se acaba de agregar ("Agregar persona…" en el editor de servicios).
 - `ModuleSettingsRepository` y `blockCountsByPerson` se eliminaron (`blockCount` viene del API; el mock lo calcula).
+
+- **Módulos del sistema (2026-10-07)**: `Church.availableModules` (contrato §6). En Ajustes › Módulos no se ofrece lo que
+  está apagado para todo Iris (hoy la Biblia); el mock replica la misma regla (`MOCK_AVAILABLE_MODULES`). Si el API no
+  manda el campo, todo se considera disponible.

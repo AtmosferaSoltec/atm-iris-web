@@ -30,4 +30,21 @@ describe("mock repositories", () => {
     expect(church.records.some((r) => r.blocks.some((b) => b.personId === leaderId))).toBe(true);
     expect(session.church.id).toBe(MOCK_IDS.vidaNueva);
   });
+
+  it("hides a module switched off for all of Iris and keeps the church's choice", async () => {
+    const { repos } = await signedIn();
+    const church = await repos.church.get();
+    expect(church.availableModules.bible).toBe(false);
+    expect(church.modules.bible).toBe(false);
+
+    // Saving from Ajustes sends the hidden module as off: the stored choice stays.
+    await repos.church.setModules({ bible: false, multimedia: false, timeControl: true });
+    const stored = mockWorld().churches.find((data) => data.church.id === church.id)!.church;
+    expect(stored.modules).toEqual({ bible: true, multimedia: false, timeControl: true });
+    expect((await repos.church.get()).modules).toEqual({
+      bible: false,
+      multimedia: false,
+      timeControl: true,
+    });
+  });
 });
