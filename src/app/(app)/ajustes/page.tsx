@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Panel } from "@/components/ui/panel";
 import { ChurchForm } from "@/features/church/components/church-form";
 import { ModuleSettings } from "@/features/church/components/module-settings";
+import { PlanPicker } from "@/features/church/components/plan-picker";
 import { StorageUsage } from "@/features/church/components/storage-usage";
 import { requireSession } from "@/server/dal";
 
@@ -29,6 +30,12 @@ export default async function SettingsPage() {
         description="Lo que ocupan los archivos de multimedia de la biblioteca."
       >
         <StorageUsage usedBytes={church.storage.usedBytes} quotaBytes={church.storage.quotaBytes} />
+      </Panel>
+      <Panel
+        title="Plan"
+        description="Empieza gratis. Si necesitas más espacio para multimedia, elige un plan mayor."
+      >
+        <PlanPicker quotaBytes={church.storage.quotaBytes} />
       </Panel>
     </div>
   );

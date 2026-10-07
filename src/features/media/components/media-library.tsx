@@ -1,8 +1,10 @@
 "use client";
 
 import { Clapperboard, Search, Upload } from "lucide-react";
+import Link from "next/link";
 import { debounce, useQueryStates } from "nuqs";
 import { useRef, useState, useTransition, type DragEvent } from "react";
+import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -90,6 +92,15 @@ export function MediaLibrary({ media, urls, storage }: Props) {
       <Surface className="p-5 sm:px-6">
         <StorageUsage usedBytes={storage.usedBytes} quotaBytes={storage.quotaBytes} />
       </Surface>
+
+      {storage.quotaBytes > 0 && storage.usedBytes / storage.quotaBytes >= 0.8 && (
+        <Banner tone="info">
+          Estás por llenar tu espacio.{" "}
+          <Link href="/ajustes#plan" className="font-semibold underline underline-offset-2">
+            Ver planes con más espacio
+          </Link>
+        </Banner>
+      )}
 
       <UploadQueue
         items={upload.items}
