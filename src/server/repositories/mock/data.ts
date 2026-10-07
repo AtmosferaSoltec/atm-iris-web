@@ -1,4 +1,9 @@
-import { MEDIA_ERRORS, MEDIA_RULES, tooLargeMessage } from "@/domain/media-rules";
+import {
+  backgroundProblem,
+  MEDIA_ERRORS,
+  MEDIA_RULES,
+  tooLargeMessage,
+} from "@/domain/media-rules";
 import type {
   Id,
   MediaAsset,
@@ -359,6 +364,17 @@ function media(session?: UserSession): MediaRepository {
       if (!upload || !file || file.bytes.byteLength !== upload.sizeBytes) {
         throw new ApiError(400, "UPLOAD_NOT_FOUND", MEDIA_ERRORS.UPLOAD_NOT_FOUND);
       }
+      if (input.isBackground) {
+        const problem = backgroundProblem({
+          kind: upload.kind,
+          contentType: upload.contentType,
+          sizeBytes: upload.sizeBytes,
+          width: input.width ?? null,
+          height: input.height ?? null,
+          durationSeconds: input.durationSeconds ?? null,
+        });
+        if (problem) throw new ApiError(400, "VALIDATION_FAILED", problem);
+      }
       const asset: MockMedia = {
         id: crypto.randomUUID(),
         kind: upload.kind,
@@ -370,7 +386,7 @@ function media(session?: UserSession): MediaRepository {
         durationSeconds: upload.kind === "image" ? null : (input.durationSeconds ?? null),
         width: upload.kind === "audio" ? null : (input.width ?? null),
         height: upload.kind === "audio" ? null : (input.height ?? null),
-        isBackground: upload.kind === "image" && Boolean(input.isBackground),
+        isBackground: Boolean(input.isBackground),
         createdAt: now(),
         updatedAt: now(),
         storageKey: upload.id,
@@ -386,9 +402,11 @@ function media(session?: UserSession): MediaRepository {
       if (!asset) throw notFound();
       if (patch.title !== undefined) asset.title = patch.title;
       if (patch.description !== undefined) asset.description = patch.description;
-      if (patch.isBackground !== undefined) {
-        asset.isBackground = asset.kind === "image" && patch.isBackground;
+      if (patch.isBackground) {
+        const problem = backgroundProblem(asset);
+        if (problem) throw new ApiError(400, "VALIDATION_FAILED", problem);
       }
+      if (patch.isBackground !== undefined) asset.isBackground = patch.isBackground;
       asset.updatedAt = now();
       return toAsset(asset);
     },

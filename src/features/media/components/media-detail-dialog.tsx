@@ -6,13 +6,12 @@ import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { Switch } from "@/components/ui/switch";
 import { TextArea } from "@/components/ui/text-area";
 import { TextField } from "@/components/ui/text-field";
 import { toast } from "@/components/ui/toaster";
 import type { MediaAsset } from "@/domain/models";
 import { idleState, type FormState } from "@/lib/form-state";
-import { deleteMedia, setMediaBackground, updateMediaDetails } from "../actions";
+import { deleteMedia, updateMediaDetails } from "../actions";
 import { fileFacts, KIND_LABELS } from "../media-format";
 import type { MediaField } from "../schemas";
 
@@ -24,7 +23,6 @@ type Props = {
 };
 
 export function MediaDetailDialog({ asset, url, onClose }: Props) {
-  const [isBackground, setIsBackground] = useState(asset.isBackground);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string>();
   const [isPending, startTransition] = useTransition();
@@ -36,19 +34,6 @@ export function MediaDetailDialog({ asset, url, onClose }: Props) {
     },
     idleState,
   );
-
-  function toggleBackground(value: boolean) {
-    setIsBackground(value);
-    startTransition(async () => {
-      const result = await setMediaBackground(asset.id, value);
-      if (result.error) {
-        setIsBackground(!value);
-        toast.error(result.error);
-      } else {
-        toast.success(value ? "Ahora se ofrece como fondo" : "Ya no se ofrece como fondo");
-      }
-    });
-  }
 
   function confirmDelete() {
     startTransition(async () => {
@@ -89,23 +74,6 @@ export function MediaDetailDialog({ asset, url, onClose }: Props) {
               <SubmitButton variant="secondary">Guardar</SubmitButton>
             </div>
           </form>
-
-          {asset.kind === "image" && (
-            <label className="flex items-center justify-between gap-4 rounded-md bg-surface p-4 ring-1 ring-line ring-inset">
-              <span>
-                <span className="block text-sm font-semibold">Usar como fondo en la consola</span>
-                <span className="block text-xs text-ink-2">
-                  Aparece en el selector de fondos del iPad y de Windows.
-                </span>
-              </span>
-              <Switch
-                label="Usar como fondo en la consola"
-                checked={isBackground}
-                onCheckedChange={toggleBackground}
-                disabled={isPending}
-              />
-            </label>
-          )}
 
           <div className="mt-auto border-t border-line pt-4">
             <Button

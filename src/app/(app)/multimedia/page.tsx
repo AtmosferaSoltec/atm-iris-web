@@ -18,6 +18,7 @@ export default async function MediaPage({ searchParams }: PageProps<"/multimedia
   if (!church.modules.multimedia) notFound();
 
   const media = await repos.media.list({
+    isBackground: false,
     search: search.trim() || undefined,
     page: Math.max(1, page),
     limit: PAGE_SIZE,

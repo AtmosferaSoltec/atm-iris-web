@@ -137,7 +137,7 @@ export type MediaAsset = {
   /** Image and video. */
   width: number | null;
   height: number | null;
-  /** Images only: offered as a console background. */
+  /** Lyrics background (image or video); see `BACKGROUND_RULES`. */
   isBackground: boolean;
   createdAt: string;
   updatedAt: string;

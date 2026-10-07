@@ -6,7 +6,6 @@ import { debounce, useQueryStates } from "nuqs";
 import { useRef, useState, useTransition, type DragEvent } from "react";
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
-import { Chip } from "@/components/ui/chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
@@ -199,7 +198,7 @@ function MediaCard({
     <button
       type="button"
       onClick={onOpen}
-      aria-label={asset.isBackground ? `${asset.title}, fondo` : asset.title}
+      aria-label={asset.title}
       className="group flex w-full cursor-pointer flex-col gap-2.5 text-left"
     >
       <span className="relative block aspect-video overflow-hidden rounded-md bg-surface ring-1 ring-line transition group-hover:ring-line-strong">
@@ -227,13 +226,6 @@ function MediaCard({
         {asset.kind !== "image" && asset.durationSeconds !== null && (
           <span className="absolute right-2 bottom-2 rounded-full bg-black/70 px-2 py-0.5 text-xs font-medium text-white tabular-nums">
             {clock(asset.durationSeconds)}
-          </span>
-        )}
-        {asset.isBackground && (
-          <span className="absolute top-2 left-2">
-            <Chip color="var(--color-ember)" className="bg-black/60">
-              Fondo
-            </Chip>
           </span>
         )}
       </span>

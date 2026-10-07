@@ -2,7 +2,13 @@
 
 import { useRef, useState } from "react";
 import { toast } from "@/components/ui/toaster";
-import { MEDIA_ERRORS, MEDIA_RULES, mediaKindOf, tooLargeMessage } from "@/domain/media-rules";
+import {
+  backgroundProblem,
+  MEDIA_ERRORS,
+  MEDIA_RULES,
+  mediaKindOf,
+  tooLargeMessage,
+} from "@/domain/media-rules";
 import type { MediaKind, UploadTicket } from "@/domain/models";
 import { titleFromFileName } from "@/lib/text";
 import { confirmUpload, requestUpload } from "../actions";
@@ -32,8 +38,9 @@ class UploadCancelled extends Error {}
 /**
  * Upload queue: each file goes measure → ticket → PUT straight to the storage
  * (with progress, cancellable) → confirm. One file failing doesn't stop the rest.
+ * With `background`, files must meet the lyrics-background rules (checked here and by the API).
  */
-export function useMediaUpload() {
+export function useMediaUpload({ background = false }: { background?: boolean } = {}) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const files = useRef(new Map<string, File>());
   const requests = useRef(new Map<string, XMLHttpRequest>());
@@ -54,6 +61,15 @@ export function useMediaUpload() {
 
     patch(id, { status: "measuring", error: undefined, canRetry: false, progress: 0 });
     const measures = await measureMedia(file, kind);
+    if (background) {
+      const problem = backgroundProblem({
+        kind,
+        contentType: file.type,
+        sizeBytes: file.size,
+        ...measures,
+      });
+      if (problem) return fail(problem);
+    }
 
     patch(id, { status: "requesting" });
     const requested = await requestUpload({
@@ -77,7 +93,7 @@ export function useMediaUpload() {
       uploadId: requested.ticket.uploadId,
       title,
       ...measures,
-      isBackground: false,
+      isBackground: background,
     }).catch(() => ({ error: NETWORK_UPLOAD_ERROR, asset: undefined }));
     if (!confirmed.asset) return fail(confirmed.error ?? NETWORK_UPLOAD_ERROR, true);
 

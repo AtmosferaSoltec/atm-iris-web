@@ -20,6 +20,7 @@ import {
 
 function revalidateMedia() {
   revalidatePath("/multimedia");
+  revalidatePath("/fondos");
   revalidatePath("/ajustes");
   revalidatePath("/");
 }
@@ -72,22 +73,6 @@ export async function updateMediaDetails(
   }
   revalidateMedia();
   return { status: "success", values };
-}
-
-export async function setMediaBackground(
-  id: string,
-  isBackground: boolean,
-): Promise<{ error?: string }> {
-  const mediaId = mediaIdSchema.safeParse(id);
-  if (!mediaId.success) return { error: GENERIC_ERROR };
-  try {
-    const { repos } = await authorize();
-    await repos.media.update(mediaId.data, { isBackground: Boolean(isBackground) });
-  } catch (error) {
-    return { error: errorMessage(error) };
-  }
-  revalidateMedia();
-  return {};
 }
 
 export async function deleteMedia(id: string): Promise<{ error?: string }> {

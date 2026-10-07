@@ -1,4 +1,13 @@
-import { Clapperboard, House, Library, ListMusic, Settings2, Timer, Users } from "lucide-react";
+import {
+  Clapperboard,
+  House,
+  ImagePlay,
+  Library,
+  ListMusic,
+  Settings2,
+  Timer,
+  Users,
+} from "lucide-react";
 import type { Route } from "next";
 import type { ModuleKey } from "@/domain/models";
 
@@ -14,6 +23,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Inicio", icon: House },
   { href: "/canciones", label: "Canciones", icon: ListMusic },
   { href: "/multimedia", label: "Multimedia", icon: Clapperboard, module: "multimedia" },
+  { href: "/fondos", label: "Fondos", icon: ImagePlay, module: "multimedia" },
   { href: "/servicios", label: "Servicios", icon: Library },
   { href: "/personas", label: "Personas", icon: Users, module: "timeControl" },
   { href: "/tiempos", label: "Tiempos", icon: Timer, module: "timeControl" },

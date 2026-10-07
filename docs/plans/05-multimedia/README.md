@@ -41,9 +41,9 @@ y `downloadUrl` hacia ese mismo handler con GET. Ese route handler solo existe c
   Búsqueda por título.
 - Cuadrícula de tarjetas 16:9: imagen con su `downloadUrl`; video con poster del primer cuadro vía
   `<video preload="metadata">` y duración en cápsula; audio con ícono y duración.
-- Chip "Fondo" en las imágenes con `isBackground`.
+- Los fondos de las letras no aparecen aquí: tienen su pantalla `/fondos` (la lista pide `isBackground: false`).
 - Clic abre un panel de detalle (`dialog` tamaño `lg`): vista previa (imagen / `<video controls>` / `<audio controls>`),
-  título y descripción editables, interruptor "Usar como fondo en la consola" (solo imágenes), datos del archivo
+  título y descripción editables, datos del archivo
   ("JPG · 1920 × 1080 · 2,4 MB"), "Eliminar" (confirmación: "Se quitará de la biblioteca y de las consolas.").
 - Las URLs de descarga caducan en 1 h: pídelas al renderizar la página (en paralelo, máximo 20 por página) y usa `<img>`
   normal (no `next/image`), con `loading="lazy"`.
@@ -68,3 +68,25 @@ y `downloadUrl` hacia ese mismo handler con GET. Ese route handler solo existe c
   guarda pósters.
 - **Módulo apagado**: `/multimedia` responde "no encontrado" y desaparece de la navegación.
 - Arrastrar archivos funciona sobre toda la página (resalta la biblioteca); el atajo `/` enfoca la búsqueda.
+
+## Fondos (`/fondos`)
+
+Imágenes y videos que las consolas muestran **detrás de la letra** (medios con `isBackground: true`, contrato §11).
+Entrada propia en la navegación, junto a Multimedia, y solo visible con el módulo `multimedia` encendido.
+
+- Encabezado "Fondos" + "Subir fondos", panel con los requisitos y la barra de cuota, la misma cola de subida y una
+  cuadrícula 16:9. Los videos se previsualizan en bucle y sin sonido; clic abre el panel de detalle (renombrar, eliminar).
+- Reglas (`BACKGROUND_RULES` en `src/domain/media-rules.ts`; el API tiene la misma tabla):
+
+  | | Imagen | Video |
+  |---|---|---|
+  | Formato | JPG, PNG, WebP | solo MP4 |
+  | Proporción | 16:9 (±2 %) | 16:9 (±2 %) |
+  | Tamaño | 1280 × 720 – 3840 × 2160 (recomendado 1920 × 1080) | 1280 × 720 – 1920 × 1080 |
+  | Duración | — | hasta 30 s, en bucle y sin sonido |
+  | Peso | 10 MB | 100 MB |
+
+- **Por qué 30 s**: el video se repite sin parar detrás de la letra; un clip corto pesa poco (cabe en la caché de las
+  consolas sin conexión) y el salto del bucle se nota menos si se diseña para repetirse. Un audio no puede ser fondo.
+- `useMediaUpload({ background: true })` mide el archivo y aplica `backgroundProblem` antes de pedir el ticket, con el
+  mismo mensaje que da el API (400 `VALIDATION_FAILED`); el mock hace lo mismo al confirmar.

@@ -40,7 +40,7 @@ export async function SongsTile({ repos }: TileProps) {
 }
 
 export async function MediaTile({ repos, storage }: TileProps & { storage: Church["storage"] }) {
-  const files = await repos.media.list({ limit: 1 });
+  const files = await repos.media.list({ isBackground: false, limit: 1 });
   return (
     <Tile
       href="/multimedia"
