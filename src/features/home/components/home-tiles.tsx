@@ -40,30 +40,19 @@ export async function SongsTile({ repos }: TileProps) {
 }
 
 export async function MediaTile({ repos, storage }: TileProps & { storage: Church["storage"] }) {
-  const [images, videos, audio] = await Promise.all(
-    (["image", "video", "audio"] as const).map((kind) => repos.media.list({ kind, limit: 1 })),
-  );
-  const counts = [
-    { label: "Imágenes", total: images.meta.total },
-    { label: "Videos", total: videos.meta.total },
-    { label: "Música", total: audio.meta.total },
-  ];
+  const files = await repos.media.list({ limit: 1 });
   return (
     <Tile
       href="/multimedia"
       icon={<Clapperboard />}
       color="var(--color-rose)"
       title="Multimedia"
-      subtitle="Imágenes, videos y música"
+      subtitle="Archivos para una ocasión especial"
     >
       <div className="flex flex-col gap-4">
-        <dl className="grid grid-cols-3 gap-3">
-          {counts.map((count) => (
-            <div key={count.label}>
-              <dt className="text-xs text-ink-2">{count.label}</dt>
-              <dd className="text-xl font-semibold tabular-nums">{count.total}</dd>
-            </div>
-          ))}
+        <dl>
+          <dt className="text-xs text-ink-2">Archivos</dt>
+          <dd className="text-xl font-semibold tabular-nums">{files.meta.total}</dd>
         </dl>
         <StorageUsage usedBytes={storage.usedBytes} quotaBytes={storage.quotaBytes} />
       </div>

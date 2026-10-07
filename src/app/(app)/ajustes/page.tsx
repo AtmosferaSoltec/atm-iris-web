@@ -26,7 +26,7 @@ export default async function SettingsPage() {
       </Panel>
       <Panel
         title="Almacenamiento"
-        description="Lo que ocupan las imágenes, los videos y la música de la biblioteca."
+        description="Lo que ocupan los archivos de multimedia de la biblioteca."
       >
         <StorageUsage usedBytes={church.storage.usedBytes} quotaBytes={church.storage.quotaBytes} />
       </Panel>

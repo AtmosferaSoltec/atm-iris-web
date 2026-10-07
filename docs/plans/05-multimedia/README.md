@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Contrato §11: biblioteca de imágenes, videos y música. La subida va **del navegador directo al
+Contrato §11: biblioteca de multimedia (imágenes, videos u otros archivos) para presentar en una ocasión especial; no es un repertorio. La música de uso recurrente la leen las apps del iPad y de Windows desde una carpeta local, no se sube a la web. La subida va **del navegador directo al
 almacenamiento** con la URL firmada (los archivos no pasan por Next ni por la API), con progreso,
 metadatos medidos en el navegador y cuota visible.
 
@@ -35,11 +35,12 @@ y `downloadUrl` hacia ese mismo handler con GET. Ese route handler solo existe c
 
 ## Pantalla `/multimedia`
 
-- Encabezado "Multimedia" + "Imágenes, videos y música para proyectar y reproducir en el servicio." + primario "Subir archivos".
+- Encabezado "Multimedia" + "Imágenes, videos o cualquier archivo para presentar en una ocasión especial…" + primario "Subir archivos".
 - Barra de cuota: "3,2 GB de 5 GB" con `IrisTimeBar`-like (o una barra propia con tokens); en ámbar desde el 80 %, en rojo desde el 95 %.
-- `SegmentedControl` en la URL (`kind`): Imágenes · Videos · Música. Búsqueda por título.
-- Imágenes y videos: cuadrícula de tarjetas 16:9 (imagen con su `downloadUrl`; video con poster del primer cuadro vía
-  `<video preload="metadata">` y duración en cápsula). Música: filas con ícono verde, título, descripción y duración.
+- Una sola lista, sin separar por tipo (la URL solo lleva `search` y `page`; `kind` queda como dato interno del contrato).
+  Búsqueda por título.
+- Cuadrícula de tarjetas 16:9: imagen con su `downloadUrl`; video con poster del primer cuadro vía
+  `<video preload="metadata">` y duración en cápsula; audio con ícono y duración.
 - Chip "Fondo" en las imágenes con `isBackground`.
 - Clic abre un panel de detalle (`dialog` tamaño `lg`): vista previa (imagen / `<video controls>` / `<audio controls>`),
   título y descripción editables, interruptor "Usar como fondo en la consola" (solo imágenes), datos del archivo

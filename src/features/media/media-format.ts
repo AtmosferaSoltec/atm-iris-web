@@ -5,7 +5,7 @@ import { clock, fileSize } from "@/lib/format";
 export const KIND_LABELS: Record<MediaKind, { plural: string; singular: string }> = {
   image: { plural: "Imágenes", singular: "Imagen" },
   video: { plural: "Videos", singular: "Video" },
-  audio: { plural: "Música", singular: "Música" },
+  audio: { plural: "Audios", singular: "Audio" },
 };
 
 export const KIND_ICONS: Record<MediaKind, typeof Music> = {

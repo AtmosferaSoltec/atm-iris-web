@@ -20,10 +20,7 @@ export const loadSongSearchParams = createLoader(songSearchParams);
 
 /* ---------------------------------------------------------------- Media */
 
-export const MEDIA_KIND_PARAMS = ["image", "video", "audio"] as const;
-
 export const mediaSearchParams = {
-  kind: parseAsStringLiteral(MEDIA_KIND_PARAMS).withDefault("image"),
   search: searchParser,
   page: pageParser,
 };

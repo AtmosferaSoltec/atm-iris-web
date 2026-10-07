@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Upload } from "lucide-react";
+import { Clapperboard, Search, Upload } from "lucide-react";
 import { debounce, useQueryStates } from "nuqs";
 import { useRef, useState, useTransition, type DragEvent } from "react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { Chip } from "@/components/ui/chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
-import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Surface } from "@/components/ui/surface";
 import { TextField } from "@/components/ui/text-field";
 import type { Church, MediaAsset, Paginated } from "@/domain/models";
@@ -17,7 +16,7 @@ import { cn } from "@/lib/cn";
 import { clock } from "@/lib/format";
 import { mediaSearchParams } from "@/lib/search-params";
 import { useSlashFocus } from "@/lib/use-slash-focus";
-import { ACCEPTED_TYPES, KIND_COLORS, KIND_ICONS, KIND_LABELS } from "../media-format";
+import { ACCEPTED_TYPES, KIND_COLORS, KIND_ICONS } from "../media-format";
 import { useMediaUpload } from "../upload/use-media-upload";
 import { MediaDetailDialog } from "./media-detail-dialog";
 import { UploadQueue } from "./upload-queue";
@@ -44,8 +43,6 @@ export function MediaLibrary({ media, urls, storage }: Props) {
   useSlashFocus(searchRef);
 
   const open = media.data.find((asset) => asset.id === openId) ?? null;
-  const kind = params.kind;
-  const Icon = KIND_ICONS[kind];
 
   function onDrop(event: DragEvent) {
     event.preventDefault();
@@ -67,7 +64,7 @@ export function MediaLibrary({ media, urls, storage }: Props) {
     >
       <PageHeader
         title="Multimedia"
-        description="Imágenes, videos y música para proyectar y reproducir en el servicio."
+        description="Imágenes, videos o cualquier archivo para presentar en una ocasión especial. No es un repertorio: sube solo lo que vas a usar."
         actions={
           <>
             <Button icon={<Upload className="size-4" />} onClick={() => fileInput.current?.click()}>
@@ -109,19 +106,6 @@ export function MediaLibrary({ media, urls, storage }: Props) {
         )}
       >
         <div className="flex flex-wrap items-center gap-4 border-b border-line p-4 sm:px-6">
-          <SegmentedControl
-            label="Tipo"
-            className="w-full sm:w-auto"
-            value={kind}
-            onChange={(next) => {
-              setOpenId(null);
-              void setParams({ kind: next, page: null });
-            }}
-            options={(["image", "video", "audio"] as const).map((value) => ({
-              value,
-              label: KIND_LABELS[value].plural,
-            }))}
-          />
           <TextField
             ref={searchRef}
             id="media-search"
@@ -137,7 +121,7 @@ export function MediaLibrary({ media, urls, storage }: Props) {
                 { limitUrlUpdates: event.target.value ? debounce(300) : undefined },
               );
             }}
-            containerClassName="w-full sm:ml-auto sm:max-w-xs"
+            containerClassName="w-full sm:max-w-xs"
           />
         </div>
 
@@ -147,44 +131,15 @@ export function MediaLibrary({ media, urls, storage }: Props) {
               <EmptyState
                 icon={<Search />}
                 title="Sin resultados"
-                description={`No encontramos ${KIND_LABELS[kind].plural.toLowerCase()} para «${params.search}».`}
+                description={`No encontramos archivos para «${params.search}».`}
               />
             ) : (
               <EmptyState
-                icon={<Icon />}
-                title={`Aún no hay ${kind === "audio" ? "música" : KIND_LABELS[kind].plural.toLowerCase()}`}
+                icon={<Clapperboard />}
+                title="Aún no hay archivos"
                 description="Sube archivos con el botón o arrástralos a esta página."
               />
             )
-          ) : kind === "audio" ? (
-            <ul className="divide-y divide-line">
-              {media.data.map((asset) => (
-                <li key={asset.id}>
-                  <button
-                    type="button"
-                    onClick={() => setOpenId(asset.id)}
-                    className="flex w-full cursor-pointer items-center gap-4 px-4 py-4 text-left transition-colors hover:bg-surface sm:px-6"
-                  >
-                    <span className="grid size-10 shrink-0 place-items-center rounded-sm bg-success/14 text-success">
-                      <Icon aria-hidden className="size-[18px]" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-semibold">{asset.title}</span>
-                      {asset.description && (
-                        <span className="block truncate text-sm text-ink-2">
-                          {asset.description}
-                        </span>
-                      )}
-                    </span>
-                    {asset.durationSeconds !== null && (
-                      <span className="text-sm text-ink-2 tabular-nums">
-                        {clock(asset.durationSeconds)}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
           ) : (
             <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))] gap-5 p-4 sm:p-6">
               {media.data.map((asset) => (
@@ -237,7 +192,7 @@ function MediaCard({
       className="group flex w-full cursor-pointer flex-col gap-2.5 text-left"
     >
       <span className="relative block aspect-video overflow-hidden rounded-md bg-surface ring-1 ring-line transition group-hover:ring-line-strong">
-        {url ? (
+        {url && asset.kind !== "audio" ? (
           asset.kind === "image" ? (
             // eslint-disable-next-line @next/next/no-img-element -- signed URLs expire in 1 h; next/image would cache them
             <img src={url} alt="" loading="lazy" className="size-full object-cover" />
@@ -258,7 +213,7 @@ function MediaCard({
             <Icon aria-hidden className="size-6" />
           </span>
         )}
-        {asset.kind === "video" && asset.durationSeconds !== null && (
+        {asset.kind !== "image" && asset.durationSeconds !== null && (
           <span className="absolute right-2 bottom-2 rounded-full bg-black/70 px-2 py-0.5 text-xs font-medium text-white tabular-nums">
             {clock(asset.durationSeconds)}
           </span>

@@ -11,14 +11,13 @@ const PAGE_SIZE = 20;
 
 export default async function MediaPage({ searchParams }: PageProps<"/multimedia">) {
   const { repos } = await requireSession();
-  const [church, { kind, search, page }] = await Promise.all([
+  const [church, { search, page }] = await Promise.all([
     repos.church.get(),
     loadMediaSearchParams(searchParams),
   ]);
   if (!church.modules.multimedia) notFound();
 
   const media = await repos.media.list({
-    kind,
     search: search.trim() || undefined,
     page: Math.max(1, page),
     limit: PAGE_SIZE,
