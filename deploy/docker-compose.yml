@@ -1,0 +1,29 @@
+# Stack de produccion de la web. Se copia a /opt/iris-web desde GitHub Actions
+# en cada despliegue; no se edita a mano en el servidor.
+#
+# Nunca construye: la imagen se compila una sola vez en CI y se publica en GHCR.
+# El .env real vive solo en el servidor (/opt/iris-web/.env): AUTH_SOURCE,
+# DATA_SOURCE, API_URL y SESSION_SECRET. API_URL apunta al contenedor del API
+# por la red externa `atm-network`: http://iris-api:3001/api/v1
+#
+# El HEALTHCHECK viene en la imagen (Dockerfile), consulta /api/health.
+
+networks:
+  shared:
+    name: atm-network
+    external: true
+
+services:
+  app:
+    image: ghcr.io/atmosferasoltec/atm-iris-web:${IMAGE_TAG:-latest}
+    container_name: iris-web
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    # Solo loopback: quien publica al exterior es nginx.
+    ports:
+      - "127.0.0.1:3050:3000"
+    networks:
+      - shared
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
