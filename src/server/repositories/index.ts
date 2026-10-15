@@ -3,8 +3,9 @@ import type { UserSession } from "@/domain/models";
 import { env } from "../env";
 import { apiDataRepositories } from "./api";
 import { apiAuth } from "./api/auth";
+import { apiReleases } from "./api/releases";
 import type { ClientOptions } from "./api/client";
-import { mockAuth, mockDataRepositories } from "./mock";
+import { mockAuth, mockDataRepositories, mockReleases } from "./mock";
 import type { Repositories } from "./types";
 
 export type { Repositories } from "./types";
@@ -23,6 +24,7 @@ export function getRepositories({ session, ...apiOptions }: RepositoryContext = 
   const accountsFromApi = env.AUTH_SOURCE === "api";
   return {
     auth: accountsFromApi ? apiAuth(apiOptions) : mockAuth(session),
+    releases: env.DATA_SOURCE === "api" ? apiReleases(apiOptions) : mockReleases(),
     ...(env.DATA_SOURCE === "api"
       ? apiDataRepositories(apiOptions)
       : mockDataRepositories(session)),

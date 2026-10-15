@@ -227,4 +227,12 @@ export type DataRepositories = {
   records: TimeRecordRepository;
 };
 
-export type Repositories = DataRepositories & { auth: AuthService };
+export type AppPlatform = "ios" | "windows";
+
+/** Versions of the desktop and iPad apps published for download (contract §17). */
+export interface ReleaseRepository {
+  /** The version published today, or `null` when it cannot be known (the page still works). */
+  latestVersion(platform: AppPlatform): Promise<string | null>;
+}
+
+export type Repositories = DataRepositories & { auth: AuthService; releases: ReleaseRepository };

@@ -11,12 +11,16 @@ import {
 } from "@/server/session-token";
 
 // Runs before every page and Server Action:
+//   0. Lets the public pages (PUBLIC_PATHS) through untouched.
 //   1. Sends anonymous visitors to /login and signed-in ones away from it.
 //   2. Refreshes the API access token when it is about to expire, so pages and
 //      actions always render with a valid one. Server Components cannot write
 //      cookies, which is why the refresh lives here.
 // The Data Access Layer (src/server/dal.ts) still checks the session next to
 // every read and mutation.
+
+/** Open to everyone, signed in or not: no redirect and no session refresh. */
+const PUBLIC_PATHS = ["/downloads"];
 
 /** Only for visitors without a session. */
 const GUEST_PATHS = ["/login", "/recuperar"];
@@ -27,6 +31,7 @@ const matches = (pathname: string, paths: string[]) =>
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (matches(pathname, PUBLIC_PATHS)) return NextResponse.next();
   const isGuestOnly = matches(pathname, GUEST_PATHS);
   const session = await decryptSession(request.cookies.get(SESSION_COOKIE)?.value);
 
