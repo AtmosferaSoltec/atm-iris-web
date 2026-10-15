@@ -5,7 +5,13 @@ import { fieldErrorsFrom, formValues, GENERIC_ERROR, type FormState } from "@/li
 import { idSchema } from "@/lib/validation";
 import { authorize } from "@/server/dal";
 import { errorMessage, toFormState } from "@/server/repositories/api/errors";
-import { SONG_FIELDS, songFormSchema, type SongField } from "./schemas";
+import {
+  SONG_FIELDS,
+  songFormSchema,
+  songImportSchema,
+  type SongExportItem,
+  type SongField,
+} from "./schemas";
 
 function revalidateSongs() {
   revalidatePath("/letras", "layout");
@@ -49,4 +55,58 @@ export async function deleteSong(songId: string): Promise<{ error?: string }> {
   }
   revalidateSongs();
   return {};
+}
+
+/** The whole library, full sections included, for "Exportar" to download as a file. */
+export async function exportSongs(): Promise<{ songs?: SongExportItem[]; error?: string }> {
+  try {
+    const { repos } = await authorize();
+    const summaries: { id: string }[] = [];
+    let page = 1;
+    while (true) {
+      const result = await repos.songs.list({ page, limit: 100, sort: "title" });
+      summaries.push(...result.data);
+      if (result.data.length === 0 || page >= result.meta.totalPages) break;
+      page++;
+    }
+    const full = await Promise.all(summaries.map((summary) => repos.songs.get(summary.id)));
+    return {
+      songs: full
+        .filter((song) => song !== null)
+        .map((song) => ({
+          title: song.title,
+          author: song.author,
+          sections: song.sections.map(({ label, text }) => ({ label, text })),
+        })),
+    };
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
+}
+
+/** Creates one song per entry of an exported file. Best-effort: one bad song never stops the rest. */
+export async function importSongs(
+  data: unknown,
+): Promise<{ imported: number; failed: number; error?: string }> {
+  const parsed = songImportSchema.safeParse(data);
+  if (!parsed.success) {
+    return {
+      imported: 0,
+      failed: 0,
+      error: "Ese archivo no tiene el formato de una exportación de letras.",
+    };
+  }
+  const { repos } = await authorize();
+  let imported = 0;
+  let failed = 0;
+  for (const song of parsed.data.songs) {
+    try {
+      await repos.songs.create(song);
+      imported++;
+    } catch {
+      failed++;
+    }
+  }
+  revalidateSongs();
+  return { imported, failed };
 }

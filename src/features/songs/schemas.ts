@@ -34,3 +34,25 @@ const songSchema = z
 
 /** Parses the editor form into the contract's `SongInput`. */
 export const songFormSchema = songSchema;
+
+/** One song as it travels in an export/import file: same shape as `SongInput`. */
+const songExportItemSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  author: z.string().trim().max(120).default(""),
+  sections: z
+    .array(
+      z.object({
+        label: z.string().trim().max(40).nullable(),
+        text: z.string().trim().min(1).max(2000),
+      }),
+    )
+    .min(1)
+    .max(80),
+});
+
+/** A whole library export: `{ songs: [...] }`. Up to 2000 so a bad paste can't hang the import. */
+export const songImportSchema = z.object({
+  songs: z.array(songExportItemSchema).min(1).max(2000),
+});
+
+export type SongExportItem = z.infer<typeof songExportItemSchema>;

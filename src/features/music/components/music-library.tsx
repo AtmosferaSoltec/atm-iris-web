@@ -1,11 +1,12 @@
 "use client";
 
-import { Music, Pause, Play, Search, Upload } from "lucide-react";
+import { CheckSquare, Music, Pause, Play, Search, Square, Trash2, Upload, X } from "lucide-react";
 import Link from "next/link";
 import { debounce, useQueryStates } from "nuqs";
 import { useEffect, useRef, useState, useTransition, type DragEvent } from "react";
 import { Banner } from "@/components/ui/banner";
 import { Button, IconButton } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
@@ -16,7 +17,7 @@ import { toast } from "@/components/ui/toaster";
 import { SECTION_KINDS } from "@/domain/media-rules";
 import type { Church, MediaAsset, Paginated } from "@/domain/models";
 import { StorageUsage } from "@/features/church/components/storage-usage";
-import { mediaDownloadUrl } from "@/features/media/actions";
+import { deleteManyMedia, mediaDownloadUrl } from "@/features/media/actions";
 import { MediaDetailDialog } from "@/features/media/components/media-detail-dialog";
 import { UploadQueue } from "@/features/media/components/upload-queue";
 import { acceptedTypes, fileFacts } from "@/features/media/media-format";
@@ -48,6 +49,10 @@ export function MusicLibrary({ tracks, storage }: Props) {
   const [query, setQuery] = useState(params.search);
   const [isDragging, setIsDragging] = useState(false);
   const [open, setOpen] = useState<{ asset: MediaAsset; url: string | null } | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [isDeleting, startDelete] = useTransition();
   const player = usePlayer();
   const upload = useMediaUpload({ section: "music" });
   const fileInput = useRef<HTMLInputElement>(null);
@@ -61,7 +66,38 @@ export function MusicLibrary({ tracks, storage }: Props) {
   }
 
   async function openDetails(asset: MediaAsset) {
+    if (isSelecting) {
+      toggleSelected(asset.id);
+      return;
+    }
     setOpen({ asset, url: await player.urlFor(asset.id) });
+  }
+
+  function toggleSelected(id: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function exitSelection() {
+    setIsSelecting(false);
+    setSelectedIds(new Set());
+  }
+
+  function confirmBulkDelete() {
+    startDelete(async () => {
+      const { deleted, failed } = await deleteManyMedia([...selectedIds]);
+      setIsConfirmingDelete(false);
+      exitSelection();
+      if (failed > 0) {
+        toast.error(`Se eliminaron ${deleted}, ${failed} no se pudieron borrar.`);
+      } else {
+        toast.success(`Se eliminó ${plural(deleted, "pista")}`);
+      }
+    });
   }
 
   return (
@@ -80,24 +116,61 @@ export function MusicLibrary({ tracks, storage }: Props) {
         title="Música"
         description="Las pistas que suenan en el salón durante el servicio. Súbelas una vez aquí: el iPad y Windows descargan solo las que agregas a un servicio."
         actions={
-          <>
-            <Button icon={<Upload className="size-4" />} onClick={() => fileInput.current?.click()}>
-              Subir música
-            </Button>
-            <input
-              ref={fileInput}
-              type="file"
-              multiple
-              accept={acceptedTypes(SECTION_KINDS.music)}
-              className="sr-only"
-              tabIndex={-1}
-              aria-hidden
-              onChange={(event) => {
-                if (event.target.files) upload.addFiles(event.target.files);
-                event.target.value = "";
-              }}
-            />
-          </>
+          isSelecting ? (
+            <>
+              <span className="text-sm text-ink-2 tabular-nums">
+                {plural(selectedIds.size, "seleccionada", "seleccionadas")}
+              </span>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  setSelectedIds(
+                    selectedIds.size === tracks.data.length
+                      ? new Set()
+                      : new Set(tracks.data.map((track) => track.id)),
+                  )
+                }
+              >
+                {selectedIds.size === tracks.data.length ? "Quitar selección" : "Seleccionar todos"}
+              </Button>
+              <Button
+                variant="danger"
+                icon={<Trash2 className="size-4" />}
+                disabled={selectedIds.size === 0}
+                onClick={() => setIsConfirmingDelete(true)}
+              >
+                Eliminar
+              </Button>
+              <IconButton label="Cancelar selección" onClick={exitSelection}>
+                <X />
+              </IconButton>
+            </>
+          ) : (
+            <>
+              <Button variant="secondary" onClick={() => setIsSelecting(true)}>
+                Seleccionar
+              </Button>
+              <Button
+                icon={<Upload className="size-4" />}
+                onClick={() => fileInput.current?.click()}
+              >
+                Subir música
+              </Button>
+              <input
+                ref={fileInput}
+                type="file"
+                multiple
+                accept={acceptedTypes(SECTION_KINDS.music)}
+                className="sr-only"
+                tabIndex={-1}
+                aria-hidden
+                onChange={(event) => {
+                  if (event.target.files) upload.addFiles(event.target.files);
+                  event.target.value = "";
+                }}
+              />
+            </>
+          )
         }
       />
 
@@ -177,6 +250,9 @@ export function MusicLibrary({ tracks, storage }: Props) {
                     state={player.stateOf(track.id)}
                     onToggle={() => void player.toggle(track)}
                     onOpen={() => void openDetails(track)}
+                    isSelecting={isSelecting}
+                    isSelected={selectedIds.has(track.id)}
+                    onToggleSelected={() => toggleSelected(track.id)}
                   />
                 </li>
               ))}
@@ -199,6 +275,16 @@ export function MusicLibrary({ tracks, storage }: Props) {
           onClose={() => setOpen(null)}
         />
       )}
+
+      <ConfirmDialog
+        open={isConfirmingDelete}
+        onClose={() => setIsConfirmingDelete(false)}
+        onConfirm={confirmBulkDelete}
+        title={`¿Eliminar ${plural(selectedIds.size, "pista")}?`}
+        description="Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        isPending={isDeleting}
+      />
     </div>
   );
 }
@@ -210,29 +296,48 @@ function TrackRow({
   state,
   onToggle,
   onOpen,
+  isSelecting,
+  isSelected,
+  onToggleSelected,
 }: {
   track: MediaAsset;
   state: PlayState;
   onToggle: () => void;
   onOpen: () => void;
+  isSelecting: boolean;
+  isSelected: boolean;
+  onToggleSelected: () => void;
 }) {
   return (
     <div className="flex items-center gap-4 px-4 py-3 sm:px-6">
-      <IconButton
-        label={state === "playing" ? `Pausar ${track.title}` : `Escuchar ${track.title}`}
-        isActive={state === "playing"}
-        onClick={onToggle}
-        disabled={state === "loading"}
-        className="text-success"
-      >
-        {state === "loading" ? (
-          <Spinner className="size-4" />
-        ) : state === "playing" ? (
-          <Pause />
-        ) : (
-          <Play />
-        )}
-      </IconButton>
+      {isSelecting ? (
+        <IconButton
+          label={
+            isSelected ? `Quitar «${track.title}» de la selección` : `Seleccionar «${track.title}»`
+          }
+          isActive={isSelected}
+          onClick={onToggleSelected}
+          className={isSelected ? "text-accent" : undefined}
+        >
+          {isSelected ? <CheckSquare /> : <Square />}
+        </IconButton>
+      ) : (
+        <IconButton
+          label={state === "playing" ? `Pausar ${track.title}` : `Escuchar ${track.title}`}
+          isActive={state === "playing"}
+          onClick={onToggle}
+          disabled={state === "loading"}
+          className="text-success"
+        >
+          {state === "loading" ? (
+            <Spinner className="size-4" />
+          ) : state === "playing" ? (
+            <Pause />
+          ) : (
+            <Play />
+          )}
+        </IconButton>
+      )}
       <button
         type="button"
         onClick={onOpen}

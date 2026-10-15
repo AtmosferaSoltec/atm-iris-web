@@ -100,3 +100,21 @@ export async function deleteMedia(id: string): Promise<{ error?: string }> {
   revalidateMedia();
   return {};
 }
+
+/** Bulk delete for "select and delete at once". Best-effort: one failure doesn't stop the rest. */
+export async function deleteManyMedia(ids: string[]): Promise<{ deleted: number; failed: number }> {
+  const parsed = ids.map((id) => mediaIdSchema.safeParse(id)).filter((result) => result.success);
+  const { repos } = await authorize();
+  let deleted = 0;
+  let failed = 0;
+  for (const id of parsed) {
+    try {
+      await repos.media.delete(id.data);
+      deleted++;
+    } catch {
+      failed++;
+    }
+  }
+  revalidateMedia();
+  return { deleted, failed };
+}

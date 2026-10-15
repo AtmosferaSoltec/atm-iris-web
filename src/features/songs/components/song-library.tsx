@@ -1,20 +1,22 @@
 "use client";
 
-import { ChevronRight, ListMusic, Plus, Quote, Search } from "lucide-react";
+import { ChevronRight, Download, ListMusic, Plus, Quote, Search, Upload } from "lucide-react";
 import Link from "next/link";
 import { debounce, useQueryStates } from "nuqs";
 import { useRef, useState, useTransition } from "react";
-import { ButtonLink } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { Surface } from "@/components/ui/surface";
 import { TextField } from "@/components/ui/text-field";
+import { toast } from "@/components/ui/toaster";
 import type { Paginated, SongSummary } from "@/domain/models";
 import { cn } from "@/lib/cn";
 import { songSearchParams } from "@/lib/search-params";
 import { plural } from "@/lib/text";
 import { useSlashFocus } from "@/lib/use-slash-focus";
+import { exportSongs, importSongs } from "../actions";
 
 type Props = { songs: Paginated<SongSummary> };
 
@@ -28,9 +30,58 @@ export function SongLibrary({ songs }: Props) {
   // The field answers at once; the URL (and the server) follow 300 ms later.
   const [query, setQuery] = useState(params.search);
   const searchRef = useRef<HTMLInputElement>(null);
+  const importInput = useRef<HTMLInputElement>(null);
+  const [isExporting, startExport] = useTransition();
+  const [isImporting, startImport] = useTransition();
   useSlashFocus(searchRef);
 
   const isFiltered = params.search.trim().length > 0;
+
+  function onExport() {
+    startExport(async () => {
+      const result = await exportSongs();
+      if (result.error || !result.songs) {
+        toast.error(result.error ?? "No pudimos exportar las letras.");
+        return;
+      }
+      if (result.songs.length === 0) {
+        toast.error("Aún no hay letras para exportar.");
+        return;
+      }
+      const blob = new Blob([JSON.stringify({ songs: result.songs }, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `letras-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Se exportó ${plural(result.songs.length, "letra")}`);
+    });
+  }
+
+  async function onImportFile(file: File) {
+    let data: unknown;
+    try {
+      data = JSON.parse(await file.text());
+    } catch {
+      toast.error("Ese archivo no es un JSON válido.");
+      return;
+    }
+    startImport(async () => {
+      const result = await importSongs(data);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      if (result.failed > 0) {
+        toast.error(`Se importaron ${result.imported}, ${result.failed} no se pudieron guardar.`);
+      } else {
+        toast.success(`Se importó ${plural(result.imported, "letra")}`);
+      }
+    });
+  }
 
   return (
     <div className="mx-auto flex max-w-content flex-col gap-8">
@@ -38,9 +89,40 @@ export function SongLibrary({ songs }: Props) {
         title="Letras"
         description="Las letras que se proyectan en el TV. Lo que guardes aquí aparece en la consola al preparar el servicio."
         actions={
-          <ButtonLink href="/letras/nueva" icon={<Plus className="size-4" />}>
-            Nueva letra
-          </ButtonLink>
+          <>
+            <Button
+              variant="secondary"
+              icon={<Download className="size-4" />}
+              isLoading={isExporting}
+              onClick={onExport}
+            >
+              Exportar
+            </Button>
+            <Button
+              variant="secondary"
+              icon={<Upload className="size-4" />}
+              isLoading={isImporting}
+              onClick={() => importInput.current?.click()}
+            >
+              Importar
+            </Button>
+            <input
+              ref={importInput}
+              type="file"
+              accept="application/json,.json"
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void onImportFile(file);
+                event.target.value = "";
+              }}
+            />
+            <ButtonLink href="/letras/nueva" icon={<Plus className="size-4" />}>
+              Nueva letra
+            </ButtonLink>
+          </>
         }
       />
 
