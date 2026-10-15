@@ -19,9 +19,15 @@ const COPY: Record<Mode, { title: string; subtitle: string }> = {
   },
 };
 
-/** `notice`: a success message to show above the sign-in form (e.g. after a reset). */
-export function AuthPanel({ notice }: { notice?: string }) {
-  const [mode, setMode] = useState<Mode>("signIn");
+/** `notice`: a success message to show above the sign-in form (e.g. after a reset). `initialMode`: the tab to open. */
+export function AuthPanel({
+  notice,
+  initialMode = "signIn",
+}: {
+  notice?: string;
+  initialMode?: Mode;
+}) {
+  const [mode, setMode] = useState<Mode>(initialMode);
 
   return (
     <Surface className="w-full max-w-[480px] rounded-2xl p-8 sm:p-10">

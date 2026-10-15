@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/cn";
 
 const SAMPLES = [
   {
@@ -19,7 +20,7 @@ const SAMPLES = [
 ];
 
 /** Mini TV on the login hero. Rotates every 5 s (IRIS_SPEC §6.1). */
-export function ProjectionShowcase() {
+export function ProjectionShowcase({ className }: { className?: string }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -30,7 +31,12 @@ export function ProjectionShowcase() {
   const sample = SAMPLES[index];
 
   return (
-    <div className="@container relative aspect-video w-full max-w-[440px] overflow-hidden rounded-lg bg-black shadow-[0_30px_60px_-20px_rgb(155_92_255/0.3)] ring-1 ring-line-strong">
+    <div
+      className={cn(
+        "@container relative aspect-video w-full max-w-[440px] overflow-hidden rounded-lg bg-black shadow-[0_30px_60px_-20px_rgb(155_92_255/0.3)] ring-1 ring-line-strong",
+        className,
+      )}
+    >
       <div className="absolute inset-0 bg-[radial-gradient(80%_60%_at_50%_0%,rgb(42_22_88/0.9),transparent)]" />
       <span className="absolute top-[4cqw] left-[4cqw] inline-flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-bold tracking-[0.12em] text-ink ring-1 ring-line backdrop-blur">
         <span className="size-1.5 animate-pulse-live rounded-full bg-live" />
