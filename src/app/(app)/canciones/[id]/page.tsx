@@ -5,14 +5,16 @@ import { PageHeader } from "@/components/ui/page-header";
 import { SongEditor } from "@/features/songs/components/song-editor";
 import { requireSession } from "@/server/dal";
 
-export async function generateMetadata({ params }: PageProps<"/letras/[id]">): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps<"/canciones/[id]">): Promise<Metadata> {
   const { id } = await params;
   const { repos } = await requireSession();
   const song = await repos.songs.get(id);
-  return { title: song?.title ?? "Letra" };
+  return { title: song?.title ?? "Canción" };
 }
 
-export default async function EditSongPage({ params }: PageProps<"/letras/[id]">) {
+export default async function EditSongPage({ params }: PageProps<"/canciones/[id]">) {
   const { id } = await params;
   const { repos } = await requireSession();
   const song = await repos.songs.get(id);
@@ -20,7 +22,7 @@ export default async function EditSongPage({ params }: PageProps<"/letras/[id]">
 
   return (
     <div className="mx-auto flex max-w-content flex-col gap-8">
-      <BackLink href="/letras">Letras</BackLink>
+      <BackLink href="/canciones">Canciones</BackLink>
       <PageHeader title={song.title} description={song.author || "Sin autor"} />
       <SongEditor song={song} />
     </div>

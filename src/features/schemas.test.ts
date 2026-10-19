@@ -16,10 +16,21 @@ describe("songFormSchema", () => {
         { label: "Coro", text: "A" },
         { label: null, text: "B" },
       ],
+      audioId: null,
     });
   });
 
-  it("requires a title and some lyrics", () => {
+  it("takes a song that is only a track", () => {
+    const result = songFormSchema.parse({
+      title: "Hoy te salvo",
+      author: "",
+      lyrics: "",
+      audioId: "01a10cb0-1d73-709f-b03e-c6c9c36a17f0",
+    });
+    expect(result).toMatchObject({ sections: [], audioId: "01a10cb0-1d73-709f-b03e-c6c9c36a17f0" });
+  });
+
+  it("requires a title and lyrics or a track", () => {
     const result = songFormSchema.safeParse({ title: "", author: "", lyrics: "  " });
     expect(result.success).toBe(false);
     expect(result.error?.issues.map((issue) => issue.path[0])).toEqual(["title", "lyrics"]);

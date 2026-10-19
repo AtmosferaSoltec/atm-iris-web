@@ -21,8 +21,18 @@ const nextConfig: NextConfig = {
     staleTimes: { dynamic: 30 },
   },
   async redirects() {
-    // The lyrics section was "Canciones" until Música (audio) got its own.
-    return [{ source: "/canciones/:path*", destination: "/letras/:path*", permanent: true }];
+    // Música (audio) is now the track inside each song. Temporary: nothing new
+    // gets cached in browsers.
+    return [{ source: "/musica", destination: "/canciones", permanent: false }];
+  },
+  async rewrites() {
+    // Letras became Canciones again (lyrics and track together). Until then
+    // /canciones answered a permanent (cached) redirect to /letras, so /letras
+    // must keep working without redirecting back, or those browsers would loop.
+    return [
+      { source: "/letras", destination: "/canciones" },
+      { source: "/letras/:path*", destination: "/canciones/:path*" },
+    ];
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

@@ -42,7 +42,7 @@ export function StorageUsage({
 }
 
 const SECTIONS = [
-  { key: "musicBytes", label: "Música", color: "var(--color-success)" },
+  { key: "musicBytes", label: "Pistas", color: "var(--color-success)" },
   { key: "backgroundBytes", label: "Fondos", color: "var(--color-violet)" },
   { key: "mediaBytes", label: "Multimedia", color: "var(--color-rose)" },
 ] as const;

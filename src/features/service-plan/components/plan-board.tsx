@@ -16,9 +16,9 @@ import { AddToPlanDialog } from "./add-to-plan-dialog";
 export type PlanRow = {
   item: ServicePlanItem;
   title: string;
-  /** Author, for a song. */
+  /** Author and track, for a song. */
   subtitle: string | null;
-  /** Set for a media item. */
+  /** Set for a media item; "audio" for a song that is only a track (it shows the track icon). */
   mediaKind: MediaKind | null;
   /** Only an image gets a thumbnail; video/audio just show an icon. */
   thumbnailUrl: string | null;
@@ -190,7 +190,7 @@ function PlanItemRow({
         <span className="block truncate font-medium">{row.title}</span>
         {(row.subtitle || row.mediaKind) && (
           <span className="block truncate text-sm text-ink-2">
-            {row.mediaKind ? KIND_LABELS[row.mediaKind].singular : row.subtitle}
+            {row.subtitle ?? (row.mediaKind && KIND_LABELS[row.mediaKind].singular)}
           </span>
         )}
       </span>

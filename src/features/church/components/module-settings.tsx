@@ -19,8 +19,9 @@ type Row = {
 const ROWS: Row[] = [
   {
     key: "lyrics",
-    title: "Letras",
-    description: "Proyecta letras de canciones y anuncios. Siempre activo.",
+    title: "Canciones",
+    description:
+      "La letra que se proyecta y la pista que suena en el salón, juntas. Siempre activo.",
     icon: Quote,
     color: "var(--color-ember)",
   },
@@ -34,8 +35,7 @@ const ROWS: Row[] = [
   {
     key: "multimedia",
     title: "Multimedia",
-    description:
-      "Música para el salón, archivos para una ocasión especial y fondos para las letras.",
+    description: "Imágenes y videos para una ocasión especial, y fondos para las letras.",
     icon: SquarePlay,
     color: "var(--color-rose)",
   },

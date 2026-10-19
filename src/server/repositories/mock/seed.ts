@@ -4,11 +4,10 @@ import type {
   Person,
   ServiceRecord,
   ServiceType,
-  Song,
   ChurchModules,
 } from "@/domain/models";
 import { parseLyrics } from "@/lib/lyrics";
-import type { ChurchData } from "./world";
+import type { ChurchData, MockSong } from "./world";
 
 // Same sample church as the iPad app (IRIS_SPEC §11). Hymn texts are public domain.
 
@@ -178,13 +177,14 @@ export function emptyChurchData(church: Church): ChurchData {
   };
 }
 
-export function sampleSongs(now: Date, titles?: string[]): Song[] {
+export function sampleSongs(now: Date, titles?: string[]): MockSong[] {
   const timestamp = now.toISOString();
   return SONGS.filter((song) => !titles || titles.includes(song.title)).map((song, index) => ({
     id: crypto.randomUUID(),
     title: song.title,
     author: song.author,
     sections: parseLyrics(song.lyrics).map((section) => ({ id: crypto.randomUUID(), ...section })),
+    audioId: null,
     createdAt: timestamp,
     // Spread a little so "Recientes" has an order.
     updatedAt: new Date(now.getTime() - index * 86_400_000).toISOString(),

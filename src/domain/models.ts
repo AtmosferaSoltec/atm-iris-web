@@ -36,7 +36,7 @@ export type DeviceSession = {
 
 /* ------------------------------------------------------------------ Church */
 
-/** Church-wide feature switches. Letras is always on. */
+/** Church-wide feature switches. Canciones (lyrics and track) is always on. */
 export type ChurchModules = {
   bible: boolean;
   multimedia: boolean;
@@ -127,11 +127,15 @@ export type SongSection = {
   text: string;
 };
 
+/** The lyrics shown on the TV and the track played in the room, together (contract §10). */
 export type Song = {
   id: Id;
   title: string;
   author: string;
+  /** Empty when the song is only a track. */
   sections: SongSection[];
+  /** The track (an audio `MediaAsset`); null when the song is only lyrics. */
+  audio: MediaAsset | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -142,6 +146,7 @@ export type SongSummary = {
   author: string;
   sectionCount: number;
   firstLine: string | null;
+  audio: MediaAsset | null;
   updatedAt: string;
 };
 

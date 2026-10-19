@@ -28,6 +28,8 @@ export type MockUser = {
 };
 export type MockDeviceSession = Omit<DeviceSession, "isCurrent"> & { userId: Id };
 export type MockMedia = MediaAsset & { storageKey: string };
+/** Stored with the track's id; the repository resolves `audio` on read, like the API. */
+export type MockSong = Omit<Song, "audio"> & { audioId: Id | null };
 export type MockUpload = {
   id: Id;
   kind: MediaKind;
@@ -42,7 +44,7 @@ export type ChurchData = {
   church: Church;
   people: Person[];
   serviceTypes: ServiceType[];
-  songs: Song[];
+  songs: MockSong[];
   media: MockMedia[];
   uploads: MockUpload[];
   servicePlan: ServicePlanItem[];

@@ -10,7 +10,7 @@ import { cn } from "@/lib/cn";
 import { fileSize } from "@/lib/format";
 
 const COMMON = [
-  "Letras, Biblia y control de tiempos",
+  "Canciones, Biblia y control de tiempos",
   "iPad y Windows sincronizados",
   "Una cuenta para toda la iglesia",
 ];

@@ -9,12 +9,15 @@ import {
   SONG_FIELDS,
   songFormSchema,
   songImportSchema,
+  trackSongSchema,
   type SongExportItem,
   type SongField,
 } from "./schemas";
 
 function revalidateSongs() {
-  revalidatePath("/letras", "layout");
+  revalidatePath("/canciones", "layout");
+  revalidatePath("/plan");
+  revalidatePath("/ajustes");
   revalidatePath("/");
 }
 
@@ -44,6 +47,20 @@ export async function saveSong(
   return { status: "success" };
 }
 
+/** "Subir pistas": each uploaded file becomes a song with only that track. */
+export async function createTrackSong(audioId: string, title: string): Promise<{ error?: string }> {
+  const parsed = trackSongSchema.safeParse({ audioId, title });
+  if (!parsed.success) return { error: GENERIC_ERROR };
+  try {
+    const { repos } = await authorize();
+    await repos.songs.create({ ...parsed.data, author: "", sections: [] });
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
+  revalidateSongs();
+  return {};
+}
+
 export async function deleteSong(songId: string): Promise<{ error?: string }> {
   const id = idSchema.safeParse(songId);
   if (!id.success) return { error: GENERIC_ERROR };
@@ -57,7 +74,28 @@ export async function deleteSong(songId: string): Promise<{ error?: string }> {
   return {};
 }
 
-/** The whole library, full sections included, for "Exportar" to download as a file. */
+/** Bulk delete for "select and delete at once". Best-effort: one failure doesn't stop the rest. */
+export async function deleteSongs(songIds: string[]): Promise<{ deleted: number; failed: number }> {
+  const parsed = songIds.map((id) => idSchema.safeParse(id)).filter((result) => result.success);
+  const { repos } = await authorize();
+  let deleted = 0;
+  let failed = 0;
+  for (const id of parsed) {
+    try {
+      await repos.songs.delete(id.data);
+      deleted++;
+    } catch {
+      failed++;
+    }
+  }
+  revalidateSongs();
+  return { deleted, failed };
+}
+
+/**
+ * The library's lyrics, full sections included, for "Exportar" to download as a file.
+ * Songs that are only a track have nothing to export.
+ */
 export async function exportSongs(): Promise<{ songs?: SongExportItem[]; error?: string }> {
   try {
     const { repos } = await authorize();
@@ -73,6 +111,7 @@ export async function exportSongs(): Promise<{ songs?: SongExportItem[]; error?:
     return {
       songs: full
         .filter((song) => song !== null)
+        .filter((song) => song.sections.length > 0)
         .map((song) => ({
           title: song.title,
           author: song.author,
@@ -101,7 +140,7 @@ export async function importSongs(
   let failed = 0;
   for (const song of parsed.data.songs) {
     try {
-      await repos.songs.create(song);
+      await repos.songs.create({ ...song, audioId: null });
       imported++;
     } catch {
       failed++;

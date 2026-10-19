@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PlanBoard, type PlanRow } from "@/features/service-plan/components/plan-board";
+import { songFacts } from "@/features/service-plan/song-facts";
 import { requireSession } from "@/server/dal";
 
 export const metadata: Metadata = { title: "Plan" };
@@ -15,8 +16,8 @@ export default async function PlanPage() {
         return {
           item,
           title: song?.title ?? "",
-          subtitle: song?.author || null,
-          mediaKind: null,
+          subtitle: song ? songFacts({ ...song, sectionCount: song.sections.length }) : null,
+          mediaKind: song && song.sections.length === 0 ? "audio" : null,
           thumbnailUrl: null,
         };
       }

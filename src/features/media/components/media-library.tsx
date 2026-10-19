@@ -66,7 +66,7 @@ export function MediaLibrary({ media, urls, storage }: Props) {
     >
       <PageHeader
         title="Multimedia"
-        description="Imágenes y videos para presentar en una ocasión especial. No es un repertorio: sube solo lo que vas a usar. La música va en su propia sección."
+        description="Imágenes y videos para presentar en una ocasión especial. No es un repertorio: sube solo lo que vas a usar. Las pistas van dentro de cada canción."
         actions={
           <>
             <Button icon={<Upload className="size-4" />} onClick={() => fileInput.current?.click()}>

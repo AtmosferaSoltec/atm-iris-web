@@ -84,4 +84,54 @@ describe("mock repositories", () => {
     await repos.media.delete(track.id);
     expect((await repos.church.get()).storage.breakdown.musicBytes).toBe(0);
   });
+
+  it("keeps a song's track one to one and deletes it with the song", async () => {
+    const { repos } = await signedIn();
+    const track = async (size: number) => {
+      const ticket = await repos.media.createUpload({
+        kind: "audio",
+        fileName: "pista.mp3",
+        contentType: "audio/mpeg",
+        sizeBytes: size,
+      });
+      mockWorld().files.set(ticket.uploadId, {
+        contentType: "audio/mpeg",
+        bytes: new Uint8Array(size),
+      });
+      return repos.media.confirm({ uploadId: ticket.uploadId, title: "Pista" });
+    };
+
+    await expect(
+      repos.songs.create({ title: "Vacía", author: "", sections: [], audioId: null }),
+    ).rejects.toMatchObject({ errors: { sections: "Agrega la letra o una pista." } });
+
+    const first = await track(100);
+    const song = await repos.songs.create({
+      title: "Hoy te salvo",
+      author: "",
+      sections: [],
+      audioId: first.id,
+    });
+    expect(song.audio?.id).toBe(first.id);
+    await expect(
+      repos.songs.create({ title: "Copia", author: "", sections: [], audioId: first.id }),
+    ).rejects.toMatchObject({ errors: { audioId: "Esa pista ya es de otra canción." } });
+    await expect(repos.servicePlan.add({ kind: "media", refId: first.id })).rejects.toMatchObject({
+      errors: { refId: "Las pistas se agregan con su canción." },
+    });
+
+    // Replacing the track deletes the old one.
+    const second = await track(40);
+    await repos.songs.update(song.id, {
+      title: "Hoy te salvo",
+      author: "",
+      sections: [{ label: null, text: "Hoy te salvo" }],
+      audioId: second.id,
+    });
+    expect(await repos.media.get(first.id)).toBeNull();
+    expect((await repos.church.get()).storage.breakdown.musicBytes).toBe(40);
+
+    await repos.songs.delete(song.id);
+    expect(await repos.media.get(second.id)).toBeNull();
+  });
 });

@@ -45,7 +45,7 @@ describe("backgroundProblem", () => {
 });
 
 describe("mediaSection", () => {
-  it("puts audio in Música, backgrounds in Fondos and the rest in Multimedia", () => {
+  it("puts audio with the songs (tracks), backgrounds in Fondos and the rest in Multimedia", () => {
     expect(mediaSection({ kind: "audio", isBackground: false })).toBe("music");
     expect(mediaSection({ kind: "image", isBackground: true })).toBe("backgrounds");
     expect(mediaSection({ kind: "video", isBackground: false })).toBe("media");

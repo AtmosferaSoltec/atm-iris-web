@@ -67,17 +67,10 @@ export async function clearPlan(): Promise<{ error?: string }> {
   return {};
 }
 
-/** For the "add" dialog's search box. Up to 20 of each, most relevant/recent first. */
+/** For the "add" dialog's search box. Up to 20 of each, most relevant/recent first. A song brings its track. */
 export async function searchSongsForPlan(query: string): Promise<SongSummary[]> {
   const { repos } = await authorize();
   const page = await repos.songs.list({ search: query, limit: 20 });
-  return page.data;
-}
-
-/** Música: audio tracks only. */
-export async function searchMusicForPlan(query: string): Promise<MediaAsset[]> {
-  const { repos } = await authorize();
-  const page = await repos.media.list({ kind: "audio", search: query, limit: 20 });
   return page.data;
 }
 

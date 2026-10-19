@@ -28,13 +28,13 @@ export default async function SettingsPage() {
       </Panel>
       <Panel
         title="Almacenamiento"
-        description={`Los ${fileSize(church.storage.quotaBytes)} de tu plan los comparten la música, los fondos y la multimedia. Las letras no ocupan espacio.`}
+        description={`Los ${fileSize(church.storage.quotaBytes)} de tu plan los comparten las pistas de las canciones, los fondos y la multimedia. Las letras no ocupan espacio.`}
       >
         <StorageBreakdown storage={church.storage} />
       </Panel>
       <Panel
         title="Plan"
-        description="Empieza gratis. Si necesitas más espacio para música, fondos o multimedia, elige un plan mayor."
+        description="Empieza gratis. Si necesitas más espacio para pistas, fondos o multimedia, elige un plan mayor."
       >
         <PlanPicker quotaBytes={church.storage.quotaBytes} />
       </Panel>

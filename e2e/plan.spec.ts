@@ -51,20 +51,21 @@ test("agrega, reordena, quita y vacía el plan", async ({ page }) => {
   await expect(page.getByText("El plan está vacío")).toBeVisible();
 });
 
-test("el buscador tiene Letras, Música y Multimedia, y un fondo no aparece en Multimedia", async ({
+test("el buscador tiene Canciones y Multimedia, y un fondo no aparece en Multimedia", async ({
   page,
 }) => {
   const track = unique("Pista");
   const clip = unique("Clip");
   const background = unique("Fondo");
 
-  await page.goto("/musica");
+  // A track uploaded alone becomes a song with only that track.
+  await page.goto("/canciones");
   let chooser = page.waitForEvent("filechooser");
-  await page.getByRole("button", { name: "Subir música" }).click();
+  await page.getByRole("button", { name: "Subir pistas" }).click();
   await (
     await chooser
   ).setFiles([{ name: `${track}.mp3`, mimeType: "audio/mpeg", buffer: Buffer.from("ID3 pista") }]);
-  await expect(toast(page, `Se subió «${track}»`)).toBeVisible();
+  await expect(toast(page, `Se creó la canción «${track}»`)).toBeVisible();
 
   await page.goto("/multimedia");
   chooser = page.waitForEvent("filechooser");
@@ -84,13 +85,16 @@ test("el buscador tiene Letras, Música y Multimedia, y un fondo no aparece en M
 
   await page.goto("/plan");
   await page.getByRole("button", { name: "Agregar" }).first().click();
-  await expect(page.getByRole("radio", { name: "Letras" })).toBeVisible();
-  await expect(page.getByRole("radio", { name: "Música" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Canciones" })).toBeVisible();
   await expect(page.getByRole("radio", { name: "Multimedia" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Música" })).toHaveCount(0);
 
-  await page.getByRole("radio", { name: "Música" }).click();
+  // The song brings its track.
   await page.locator("#plan-search").fill(track);
-  await expect(page.getByRole("listitem").filter({ hasText: track })).toBeVisible();
+  const result = page.getByRole("listitem").filter({ hasText: track });
+  await expect(result.getByText("Solo pista", { exact: false })).toBeVisible();
+  await result.getByRole("button", { name: "Agregar" }).click();
+  await expect(toast(page, `Se agregó «${track}» al plan`)).toBeVisible();
 
   await page.getByRole("radio", { name: "Multimedia" }).click();
   await page.locator("#plan-search").fill(clip);

@@ -1,6 +1,6 @@
 "use client";
 
-import { Quote, Search } from "lucide-react";
+import { Music, Quote, Search } from "lucide-react";
 import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -9,14 +9,10 @@ import { TextField } from "@/components/ui/text-field";
 import { toast } from "@/components/ui/toaster";
 import type { MediaAsset, SongSummary } from "@/domain/models";
 import { KIND_ICONS, KIND_LABELS } from "@/features/media/media-format";
-import {
-  addPlanItem,
-  searchMediaForPlan,
-  searchMusicForPlan,
-  searchSongsForPlan,
-} from "../actions";
+import { songFacts } from "../song-facts";
+import { addPlanItem, searchMediaForPlan, searchSongsForPlan } from "../actions";
 
-type Tab = "song" | "music" | "media";
+type Tab = "song" | "media";
 
 export function AddToPlanDialog({
   canAddMedia,
@@ -30,7 +26,6 @@ export function AddToPlanDialog({
   const [tab, setTab] = useState<Tab>("song");
   const [query, setQuery] = useState("");
   const [songs, setSongs] = useState<SongSummary[]>([]);
-  const [music, setMusic] = useState<MediaAsset[]>([]);
   const [media, setMedia] = useState<MediaAsset[]>([]);
   const [isSearching, startSearch] = useTransition();
   const [addingId, setAddingId] = useState<string | null>(null);
@@ -41,7 +36,6 @@ export function AddToPlanDialog({
     const handle = setTimeout(() => {
       startSearch(async () => {
         if (tab === "song") setSongs(await searchSongsForPlan(query));
-        else if (tab === "music") setMusic(await searchMusicForPlan(query));
         else setMedia(await searchMediaForPlan(query));
       });
     }, 250);
@@ -63,11 +57,12 @@ export function AddToPlanDialog({
       ? songs.map((song) => ({
           id: song.id,
           title: song.title,
-          subtitle: song.author || null,
-          icon: <Quote className="size-4" />,
+          subtitle: songFacts(song),
+          icon:
+            song.sectionCount === 0 ? <Music className="size-4" /> : <Quote className="size-4" />,
           kind: "song" as const,
         }))
-      : (tab === "music" ? music : media).map((asset) => {
+      : media.map((asset) => {
           const Icon = KIND_ICONS[asset.kind];
           return {
             id: asset.id,
@@ -96,8 +91,7 @@ export function AddToPlanDialog({
               setQuery("");
             }}
             options={[
-              { value: "song", label: "Letras" },
-              { value: "music", label: "Música" },
+              { value: "song", label: "Canciones" },
               { value: "media", label: "Multimedia" },
             ]}
           />
@@ -106,13 +100,7 @@ export function AddToPlanDialog({
         <TextField
           id="plan-search"
           icon={<Search className="size-4" />}
-          placeholder={
-            tab === "song"
-              ? "Buscar canción…"
-              : tab === "music"
-                ? "Buscar pista…"
-                : "Buscar multimedia…"
-          }
+          placeholder={tab === "song" ? "Buscar canción…" : "Buscar multimedia…"}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           autoFocus
@@ -136,9 +124,7 @@ export function AddToPlanDialog({
                 ? "Sin resultados."
                 : tab === "song"
                   ? "Aún no hay canciones."
-                  : tab === "music"
-                    ? "Aún no hay pistas en Música."
-                    : "Aún no hay multimedia."}
+                  : "Aún no hay multimedia."}
             </p>
           )}
         </ul>

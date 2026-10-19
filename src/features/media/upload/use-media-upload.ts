@@ -12,7 +12,7 @@ import {
   WRONG_SECTION,
   type MediaSection,
 } from "@/domain/media-rules";
-import type { MediaKind, UploadTicket } from "@/domain/models";
+import type { MediaAsset, MediaKind, UploadTicket } from "@/domain/models";
 import { titleFromFileName } from "@/lib/text";
 import { confirmUpload, requestUpload } from "../actions";
 import { measureMedia } from "./measure";
@@ -43,8 +43,17 @@ class UploadCancelled extends Error {}
  * (with progress, cancellable) → confirm. One file failing doesn't stop the rest.
  * Each section only takes its kinds; backgrounds must also meet the lyrics-background
  * rules (checked here and by the API).
+ *
+ * `onUploaded` takes over once a file is confirmed (a song's track becomes part of the
+ * song): it shows its own notice and returns an error message when its step fails.
  */
-export function useMediaUpload({ section }: { section: MediaSection }) {
+export function useMediaUpload({
+  section,
+  onUploaded,
+}: {
+  section: MediaSection;
+  onUploaded?: (asset: MediaAsset) => Promise<string | void> | string | void;
+}) {
   const background = section === "backgrounds";
   const [items, setItems] = useState<UploadItem[]>([]);
   const files = useRef(new Map<string, File>());
@@ -103,6 +112,13 @@ export function useMediaUpload({ section }: { section: MediaSection }) {
     }).catch(() => ({ error: NETWORK_UPLOAD_ERROR, asset: undefined }));
     if (!confirmed.asset) return fail(confirmed.error ?? NETWORK_UPLOAD_ERROR, true);
 
+    if (onUploaded) {
+      // The file is already stored: retrying would upload it twice.
+      const problem = await onUploaded(confirmed.asset);
+      if (problem) return fail(problem);
+      patch(id, { status: "done" });
+      return;
+    }
     patch(id, { status: "done" });
     toast.success(`Se subió «${confirmed.asset.title}»`);
   }

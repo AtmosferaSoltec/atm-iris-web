@@ -116,10 +116,14 @@ export interface ServiceTypeRepository {
 
 /* ------------------------------------------------------------------- Songs */
 
+/** Lyrics, a track or both; never neither (contract §10). */
 export type SongInput = {
   title: string;
   author: string;
+  /** Empty when the song is only a track. */
   sections: { label: string | null; text: string }[];
+  /** An uploaded audio; replacing or clearing it deletes the previous one. */
+  audioId: Id | null;
 };
 
 export type SongSort = "title" | "-updatedAt";

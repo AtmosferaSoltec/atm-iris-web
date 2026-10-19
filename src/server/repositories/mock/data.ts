@@ -45,6 +45,7 @@ import {
   now,
   type ChurchData,
   type MockMedia,
+  type MockSong,
 } from "./world";
 
 /* ---------------------------------------------------------------- Helpers */
@@ -252,6 +253,13 @@ function serviceTypes(session?: UserSession): ServiceTypeRepository {
 
 /* ------------------------------------------------------------------- Songs */
 
+/** The stored song with its track resolved, as the API returns it. */
+function resolveSong(data: ChurchData, song: MockSong): Song {
+  const { audioId, ...rest } = song;
+  const audio = audioId ? data.media.find((asset) => asset.id === audioId) : undefined;
+  return clone({ ...rest, audio: audio ? toMediaAsset(audio) : null });
+}
+
 function toSummary(song: Song): SongSummary {
   return {
     id: song.id,
@@ -259,25 +267,51 @@ function toSummary(song: Song): SongSummary {
     author: song.author,
     sectionCount: song.sections.length,
     firstLine: firstLine(song.sections),
+    audio: song.audio,
     updatedAt: song.updatedAt,
   };
 }
 
 /** Relevance like the API's: title, then author, then lyrics. 0 = no match. */
-function relevance(song: Song, key: string): number {
+function relevance(song: MockSong, key: string): number {
   if (nameKey(song.title).includes(key)) return 3;
   if (nameKey(song.author).includes(key)) return 2;
   if (song.sections.some((section) => nameKey(section.text).includes(key))) return 1;
   return 0;
 }
 
+const songFieldError = (field: "sections" | "audioId", message: string) =>
+  new ApiError(400, "VALIDATION_FAILED", "Revisa los datos enviados.", { [field]: message });
+
+/** Same rules as the API: lyrics or a track, and a track belongs to one song only. */
+function assertSongInput(data: ChurchData, input: SongInput, songId: Id | null) {
+  if (input.sections.length === 0 && !input.audioId) {
+    throw songFieldError("sections", "Agrega la letra o una pista.");
+  }
+  if (!input.audioId) return;
+  const audio = data.media.find((asset) => asset.id === input.audioId);
+  if (!audio || audio.kind !== "audio") throw songFieldError("audioId", "Esa pista no existe.");
+  if (data.songs.some((song) => song.audioId === input.audioId && song.id !== songId)) {
+    throw songFieldError("audioId", "Esa pista ya es de otra canción.");
+  }
+}
+
+/** A track no song uses anymore is deleted, freeing its space (contract §10). */
+function dropMedia(data: ChurchData, id: Id) {
+  const asset = data.media.find((candidate) => candidate.id === id);
+  if (!asset) return;
+  data.media = data.media.filter((candidate) => candidate.id !== id);
+  mockWorld().files.delete(asset.storageKey);
+}
+
 function songs(session?: UserSession): SongRepository {
-  function toSong(input: SongInput, existing?: Song): Song {
+  function toSong(input: SongInput, existing?: MockSong): MockSong {
     return {
       id: existing?.id ?? crypto.randomUUID(),
       title: input.title,
       author: input.author,
       sections: input.sections.map((section) => ({ id: crypto.randomUUID(), ...section })),
+      audioId: input.audioId,
       createdAt: existing?.createdAt ?? now(),
       updatedAt: now(),
     };
@@ -286,14 +320,16 @@ function songs(session?: UserSession): SongRepository {
   return {
     async list({ search, page, limit, sort } = {}) {
       await delay();
-      const all = churchOf(session).songs;
+      const data = churchOf(session);
+      const all = data.songs;
+      const summary = (song: MockSong) => toSummary(resolveSong(data, song));
       const key = nameKey(search ?? "");
       if (key) {
         const ranked = all
           .map((song) => ({ song, score: relevance(song, key) }))
           .filter(({ score }) => score > 0)
           .sort((a, b) => b.score - a.score || compareNames(a.song.title, b.song.title))
-          .map(({ song }) => toSummary(song));
+          .map(({ song }) => summary(song));
         return paginate(ranked, page, limit);
       }
       const sorted = [...all].sort((a, b) =>
@@ -301,32 +337,44 @@ function songs(session?: UserSession): SongRepository {
           ? b.updatedAt.localeCompare(a.updatedAt)
           : compareNames(a.title, b.title),
       );
-      return paginate(sorted.map(toSummary), page, limit);
+      return paginate(sorted.map(summary), page, limit);
     },
     async get(id) {
       await delay();
-      return clone(churchOf(session).songs.find((song) => song.id === id) ?? null);
+      const data = churchOf(session);
+      const song = data.songs.find((candidate) => candidate.id === id);
+      return song ? resolveSong(data, song) : null;
     },
     async create(input) {
       await delay();
+      const data = churchOf(session);
+      assertSongInput(data, input, null);
       const song = toSong(input);
-      churchOf(session).songs.push(song);
-      return clone(song);
+      data.songs.push(song);
+      return resolveSong(data, song);
     },
     async update(id, input) {
       await delay();
       const data = churchOf(session);
+      assertSongInput(data, input, id);
       const index = data.songs.findIndex((song) => song.id === id);
-      const song = toSong(input, data.songs[index] ?? ({ id, createdAt: now() } as Song));
+      const previous = data.songs[index];
+      const song = toSong(input, previous ?? ({ id, createdAt: now() } as MockSong));
       if (index === -1) data.songs.push(song);
       else data.songs[index] = song;
-      return clone(song);
+      if (previous?.audioId && previous.audioId !== input.audioId) {
+        dropMedia(data, previous.audioId);
+      }
+      return resolveSong(data, song);
     },
     async delete(id) {
       await delay();
       const data = churchOf(session);
-      if (!data.songs.some((song) => song.id === id)) throw notFound();
-      data.songs = data.songs.filter((song) => song.id !== id);
+      const song = data.songs.find((candidate) => candidate.id === id);
+      if (!song) throw notFound();
+      data.songs = data.songs.filter((candidate) => candidate.id !== id);
+      // The track belongs to this song only: it goes with it.
+      if (song.audioId) dropMedia(data, song.audioId);
       // Sin esto el plan adelantado quedaria con una referencia colgando.
       data.servicePlan = data.servicePlan.filter(
         (item) => !(item.kind === "song" && item.refId === id),
@@ -342,8 +390,10 @@ const UPLOAD_TTL_MS = 60 * 60 * 1000;
 /** Signed-URL stand-in served by src/app/api/mock-storage/[key]/route.ts. */
 export const mockStorageUrl = (key: string) => `/api/mock-storage/${key}`;
 
+const toMediaAsset = ({ storageKey: _storageKey, ...asset }: MockMedia): MediaAsset => clone(asset);
+
 function media(session?: UserSession): MediaRepository {
-  const toAsset = ({ storageKey: _storageKey, ...asset }: MockMedia): MediaAsset => clone(asset);
+  const toAsset = toMediaAsset;
 
   return {
     async list({ kind, search, isBackground, page, limit } = {}) {
@@ -463,6 +513,17 @@ function media(session?: UserSession): MediaRepository {
       data.servicePlan = data.servicePlan.filter(
         (item) => !(item.kind === "media" && item.refId === id),
       );
+      // A song keeps its lyrics without the track, or goes if it was only the track.
+      const song = data.songs.find((candidate) => candidate.audioId === id);
+      if (song && song.sections.length > 0) {
+        song.audioId = null;
+        song.updatedAt = now();
+      } else if (song) {
+        data.songs = data.songs.filter((candidate) => candidate.id !== song.id);
+        data.servicePlan = data.servicePlan.filter(
+          (item) => !(item.kind === "song" && item.refId === song.id),
+        );
+      }
     },
     async downloadUrl(id) {
       await delay();
@@ -492,11 +553,15 @@ function servicePlan(session?: UserSession): ServicePlanRepository {
     async add({ kind, refId }) {
       await delay();
       const data = churchOf(session);
-      const exists =
-        kind === "song"
-          ? data.songs.some((song) => song.id === refId)
-          : data.media.some((asset) => asset.id === refId);
+      const asset = kind === "media" ? data.media.find((m) => m.id === refId) : undefined;
+      const exists = kind === "song" ? data.songs.some((song) => song.id === refId) : !!asset;
       if (!exists) throw refNotFound(kind);
+      // A track always belongs to a song: the song is what goes in the plan.
+      if (asset?.kind === "audio") {
+        throw new ApiError(400, "VALIDATION_FAILED", "Revisa los datos enviados.", {
+          refId: "Las pistas se agregan con su canción.",
+        });
+      }
 
       const position = data.servicePlan.length;
       const item: ServicePlanItem = {

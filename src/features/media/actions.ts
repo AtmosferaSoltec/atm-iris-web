@@ -19,7 +19,7 @@ import {
 // of the ticket (contract §11). These actions only ask for it and confirm it.
 
 function revalidateMedia() {
-  revalidatePath("/musica");
+  revalidatePath("/canciones", "layout");
   revalidatePath("/multimedia");
   revalidatePath("/fondos");
   revalidatePath("/ajustes");

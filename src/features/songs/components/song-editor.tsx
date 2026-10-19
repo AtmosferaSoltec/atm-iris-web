@@ -1,6 +1,6 @@
 "use client";
 
-import { Quote, Trash2, User } from "lucide-react";
+import { Music, Quote, Trash2, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
 import { SlidePreview } from "@/components/projection/slide-preview";
@@ -15,12 +15,13 @@ import { Surface } from "@/components/ui/surface";
 import { TextArea } from "@/components/ui/text-area";
 import { TextField } from "@/components/ui/text-field";
 import { toast } from "@/components/ui/toaster";
-import type { Song } from "@/domain/models";
+import type { MediaAsset, Song } from "@/domain/models";
 import { idleState, type FormState } from "@/lib/form-state";
 import { formatLyrics, parseLyrics } from "@/lib/lyrics";
 import { plural } from "@/lib/text";
 import { deleteSong, saveSong } from "../actions";
 import type { SongField } from "../schemas";
+import { TrackField } from "./track-field";
 
 /** A screen with more lines than this is hard to read from the back of the room. */
 const COMFORTABLE_LINES = 6;
@@ -31,8 +32,8 @@ export function SongEditor({ song }: { song?: Song }) {
     async (previous: FormState<SongField>, formData: FormData) => {
       const next = await saveSong(song?.id ?? null, previous, formData);
       if (next.status === "success") {
-        toast.success("Letra guardada");
-        router.push("/letras");
+        toast.success("Canción guardada");
+        router.push("/canciones");
       }
       return next;
     },
@@ -41,6 +42,7 @@ export function SongEditor({ song }: { song?: Song }) {
   const [title, setTitle] = useState(song?.title ?? "");
   const [author, setAuthor] = useState(song?.author ?? "");
   const [lyrics, setLyrics] = useState(song ? formatLyrics(song.sections) : "");
+  const [audio, setAudio] = useState<MediaAsset | null>(song?.audio ?? null);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDeleting, startDelete] = useTransition();
   const [deleteError, setDeleteError] = useState<string>();
@@ -60,7 +62,7 @@ export function SongEditor({ song }: { song?: Song }) {
         return;
       }
       toast.success(`Se eliminó «${song.title}»`);
-      router.push("/letras");
+      router.push("/canciones");
     });
   }
 
@@ -95,6 +97,11 @@ export function SongEditor({ song }: { song?: Song }) {
             error={errorFor("author", author)}
           />
         </div>
+        <TrackField
+          audio={audio}
+          onChange={setAudio}
+          error={errorFor("audioId", audio?.id ?? "")}
+        />
         <TextArea
           id="lyrics"
           label="Letra"
@@ -102,13 +109,13 @@ export function SongEditor({ song }: { song?: Song }) {
           value={lyrics}
           onChange={(event) => setLyrics(event.target.value)}
           error={errorFor("lyrics", lyrics)}
-          hint="Deja una línea en blanco entre diapositivas. Para nombrar una, escribe # y el nombre en su primera línea (por ejemplo #Coro). Es opcional."
+          hint="Deja una línea en blanco entre diapositivas. Para nombrar una, escribe # y el nombre en su primera línea (por ejemplo #Coro). Si la canción tiene pista, la letra es opcional."
           className="min-h-[420px] font-serif text-[17px]"
           spellCheck
         />
         <div className="flex flex-wrap items-center gap-3">
-          <SubmitButton size="lg">{song ? "Guardar cambios" : "Guardar letra"}</SubmitButton>
-          <ButtonLink href="/letras" variant="ghost" size="lg">
+          <SubmitButton size="lg">{song ? "Guardar cambios" : "Guardar canción"}</SubmitButton>
+          <ButtonLink href="/canciones" variant="ghost" size="lg">
             Cancelar
           </ButtonLink>
         </div>
@@ -120,7 +127,7 @@ export function SongEditor({ song }: { song?: Song }) {
               icon={<Trash2 className="size-4" />}
               onClick={() => setIsConfirmingDelete(true)}
             >
-              Eliminar letra
+              Eliminar canción
             </Button>
           </div>
         )}
@@ -138,11 +145,19 @@ export function SongEditor({ song }: { song?: Song }) {
         </SectionHeader>
         {sections.length === 0 ? (
           <Surface>
-            <EmptyState
-              icon={<Quote />}
-              title="Aún no hay diapositivas"
-              description="Escribe o pega la letra y aquí verás cómo se proyecta cada parte."
-            />
+            {audio ? (
+              <EmptyState
+                icon={<Music />}
+                title="Solo pista"
+                description="Sin letra, en la consola solo suena la pista y la pantalla se queda como está. Puedes agregar la letra cuando quieras."
+              />
+            ) : (
+              <EmptyState
+                icon={<Quote />}
+                title="Aún no hay diapositivas"
+                description="Escribe o pega la letra y aquí verás cómo se proyecta cada parte."
+              />
+            )}
           </Surface>
         ) : (
           <ol className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-x-4 gap-y-5">
@@ -172,7 +187,11 @@ export function SongEditor({ song }: { song?: Song }) {
         onConfirm={confirmDelete}
         isPending={isDeleting}
         title={`¿Eliminar «${song?.title}»?`}
-        description="Se quitará de la biblioteca. Esta acción no se puede deshacer."
+        description={
+          song?.audio
+            ? "Se quitará de la biblioteca junto con su pista. Esta acción no se puede deshacer."
+            : "Se quitará de la biblioteca. Esta acción no se puede deshacer."
+        }
         confirmLabel="Eliminar"
       />
     </form>

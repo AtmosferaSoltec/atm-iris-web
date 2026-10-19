@@ -20,11 +20,11 @@ export async function SongsTile({ repos }: TileProps) {
   const songs = await repos.songs.list({ sort: "-updatedAt", limit: 3 });
   return (
     <Tile
-      href="/letras"
+      href="/canciones"
       icon={<Quote />}
       color="var(--color-ember)"
-      title="Letras"
-      subtitle={plural(songs.meta.total, "letra")}
+      title="Canciones"
+      subtitle={plural(songs.meta.total, "canción", "canciones")}
     >
       {songs.data.length > 0 && (
         <ul className="flex flex-col gap-2">
@@ -168,7 +168,7 @@ export function SettingsTile({ modules }: { modules: Church["modules"] }) {
     >
       <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
         <li className="flex items-center gap-2">
-          <ColorDot color="var(--color-success)" /> Letras
+          <ColorDot color="var(--color-success)" /> Canciones
         </li>
         {MODULE_LABELS.map(({ key, label }) => (
           <li key={key} className="flex items-center gap-2">
