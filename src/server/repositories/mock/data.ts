@@ -34,6 +34,7 @@ import type {
   ServiceTypeRepository,
   SongInput,
   SongRepository,
+  BackupRepository,
   TimeRecordRepository,
   YoutubeVideoRepository,
 } from "../types";
@@ -276,6 +277,9 @@ function toSummary(song: Song): SongSummary {
     audio: song.audio,
     youtubeId: song.youtubeId,
     youtubeMusic: song.youtubeMusic,
+    backgroundId: song.backgroundId,
+    archivedAt: song.archivedAt,
+    lastUsedAt: song.lastUsedAt,
     updatedAt: song.updatedAt,
   };
 }
@@ -331,16 +335,20 @@ function songs(session?: UserSession): SongRepository {
       audioId: input.audioId,
       youtubeId: input.youtubeId,
       youtubeMusic: input.youtubeId !== null && input.youtubeMusic,
+      backgroundId:
+        input.backgroundId !== undefined ? input.backgroundId : (existing?.backgroundId ?? null),
+      archivedAt: existing?.archivedAt ?? null,
+      lastUsedAt: existing?.lastUsedAt ?? null,
       createdAt: existing?.createdAt ?? now(),
       updatedAt: now(),
     };
   }
 
   return {
-    async list({ search, page, limit, sort } = {}) {
+    async list({ search, page, limit, sort, archived = false } = {}) {
       await delay();
       const data = churchOf(session);
-      const all = data.songs;
+      const all = data.songs.filter((song) => (song.archivedAt !== null) === archived);
       const summary = (song: MockSong) => toSummary(resolveSong(data, song));
       const key = nameKey(search ?? "");
       if (key) {
@@ -383,6 +391,29 @@ function songs(session?: UserSession): SongRepository {
       else data.songs[index] = song;
       if (previous?.audioId && previous.audioId !== input.audioId) {
         dropMedia(data, previous.audioId);
+      }
+      return resolveSong(data, song);
+    },
+    async archive(id) {
+      await delay();
+      const data = churchOf(session);
+      const song = data.songs.find((candidate) => candidate.id === id);
+      if (!song) throw notFound();
+      if (!song.archivedAt) {
+        song.archivedAt = now();
+        if (song.audioId) dropMedia(data, song.audioId);
+        song.audioId = null;
+      }
+      return resolveSong(data, song);
+    },
+    async unarchive(id) {
+      await delay();
+      const data = churchOf(session);
+      const song = data.songs.find((candidate) => candidate.id === id);
+      if (!song) throw notFound();
+      if (song.archivedAt) {
+        song.archivedAt = null;
+        song.lastUsedAt = now();
       }
       return resolveSong(data, song);
     },
@@ -653,6 +684,10 @@ function servicePlan(session?: UserSession): ServicePlanRepository {
         updatedAt: now(),
       };
       data.servicePlan.push(item);
+      if (kind === "song") {
+        const song = data.songs.find((candidate) => candidate.id === refId);
+        if (song) Object.assign(song, { lastUsedAt: now(), archivedAt: null });
+      }
       return clone(item);
     },
     async move(id, position) {
@@ -750,6 +785,96 @@ function records(session?: UserSession): TimeRecordRepository {
   };
 }
 
+function backup(session?: UserSession): BackupRepository {
+  const songRepo = songs(session);
+  const videoRepo = youtubeVideos(session);
+  return {
+    async export() {
+      await delay();
+      const data = churchOf(session);
+      return clone({
+        format: "iris-backup",
+        version: 1,
+        exportedAt: now(),
+        songs: data.songs.map((song) => ({
+          title: song.title,
+          author: song.author,
+          sections: song.sections.map(({ label, text }) => ({ label, text })),
+          youtubeId: song.youtubeId,
+          youtubeMusic: song.youtubeMusic,
+        })),
+        youtubeVideos: data.youtubeVideos.map(({ videoId, title, author }) => ({
+          videoId,
+          title,
+          author,
+        })),
+      });
+    },
+    async import(file) {
+      await delay();
+      const data = churchOf(session);
+      if (file.format !== "iris-backup" || file.version !== 1) {
+        throw new ApiError(400, "VALIDATION_FAILED", "Ese archivo no es un respaldo de Iris.");
+      }
+      const seen = new Set(
+        data.songs.map((song) => `${nameKey(song.title)}\u0000${nameKey(song.author)}`),
+      );
+      const result = { songs: 0, youtubeVideos: 0, skipped: 0, withoutLyrics: 0 };
+      for (const song of file.songs) {
+        if (song.sections.length === 0 && !song.youtubeId) {
+          result.withoutLyrics += 1;
+          continue;
+        }
+        const key = `${nameKey(song.title)}\u0000${nameKey(song.author)}`;
+        if (seen.has(key)) {
+          result.skipped += 1;
+          continue;
+        }
+        await songRepo.create({
+          title: song.title,
+          author: song.author,
+          sections: song.sections,
+          audioId: null,
+          youtubeId: song.youtubeId,
+          youtubeMusic: song.youtubeMusic,
+        });
+        seen.add(key);
+        result.songs += 1;
+      }
+      for (const video of file.youtubeVideos) {
+        const before = data.youtubeVideos.length;
+        await videoRepo.create(video);
+        if (data.youtubeVideos.length > before) result.youtubeVideos += 1;
+        else result.skipped += 1;
+      }
+      return result;
+    },
+    async erase({ songs: eraseSongs, media: eraseMedia, youtube }) {
+      await delay();
+      const data = churchOf(session);
+      const result = { songs: 0, media: 0, youtube: 0 };
+      if (eraseSongs) {
+        result.songs = data.songs.length;
+        for (const song of data.songs) if (song.audioId) dropMedia(data, song.audioId);
+        data.songs = [];
+        data.servicePlan = data.servicePlan.filter((item) => item.kind !== "song");
+      }
+      if (eraseMedia) {
+        const files = data.media.filter((asset) => asset.kind !== "audio");
+        result.media = files.length;
+        for (const asset of files) dropMedia(data, asset.id);
+        data.servicePlan = data.servicePlan.filter((item) => item.kind !== "media");
+      }
+      if (youtube) {
+        result.youtube = data.youtubeVideos.length;
+        data.youtubeVideos = [];
+        data.servicePlan = data.servicePlan.filter((item) => item.kind !== "youtube");
+      }
+      return result;
+    },
+  };
+}
+
 export function mockDataRepositories(session?: UserSession): DataRepositories {
   return {
     church: church(session),
@@ -758,6 +883,7 @@ export function mockDataRepositories(session?: UserSession): DataRepositories {
     songs: songs(session),
     media: media(session),
     youtubeVideos: youtubeVideos(session),
+    backup: backup(session),
     servicePlan: servicePlan(session),
     records: records(session),
     displays: mockDisplays(session),

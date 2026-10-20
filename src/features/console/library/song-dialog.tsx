@@ -5,6 +5,7 @@ import { Banner } from "@/components/ui/banner";
 import { Dialog } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import type { Song } from "@/domain/models";
+import type { ProjectionBackground } from "@/features/projection/model";
 import type { YouTubeVideo } from "@/lib/youtube";
 import { SongEditor } from "@/features/songs/components/song-editor";
 import { songForEditing } from "./actions";
@@ -17,12 +18,14 @@ type Loaded = { song: Song; youtube?: Omit<YouTubeVideo, "music"> };
  */
 export function SongDialog({
   songId,
+  backgrounds,
   onClose,
   onSaved,
   onDeleted,
 }: {
   /** Null for a new song. */
   songId: string | null;
+  backgrounds: ProjectionBackground[];
   onClose: () => void;
   onSaved: (id: string) => void;
   onDeleted: (id: string) => void;
@@ -61,7 +64,12 @@ export function SongDialog({
     >
       <div className="pb-6">
         {!songId ? (
-          <SongEditor onSaved={onSaved} onDeleted={onClose} onCancel={onClose} />
+          <SongEditor
+            backgrounds={backgrounds}
+            onSaved={onSaved}
+            onDeleted={onClose}
+            onCancel={onClose}
+          />
         ) : !loaded ? (
           <p className="flex items-center gap-2 py-16 text-sm text-ink-2">
             <Spinner className="size-4" /> Abriendo la canción…
@@ -72,6 +80,7 @@ export function SongDialog({
           <SongEditor
             song={loaded.song}
             youtubeVideo={loaded.youtube}
+            backgrounds={backgrounds}
             onSaved={onSaved}
             onDeleted={() => onDeleted(loaded.song.id)}
             onCancel={onClose}

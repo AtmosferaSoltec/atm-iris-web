@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { addToService, signIn, toast, unique } from "./helpers";
+import { addToService, pngImage, signIn, toast, unique } from "./helpers";
 
 // Songs are made, edited and deleted in the console's library (BIBLIOTECA).
 
@@ -76,4 +76,61 @@ test("las páginas de antes llevan a la consola", async ({ page }) => {
     await page.goto(path);
     await expect(page).toHaveURL("/");
   }
+});
+
+test("archivar saca la canción de la biblioteca y se restaura desde «Archivadas»", async ({
+  page,
+}) => {
+  const title = unique("Canción para archivar");
+  await newSong(page, title, "Una letra que se conserva");
+  await page.getByLabel("Buscar en la biblioteca").fill(title);
+
+  await page.getByRole("button", { name: `Opciones de «${title}»` }).click();
+  await page.getByRole("menuitem", { name: "Archivar" }).click();
+  await expect(toast(page, `«${title}» se archivó`)).toBeVisible();
+  await expect(library(page).getByText(title, { exact: true })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Archivadas" }).click();
+  await expect(library(page).getByText(title, { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Restaurar" }).click();
+  await expect(toast(page, `«${title}» volvió a la biblioteca`)).toBeVisible();
+
+  await page.getByRole("button", { name: "Volver a la biblioteca" }).click();
+  await expect(library(page).getByText(title, { exact: true })).toBeVisible();
+});
+
+test("cada canción puede tener su fondo, que se guarda desde el selector de fondos", async ({
+  page,
+}) => {
+  const background = unique("Fondo de canción");
+  const title = unique("Canción con fondo");
+  await newSong(page, title, "Letra con fondo");
+
+  // A background is uploaded from the picker.
+  await page.getByRole("button", { name: "Fondo", exact: true }).click();
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Agregar fondo" }).click();
+  await (
+    await chooser
+  ).setFiles([{ name: `${background}.png`, mimeType: "image/png", buffer: pngImage(640, 360) }]);
+  await expect(toast(page, `Fondo «${background}» listo`)).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  // The song's editor offers it as the song's own.
+  await page.getByLabel("Buscar en la biblioteca").fill(title);
+  await page.getByRole("button", { name: `Opciones de «${title}»` }).click();
+  await page.getByRole("menuitem", { name: "Editar canción" }).click();
+  const dialog = page.getByRole("dialog", { name: title });
+  await dialog.getByRole("button", { name: background, exact: true }).click();
+  await dialog.getByRole("button", { name: "Guardar cambios" }).click();
+  await expect(toast(page, "Canción guardada")).toBeVisible();
+
+  // Reopened, it is still the chosen one.
+  await page.getByRole("button", { name: `Opciones de «${title}»` }).click();
+  await page.getByRole("menuitem", { name: "Editar canción" }).click();
+  await expect(
+    page
+      .getByRole("dialog", { name: title })
+      .getByRole("button", { name: background, exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
 });

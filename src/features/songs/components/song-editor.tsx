@@ -18,6 +18,8 @@ import type { Song } from "@/domain/models";
 import { idleState, type FormState } from "@/lib/form-state";
 import { formatLyrics, parseLyrics } from "@/lib/lyrics";
 import { lyricsFromPlainText } from "@/lib/lyrics-import";
+import { SongBackgroundField } from "@/features/console/backgrounds/song-background-field";
+import type { ProjectionBackground } from "@/features/projection/model";
 import type { YouTubeVideo } from "@/lib/youtube";
 import { plural } from "@/lib/text";
 import { deleteSong, saveSong } from "../actions";
@@ -35,6 +37,7 @@ const COMFORTABLE_LINES = 6;
 export function SongEditor({
   song,
   youtubeVideo,
+  backgrounds,
   onSaved,
   onDeleted,
   onCancel,
@@ -42,6 +45,8 @@ export function SongEditor({
   song?: Song;
   /** The song's YouTube track with its title. */
   youtubeVideo?: Omit<YouTubeVideo, "music">;
+  /** The church's backgrounds: with them, the song can have its own. */
+  backgrounds?: ProjectionBackground[];
   onSaved: (id: string) => void;
   onDeleted: () => void;
   onCancel: () => void;
@@ -79,6 +84,12 @@ export function SongEditor({
   );
   const trackId =
     track?.kind === "audio" ? track.audio.id : track?.kind === "youtube" ? track.video.videoId : "";
+  // A background that was deleted since is not offered (and not sent back).
+  const [backgroundId, setBackgroundId] = useState(
+    backgrounds?.some((candidate) => candidate.id === song?.backgroundId)
+      ? (song?.backgroundId ?? "")
+      : "",
+  );
   const [isSearchingLyrics, setIsSearchingLyrics] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDeleting, startDelete] = useTransition();
@@ -143,6 +154,13 @@ export function SongEditor({
             errorFor("youtubeId", track?.kind === "youtube" ? trackId : "")
           }
         />
+        {backgrounds && (
+          <SongBackgroundField
+            backgrounds={backgrounds}
+            value={backgroundId}
+            onChange={setBackgroundId}
+          />
+        )}
         <TextArea
           id="lyrics"
           label="Letra"

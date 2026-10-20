@@ -87,3 +87,40 @@ export async function mediaFile(
     return { error: errorMessage(error) };
   }
 }
+
+/** Out of the library: the lyrics stay, an uploaded track is deleted. */
+export async function archiveSong(id: string): Promise<{ error?: string }> {
+  const parsed = idSchema.safeParse(id);
+  if (!parsed.success) return { error: "Revisa los datos enviados." };
+  try {
+    const { repos } = await authorize();
+    await repos.songs.archive(parsed.data);
+    return {};
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
+}
+
+/** Back in the library. */
+export async function unarchiveSong(id: string): Promise<{ entry?: LibraryEntry; error?: string }> {
+  const parsed = idSchema.safeParse(id);
+  if (!parsed.success) return { error: "Revisa los datos enviados." };
+  try {
+    const { repos } = await authorize();
+    const song = await repos.songs.unarchive(parsed.data);
+    return { entry: songEntry({ ...song, sectionCount: song.sections.length }) };
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
+}
+
+/** The archived songs, to see or bring back. */
+export async function archivedSongs(): Promise<{ entries?: LibraryEntry[]; error?: string }> {
+  try {
+    const { repos } = await authorize();
+    const page = await repos.songs.list({ archived: true, limit: 100, sort: "title" });
+    return { entries: page.data.map(songEntry) };
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
+}

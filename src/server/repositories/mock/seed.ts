@@ -180,6 +180,9 @@ export function sampleSongs(now: Date, titles?: string[]): MockSong[] {
     audioId: null,
     youtubeId: null,
     youtubeMusic: false,
+    backgroundId: null,
+    archivedAt: null,
+    lastUsedAt: null,
     createdAt: timestamp,
     // Spread a little so "Recientes" has an order.
     updatedAt: new Date(now.getTime() - index * 86_400_000).toISOString(),

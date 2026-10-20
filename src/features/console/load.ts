@@ -155,6 +155,7 @@ async function fromSong(repos: Repositories, song: Song, planItemId: string): Pr
     file,
     // The track on YouTube: a visible player in the console plays it; nothing to download.
     ...(song.youtubeId ? { youTubeId: song.youtubeId } : {}),
+    backgroundId: song.backgroundId,
   };
 }
 

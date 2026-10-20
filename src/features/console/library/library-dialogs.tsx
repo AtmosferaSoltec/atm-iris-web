@@ -6,6 +6,7 @@ import { toast } from "@/components/ui/toaster";
 import { deleteMedia } from "@/features/media/actions";
 import { deleteSong } from "@/features/songs/actions";
 import { deleteYouTubeVideo } from "../actions";
+import type { ProjectionBackground } from "@/features/projection/model";
 import type { LibraryEntry } from "../model";
 import { MediaDialog } from "./media-dialog";
 import { SongDialog } from "./song-dialog";
@@ -24,10 +25,12 @@ export function LibraryDialogs({
   dialog,
   onClose,
   library,
+  backgrounds,
 }: {
   dialog: LibraryDialog | null;
   onClose: () => void;
   library: Library;
+  backgrounds: ProjectionBackground[];
 }) {
   if (!dialog) return null;
   switch (dialog.kind) {
@@ -35,6 +38,7 @@ export function LibraryDialogs({
       return (
         <SongDialog
           songId={dialog.id}
+          backgrounds={backgrounds}
           onClose={onClose}
           onSaved={(id) => {
             onClose();

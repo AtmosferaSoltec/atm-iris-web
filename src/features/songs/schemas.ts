@@ -9,6 +9,7 @@ export const SONG_FIELDS = [
   "audioId",
   "youtubeId",
   "youtubeMusic",
+  "backgroundId",
 ] as const;
 export type SongField = (typeof SONG_FIELDS)[number];
 
@@ -46,6 +47,12 @@ const youtubeId = z
   .optional()
   .transform((value) => value || null);
 
+/** The song's background; empty clears it, absent (an editor without backgrounds) keeps it. */
+const backgroundId = z
+  .union([idSchema, z.literal("")])
+  .optional()
+  .transform((value) => (value === undefined ? undefined : value || null));
+
 /** "1" when the YouTube link was YouTube Music's (only changes how it is shown). */
 const youtubeMusic = z
   .string()
@@ -53,7 +60,7 @@ const youtubeMusic = z
   .transform((value) => value === "1");
 
 const songSchema = z
-  .object({ title, author, lyrics, audioId, youtubeId, youtubeMusic })
+  .object({ title, author, lyrics, audioId, youtubeId, youtubeMusic, backgroundId })
   .superRefine((song, ctx) => {
     if (song.audioId !== null && song.youtubeId !== null) {
       ctx.addIssue({

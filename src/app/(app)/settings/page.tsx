@@ -4,6 +4,8 @@ import { Panel } from "@/components/ui/panel";
 import { DeviceList } from "@/features/account/components/device-list";
 import { PasswordForm } from "@/features/account/components/password-form";
 import { ProfileForm } from "@/features/account/components/profile-form";
+import { BackupPanel } from "@/features/backup/components/backup-panel";
+import { ErasePanel } from "@/features/backup/components/erase-panel";
 import { ChurchForm } from "@/features/church/components/church-form";
 import { StorageBreakdown } from "@/features/church/components/storage-usage";
 import { fileSize } from "@/lib/format";
@@ -42,6 +44,18 @@ export default async function SettingsPage() {
         description={`Los ${fileSize(church.storage.quotaBytes)} de tu iglesia los comparten las pistas de las canciones, los fondos y la multimedia. Las letras no ocupan espacio.`}
       >
         <StorageBreakdown storage={church.storage} />
+      </Panel>
+      <Panel
+        title="Respaldo"
+        description="Guarda tus canciones (letra y enlaces) y tus videos de YouTube en un archivo, e impórtalo en esta o en otra cuenta. Las pistas, imágenes y videos subidos no viajan en el archivo."
+      >
+        <BackupPanel />
+      </Panel>
+      <Panel
+        title="Empezar de cero"
+        description="Elimina de golpe lo que elijas. Se borra también del servicio en curso."
+      >
+        <ErasePanel />
       </Panel>
     </div>
   );

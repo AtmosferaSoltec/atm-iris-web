@@ -30,3 +30,33 @@ export async function backgroundFor(
     return { error: errorMessage(error) };
   }
 }
+
+/** A song's own background, or none (null). Only this changes: the rest of the song stays. */
+export async function setSongBackground(
+  songId: string,
+  backgroundId: string | null,
+): Promise<{ error?: string }> {
+  const song = idSchema.safeParse(songId);
+  const background =
+    backgroundId === null
+      ? { success: true as const, data: null }
+      : idSchema.safeParse(backgroundId);
+  if (!song.success || !background.success) return { error: "Revisa los datos enviados." };
+  try {
+    const { repos } = await authorize();
+    const current = await repos.songs.get(song.data);
+    if (!current) return { error: "Esa canción ya no existe." };
+    await repos.songs.update(current.id, {
+      title: current.title,
+      author: current.author,
+      sections: current.sections.map(({ label, text }) => ({ label, text })),
+      audioId: current.audio?.id ?? null,
+      youtubeId: current.youtubeId,
+      youtubeMusic: current.youtubeMusic,
+      backgroundId: background.data,
+    });
+    return {};
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
+}

@@ -27,6 +27,8 @@ export type ConsoleItem = {
    * other) or a song's track on YouTube.
    */
   youTubeId?: string;
+  /** A song's own background: put up when it is presented (never forced afterwards). */
+  backgroundId?: string | null;
 };
 
 export type ConsoleSlide = {

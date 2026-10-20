@@ -90,6 +90,21 @@ export function useLiveConsole(data: ConsoleData) {
   const openItem = openKey ? (itemByKey.get(openKey) ?? null) : null;
   const background = backgrounds.find((candidate) => candidate.id === backgroundId) ?? null;
 
+  // A song with its own background puts it up when it is presented (once per song: changing
+  // the background afterwards is only for this time, it does not touch the song).
+  const songBackgroundRef = useRef({ itemByKey, backgrounds });
+  useEffect(() => {
+    songBackgroundRef.current = { itemByKey, backgrounds };
+  }, [itemByKey, backgrounds]);
+  const liveKey = live?.key ?? null;
+  useEffect(() => {
+    if (!liveKey) return;
+    const own = songBackgroundRef.current.itemByKey.get(liveKey)?.backgroundId;
+    if (own && songBackgroundRef.current.backgrounds.some((candidate) => candidate.id === own)) {
+      setBackgroundId(own);
+    }
+  }, [liveKey]);
+
   // ----- What the screens show (IRIS_SPEC §7.3) -----
 
   const liveContent = useMemo<ProjectionContent>(() => {
@@ -544,6 +559,13 @@ export function useLiveConsole(data: ConsoleData) {
     );
   }, []);
 
+  /** A song's own background changed: every row of it in the service. */
+  const setSongBackground = useCallback((refId: string, backgroundId: string | null) => {
+    setItems((current) =>
+      current.map((item) => (item.refId === refId ? { ...item, backgroundId } : item)),
+    );
+  }, []);
+
   /** Deleted from the library: the API already took it out of the plan, so only here. */
   const dropRef = useCallback(
     (refId: string) =>
@@ -606,6 +628,7 @@ export function useLiveConsole(data: ConsoleData) {
     typography,
     setTypography,
     updateRef,
+    setSongBackground,
     dropRef,
     remote,
     items,

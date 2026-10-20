@@ -1,7 +1,7 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { Check, Ellipsis, Pencil, Plus, Trash2 } from "lucide-react";
+import { Archive, Check, Ellipsis, Pencil, Plus, Trash2 } from "lucide-react";
 import { memo } from "react";
 import {
   DropdownMenu,
@@ -23,6 +23,8 @@ type Props = {
   onAdd: (entry: LibraryEntry) => void;
   onEdit: (entry: LibraryEntry) => void;
   onDelete: (entry: LibraryEntry) => void;
+  /** Songs only. */
+  onArchive?: (entry: LibraryEntry) => void;
 };
 
 /** One song, file or YouTube video: double click or "+" adds it to the service; "⋯" edits or deletes it. */
@@ -33,6 +35,7 @@ export const LibraryRow = memo(function LibraryRow({
   onAdd,
   onEdit,
   onDelete,
+  onArchive,
 }: Props) {
   const { icon: Icon, color } = ENTRY_ICONS[entry.icon];
   // Dragged to the service by pointer (the "+" is the keyboard's way). The overlay draws the
@@ -84,6 +87,12 @@ export const LibraryRow = memo(function LibraryRow({
             <DropdownMenuItem onSelect={() => onEdit(entry)}>
               <Pencil />
               {entry.kind === "song" ? "Editar canción" : "Ver y editar"}
+            </DropdownMenuItem>
+          )}
+          {entry.kind === "song" && onArchive && !isAdded && (
+            <DropdownMenuItem onSelect={() => onArchive(entry)}>
+              <Archive />
+              Archivar
             </DropdownMenuItem>
           )}
           <DropdownMenuItem tone="danger" onSelect={() => onDelete(entry)}>

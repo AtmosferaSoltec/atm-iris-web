@@ -36,6 +36,21 @@ export function useLibrary(
     [dropRef],
   );
 
+  /** Archived: out of the list, but a copy already in the service stays there. */
+  const archived = useCallback(
+    (id: string) => setEntries((current) => current.filter((candidate) => candidate.id !== id)),
+    [],
+  );
+
+  /** Brought back from the archive. */
+  const restored = useCallback(
+    (entry: LibraryEntry) => {
+      upsert(entry);
+      toast.success(`«${entry.title}» volvió a la biblioteca`);
+    },
+    [upsert],
+  );
+
   /** After saving or editing: the latest version, in the list and in the service. */
   const refresh = useCallback(
     async (kind: "song" | "media", id: string) => {
@@ -66,7 +81,7 @@ export function useLibrary(
     [upsert, refresh],
   );
 
-  return { entries, refresh, forget, uploaded, savedYouTube };
+  return { entries, refresh, forget, archived, restored, uploaded, savedYouTube };
 }
 
 export type Library = ReturnType<typeof useLibrary>;

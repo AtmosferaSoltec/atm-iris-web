@@ -131,11 +131,20 @@ export type SongInput = {
   youtubeId: string | null;
   /** The link was YouTube Music's; saved false without `youtubeId`. */
   youtubeMusic: boolean;
+  /** Its background; omitted on an update, it stays as it was. Null clears it. */
+  backgroundId?: Id | null;
 };
 
 export type SongSort = "title" | "-updatedAt";
 
-export type SongListQuery = { search?: string; page?: number; limit?: number; sort?: SongSort };
+export type SongListQuery = {
+  search?: string;
+  page?: number;
+  limit?: number;
+  sort?: SongSort;
+  /** Only the archived songs; without it, the library's. */
+  archived?: boolean;
+};
 
 export interface SongRepository {
   list(query?: SongListQuery): Promise<Paginated<SongSummary>>;
@@ -143,6 +152,10 @@ export interface SongRepository {
   create(input: SongInput): Promise<Song>;
   update(id: Id, input: SongInput): Promise<Song>;
   delete(id: Id): Promise<void>;
+  /** Out of the library; its uploaded track is deleted, the lyrics and a YouTube track stay. */
+  archive(id: Id): Promise<Song>;
+  /** Back in the library. An uploaded track that was deleted has to be uploaded again. */
+  unarchive(id: Id): Promise<Song>;
 }
 
 /* ------------------------------------------------------------------- Media */
@@ -312,6 +325,40 @@ export interface TimeRecordRepository {
   delete(id: Id): Promise<void>;
 }
 
+/** A church's songs (lyrics and links, not files) and YouTube videos, to move to another account. */
+export type BackupFile = {
+  format: "iris-backup";
+  version: 1;
+  exportedAt?: string;
+  songs: {
+    title: string;
+    author: string;
+    sections: { label: string | null; text: string }[];
+    youtubeId: string | null;
+    youtubeMusic: boolean;
+  }[];
+  youtubeVideos: { videoId: string; title: string; author: string }[];
+};
+
+export type ImportResult = {
+  songs: number;
+  youtubeVideos: number;
+  /** Already there (same title and author, or the same video). */
+  skipped: number;
+  /** Only an uploaded track: without files there is nothing to bring. */
+  withoutLyrics: number;
+};
+
+export type EraseInput = { songs: boolean; media: boolean; youtube: boolean };
+export type EraseResult = { songs: number; media: number; youtube: number };
+
+export interface BackupRepository {
+  export(): Promise<BackupFile>;
+  import(file: BackupFile): Promise<ImportResult>;
+  /** Deletes everything chosen at once (songs with their tracks, images, videos and backgrounds, YouTube links). */
+  erase(input: EraseInput): Promise<EraseResult>;
+}
+
 export type DataRepositories = {
   church: ChurchRepository;
   people: PeopleRepository;
@@ -319,6 +366,7 @@ export type DataRepositories = {
   songs: SongRepository;
   media: MediaRepository;
   youtubeVideos: YoutubeVideoRepository;
+  backup: BackupRepository;
   servicePlan: ServicePlanRepository;
   records: TimeRecordRepository;
   displays: DisplayRepository;

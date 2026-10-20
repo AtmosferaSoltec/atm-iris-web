@@ -1,7 +1,8 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Archive, Search } from "lucide-react";
 import { useCallback, useMemo, useState, useTransition, type DragEvent } from "react";
+import { toast } from "@/components/ui/toaster";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Surface } from "@/components/ui/surface";
 import { TextField } from "@/components/ui/text-field";
@@ -11,6 +12,8 @@ import { cn } from "@/lib/cn";
 import { nameKey } from "@/lib/text";
 import type { LibraryEntry } from "../model";
 import type { LiveConsole } from "../use-live-console";
+import { archiveSong } from "./actions";
+import { ArchivedSongs } from "./archived-songs";
 import { LibraryDialogs, type LibraryDialog } from "./library-dialogs";
 import { LibraryRow } from "./library-row";
 import { LibraryTile } from "./library-tile";
@@ -37,6 +40,7 @@ export function LibraryPanel({ ctrl, library }: { ctrl: LiveConsole; library: Li
   const [query, setQuery] = useState("");
   const [dialog, setDialog] = useState<LibraryDialog | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const adding = useAdding(ctrl);
   const { uploaded } = library;
   const upload = useMediaUpload({
@@ -66,6 +70,18 @@ export function LibraryPanel({ ctrl, library }: { ctrl: LiveConsole; library: Li
   );
   const remove = useCallback((entry: LibraryEntry) => setDialog({ kind: "delete", entry }), []);
   const close = useCallback(() => setDialog(null), []);
+  const { archived: hideArchived } = library;
+  const archive = useCallback(
+    async (entry: LibraryEntry) => {
+      const result = await archiveSong(entry.id);
+      if (result.error) toast.error(result.error);
+      else {
+        hideArchived(entry.id);
+        toast.success(`«${entry.title}» se archivó`);
+      }
+    },
+    [hideArchived],
+  );
 
   // Files dropped anywhere on the panel go up as media.
   function onDrop(event: DragEvent) {
@@ -133,6 +149,20 @@ export function LibraryPanel({ ctrl, library }: { ctrl: LiveConsole; library: Li
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
+      {tab === "song" && (
+        <button
+          type="button"
+          onClick={() => setShowArchived((value) => !value)}
+          aria-pressed={showArchived}
+          className={cn(
+            "-mt-1 flex h-7 cursor-pointer items-center gap-1.5 self-start rounded-full px-2.5 text-xs font-medium transition hover:text-ink",
+            showArchived ? "bg-surface-raised text-ink" : "text-ink-2",
+          )}
+        >
+          <Archive aria-hidden className="size-3.5" />
+          {showArchived ? "Volver a la biblioteca" : "Archivadas"}
+        </button>
+      )}
       {tab === "media" && mediaTab !== "youtube" && (
         <UploadQueue
           items={upload.items}
@@ -148,26 +178,33 @@ export function LibraryPanel({ ctrl, library }: { ctrl: LiveConsole; library: Li
           tab === "media" ? "grid grid-cols-3 content-start gap-2 px-2" : "flex flex-col",
         )}
       >
-        {entries.map((entry) => {
-          const common = {
-            entry,
-            isAdded: added.has(entry.id),
-            isAdding: adding.id === entry.id,
-            onAdd: adding.add,
-            onEdit: edit,
-            onDelete: remove,
-          };
-          return (
-            <li key={entry.id}>
-              {tab === "media" ? (
-                <LibraryTile {...common} onShow={ctrl.presentQuick} />
-              ) : (
-                <LibraryRow {...common} />
-              )}
-            </li>
-          );
-        })}
-        {entries.length === 0 && (
+        {tab === "song" && showArchived && (
+          <li className="col-span-full">
+            <ArchivedSongs library={library} query={query} />
+          </li>
+        )}
+        {!(tab === "song" && showArchived) &&
+          entries.map((entry) => {
+            const common = {
+              entry,
+              isAdded: added.has(entry.id),
+              isAdding: adding.id === entry.id,
+              onAdd: adding.add,
+              onEdit: edit,
+              onDelete: remove,
+              onArchive: archive,
+            };
+            return (
+              <li key={entry.id}>
+                {tab === "media" ? (
+                  <LibraryTile {...common} onShow={ctrl.presentQuick} />
+                ) : (
+                  <LibraryRow {...common} />
+                )}
+              </li>
+            );
+          })}
+        {entries.length === 0 && !(tab === "song" && showArchived) && (
           <li className="col-span-full px-2 py-8 text-center text-sm text-ink-2">
             {query
               ? "Sin resultados."
@@ -177,7 +214,12 @@ export function LibraryPanel({ ctrl, library }: { ctrl: LiveConsole; library: Li
           </li>
         )}
       </ul>
-      <LibraryDialogs dialog={dialog} onClose={close} library={library} />
+      <LibraryDialogs
+        dialog={dialog}
+        onClose={close}
+        library={library}
+        backgrounds={ctrl.backgrounds}
+      />
     </Surface>
   );
 }

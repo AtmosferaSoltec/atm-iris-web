@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlay, Plus } from "lucide-react";
+import { ImagePlay, Pin, Plus } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { ConfirmDialog } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -11,7 +11,7 @@ import { deleteMedia } from "@/features/media/actions";
 import { useMediaUpload } from "@/features/media/upload/use-media-upload";
 import type { ProjectionBackground } from "@/features/projection/model";
 import type { LiveConsole } from "../use-live-console";
-import { backgroundFor } from "./actions";
+import { backgroundFor, setSongBackground } from "./actions";
 import { BackgroundSwatch } from "./background-swatch";
 
 /**
@@ -23,6 +23,10 @@ export function BackgroundPicker({ ctrl }: { ctrl: LiveConsole }) {
   const [deleting, setDeleting] = useState<ProjectionBackground | null>(null);
   const [isDeleting, startDelete] = useTransition();
   const { addBackground, removeBackground } = ctrl;
+  // The song on the screens (or the open one): its own background can be set from here.
+  const song = songOf(ctrl);
+  const [isSaving, startSave] = useTransition();
+  const isSongsBackground = song !== null && song.backgroundId === (ctrl.backgroundId ?? null);
   // Out of the popover: an upload keeps going (and lands) after it closes.
   const upload = useMediaUpload({
     section: "backgrounds",
@@ -37,6 +41,19 @@ export function BackgroundPicker({ ctrl }: { ctrl: LiveConsole }) {
     (item) => item.status !== "done" && item.status !== "error",
   );
   const failed = upload.items.filter((item) => item.status === "error");
+
+  function saveFor(songId: string, backgroundId: string | null) {
+    startSave(async () => {
+      const result = await setSongBackground(songId, backgroundId);
+      if (result.error) toast.error(result.error);
+      else {
+        ctrl.setSongBackground(songId, backgroundId);
+        toast.success(
+          backgroundId ? "Fondo guardado en la canción" : "La canción ya no tiene fondo propio",
+        );
+      }
+    });
+  }
 
   return (
     <Popover>
@@ -88,6 +105,34 @@ export function BackgroundPicker({ ctrl }: { ctrl: LiveConsole }) {
             <span className="truncate text-xs text-ink-2">Agregar fondo</span>
           </button>
         </div>
+        {song && (
+          <div className="mt-3 border-t border-line pt-3">
+            {isSongsBackground ? (
+              <div className="flex items-center justify-between gap-3 text-xs text-ink-2">
+                <span className="min-w-0 truncate">Es el fondo de «{song.title}»</span>
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  onClick={() => saveFor(song.refId, null)}
+                  className="shrink-0 cursor-pointer font-medium text-ink hover:underline disabled:opacity-60"
+                >
+                  Quitar
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={() => saveFor(song.refId, ctrl.backgroundId)}
+                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-1 py-1.5 text-left text-xs font-medium text-ink hover:bg-surface disabled:opacity-60"
+                title="Cada vez que presentes esta canción, este fondo se pone solo. Puedes cambiarlo sin que se guarde."
+              >
+                <Pin aria-hidden className="size-3.5 shrink-0 text-ink-2" />
+                <span className="min-w-0 truncate">Usar este fondo siempre en «{song.title}»</span>
+              </button>
+            )}
+          </div>
+        )}
         {failed.map((item) => (
           <p key={item.id} role="alert" className="mt-3 text-xs font-medium text-danger">
             {item.title}: {item.error}
@@ -126,4 +171,12 @@ export function BackgroundPicker({ ctrl }: { ctrl: LiveConsole }) {
       />
     </Popover>
   );
+}
+
+/** The song on the screens, or the open one when none is: where "usar siempre" applies. */
+function songOf(ctrl: LiveConsole) {
+  const key = ctrl.live?.key ?? ctrl.openKey;
+  const item = ctrl.items.find((candidate) => candidate.planItemId === key) ?? ctrl.openItem;
+  if (!item || item.kind !== "song") return null;
+  return { refId: item.refId, title: item.title, backgroundId: item.backgroundId ?? null };
 }

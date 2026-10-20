@@ -13,7 +13,15 @@ import type {
   UploadTicket,
   YoutubeVideo,
 } from "@/domain/models";
-import type { DataRepositories, DisplayLink, DisplayPairing, PairingStatus } from "../types";
+import type {
+  BackupFile,
+  DataRepositories,
+  DisplayLink,
+  DisplayPairing,
+  EraseResult,
+  ImportResult,
+  PairingStatus,
+} from "../types";
 import { env } from "../../env";
 import { createApiClient, orNull, segment, type ClientOptions } from "./client";
 import { ApiError } from "./errors";
@@ -67,6 +75,8 @@ export function apiDataRepositories(options: ClientOptions = {}): DataRepositori
       create: (input) => api<Song>("/songs", { method: "POST", body: input }),
       update: (id, input) => api<Song>(`/songs/${segment(id)}`, { method: "PUT", body: input }),
       delete: (id) => api(`/songs/${segment(id)}`, { method: "DELETE" }),
+      archive: (id) => api<Song>(`/songs/${segment(id)}/archive`, { method: "POST" }),
+      unarchive: (id) => api<Song>(`/songs/${segment(id)}/unarchive`, { method: "POST" }),
     },
     media: {
       list: ({ kind, ...query } = {}) =>
@@ -87,6 +97,15 @@ export function apiDataRepositories(options: ClientOptions = {}): DataRepositori
       get: (id) => orNull(api<YoutubeVideo>(`/youtube-videos/${segment(id)}`)),
       create: (input) => api<YoutubeVideo>("/youtube-videos", { method: "POST", body: input }),
       delete: (id) => api(`/youtube-videos/${segment(id)}`, { method: "DELETE" }),
+    },
+    backup: {
+      export: () => api<BackupFile>("/backup/export"),
+      import: (file) => api<ImportResult>("/backup/import", { method: "POST", body: file }),
+      erase: (input) =>
+        api<EraseResult>("/backup/erase", {
+          method: "POST",
+          body: { ...input, confirm: "ELIMINAR" },
+        }),
     },
     servicePlan: {
       list: () => api<ServicePlanItem[]>("/service-plan"),
