@@ -57,6 +57,12 @@ export type LibraryEntry = {
   durationSeconds: number | null;
   /** Images, videos and YouTube: a picture (or a video's first frame) for the library's grid. */
   previewUrl: string | null;
+  /** A song's artist, to filter the library by it. */
+  author?: string;
+  /** A song whose track is on YouTube: shown with YouTube's icon. */
+  hasYouTube?: boolean;
+  /** A song with an uploaded audio file (MP3): shown with a music icon. */
+  hasAudio?: boolean;
 };
 
 export type ConsoleData = {

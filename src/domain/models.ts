@@ -121,10 +121,8 @@ export type Song = {
   sections: SongSection[];
   /** The track (an audio `MediaAsset`); null when the song is only lyrics or its track is on YouTube. */
   audio: MediaAsset | null;
-  /** The track on YouTube (or YouTube Music): the video id. Played by YouTube's player, never downloaded. */
+  /** The track on YouTube the video id. Played by YouTube's player, never downloaded. */
   youtubeId: string | null;
-  /** The YouTube link was YouTube Music's (only the music), not YouTube's (with video). */
-  youtubeMusic: boolean;
   /** Its background (a church background media); the console puts it up when the song is presented. */
   backgroundId: string | null;
   /** Archived after a year unused: out of the library, its uploaded track gone, the lyrics kept. */
@@ -142,7 +140,6 @@ export type SongSummary = {
   firstLine: string | null;
   audio: MediaAsset | null;
   youtubeId: string | null;
-  youtubeMusic: boolean;
   backgroundId: string | null;
   archivedAt: string | null;
   lastUsedAt: string | null;

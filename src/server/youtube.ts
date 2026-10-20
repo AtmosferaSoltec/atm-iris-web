@@ -7,7 +7,7 @@ import type { YouTubeVideo } from "@/lib/youtube";
 /** Can this video play outside YouTube, and what is it called? */
 export async function lookUpYouTube(
   videoId: string,
-): Promise<{ video?: Omit<YouTubeVideo, "music">; error?: string }> {
+): Promise<{ video?: YouTubeVideo; error?: string }> {
   try {
     const watch = `https://www.youtube.com/watch?v=${videoId}`;
     const response = await fetch(

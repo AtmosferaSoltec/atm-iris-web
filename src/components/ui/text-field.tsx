@@ -13,6 +13,8 @@ type TextFieldProps = Omit<ComponentProps<"input">, "id"> & {
   icon?: ReactNode;
   accessory?: ReactNode;
   containerClassName?: string;
+  /** `sm`: a slim field for dense panels (the library's search). */
+  density?: "md" | "sm";
 };
 
 export function TextField({
@@ -25,6 +27,7 @@ export function TextField({
   type = "text",
   className,
   containerClassName,
+  density = "md",
   ...props
 }: TextFieldProps) {
   const [isRevealed, setIsRevealed] = useState(false);
@@ -44,7 +47,8 @@ export function TextField({
           <span
             aria-hidden
             className={cn(
-              "pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-ink-3 transition group-focus-within:text-ink [&_svg]:size-[18px]",
+              "pointer-events-none absolute top-1/2 -translate-y-1/2 text-ink-3 transition group-focus-within:text-ink",
+              density === "sm" ? "left-2.5 [&_svg]:size-4" : "left-3.5 [&_svg]:size-[18px]",
               error && "text-danger group-focus-within:text-danger",
             )}
           >
@@ -59,8 +63,8 @@ export function TextField({
           aria-describedby={describedBy(id, error, hint)}
           className={cn(
             controlStyles(Boolean(error)),
-            "h-11 px-4",
-            icon && "pl-11",
+            density === "sm" ? "h-8 px-3 text-sm" : "h-11 px-4",
+            icon && (density === "sm" ? "pl-8" : "pl-11"),
             isPassword && "pr-11",
             className,
           )}

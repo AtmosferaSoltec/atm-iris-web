@@ -17,7 +17,7 @@ export type ItemContent = Omit<ConsoleItem, "planItemId">;
 /** A song with its YouTube track's title, to open it in the editor. */
 export async function songForEditing(
   id: string,
-): Promise<{ song?: Song; youtube?: Omit<YouTubeVideo, "music">; error?: string }> {
+): Promise<{ song?: Song; youtube?: YouTubeVideo; error?: string }> {
   const parsed = idSchema.safeParse(id);
   if (!parsed.success) return { error: "Revisa los datos enviados." };
   try {
@@ -166,7 +166,6 @@ export async function editSongSlide(
       sections,
       audioId: song.audio?.id ?? null,
       youtubeId: song.youtubeId,
-      youtubeMusic: song.youtubeMusic,
     });
     const item = await consoleItemFor(repos, "song", song.id, "");
     return item ? { content: withoutPlace(item) } : { error: "No pudimos abrir la canción." };

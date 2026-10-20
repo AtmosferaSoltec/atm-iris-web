@@ -37,7 +37,7 @@ type Props = {
 };
 
 /**
- * The song's track (contract §10). Mainly a YouTube or YouTube Music video, pasted as a
+ * The song's track (contract §10). Mainly a YouTube video, pasted as a
  * link: it plays in YouTube's player and takes no space. An uploaded file is the
  * fallback for a church without internet. An upload goes up right away and stays with the song
  * when it is saved; a replaced or removed one is deleted by the API on save, and one never
@@ -94,11 +94,6 @@ export function TrackField({ track, onChange, error }: Props) {
         type="hidden"
         name="youtubeId"
         value={track?.kind === "youtube" ? track.video.videoId : ""}
-      />
-      <input
-        type="hidden"
-        name="youtubeMusic"
-        value={track?.kind === "youtube" && track.video.music ? "1" : ""}
       />
       <div
         onDragOver={(event) => {
@@ -195,7 +190,7 @@ export function TrackField({ track, onChange, error }: Props) {
   );
 }
 
-/** Takes a pasted YouTube or YouTube Music link and checks it can play outside YouTube. */
+/** Takes a pasted YouTube link and checks it can play outside YouTube. */
 function YouTubePicker({
   onPick,
   onUpload,
@@ -212,7 +207,7 @@ function YouTubePicker({
     setError(null);
     if (!text.trim()) return;
     if (!youTubeVideoId(text)) {
-      setError("Ese enlace no es de YouTube ni de YouTube Music.");
+      setError("Ese enlace no es de YouTube.");
       return;
     }
     const id = ++request.current;
@@ -229,8 +224,8 @@ function YouTubePicker({
       <TextField
         id="track-link"
         name=""
-        aria-label="Enlace de YouTube o YouTube Music"
-        placeholder="Pega el enlace de YouTube o YouTube Music"
+        aria-label="Enlace de YouTube"
+        placeholder="Pega el enlace de YouTube"
         icon={<Link2 />}
         value={link}
         autoComplete="off"
@@ -290,7 +285,7 @@ function YouTubeTrackCard({ video, onRemove }: { video: YouTubeVideo; onRemove: 
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 text-sm font-semibold">{video.title}</p>
           <p className="flex min-w-0 items-center gap-1.5 text-xs text-ink-2">
-            <YouTubeBadge music={video.music} />
+            <YouTubeBadge />
             {video.author && <span className="truncate">· {video.author}</span>}
           </p>
         </div>

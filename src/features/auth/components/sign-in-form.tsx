@@ -41,6 +41,8 @@ export function SignInForm({ notice }: { notice?: string }) {
         accessory={
           <button
             type="button"
+            // Skipped by Tab so email goes straight to the password field.
+            tabIndex={-1}
             onClick={(event) => {
               // Carry over what was typed so step 1 starts filled in.
               const field = event.currentTarget.form?.elements.namedItem("email");

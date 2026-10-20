@@ -1,8 +1,17 @@
 "use client";
 
-import { Archive, Search } from "lucide-react";
+import { Archive, ListFilter, Search, X } from "lucide-react";
 import { useCallback, useMemo, useState, useTransition, type DragEvent } from "react";
 import { toast } from "@/components/ui/toaster";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Surface } from "@/components/ui/surface";
 import { TextField } from "@/components/ui/text-field";
@@ -41,6 +50,7 @@ export function LibraryPanel({ ctrl, library }: { ctrl: LiveConsole; library: Li
   const [dialog, setDialog] = useState<LibraryDialog | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [artistKey, setArtistKey] = useState<string | null>(null);
   const adding = useAdding(ctrl);
   const { uploaded } = library;
   const upload = useMediaUpload({
@@ -52,14 +62,32 @@ export function LibraryPanel({ ctrl, library }: { ctrl: LiveConsole; library: Li
   });
   const added = useMemo(() => new Set(ctrl.items.map((item) => item.refId)), [ctrl.items]);
 
+  // The artists the songs already have, grouped by name (accents and case aside).
+  const artists = useMemo(() => {
+    const groups = new Map<string, { key: string; name: string; count: number }>();
+    for (const entry of library.entries) {
+      const name = entry.author?.trim();
+      if (entry.kind !== "song" || !name) continue;
+      const key = nameKey(name);
+      const group = groups.get(key);
+      if (group) group.count += 1;
+      else groups.set(key, { key, name, count: 1 });
+    }
+    return [...groups.values()].sort((a, b) => a.name.localeCompare(b.name, "es"));
+  }, [library.entries]);
+  // An artist whose songs are all gone is no filter at all.
+  const artist = artists.find((candidate) => candidate.key === artistKey) ?? null;
+
   const entries = useMemo(() => {
     const key = nameKey(query);
     return library.entries.filter(
       (entry) =>
-        (tab === "song" ? entry.kind === "song" : entry.icon === mediaTab) &&
+        (tab === "song"
+          ? entry.kind === "song" && (!artist || nameKey(entry.author ?? "") === artist.key)
+          : entry.icon === mediaTab) &&
         (!key || nameKey(`${entry.title} ${entry.subtitle}`).includes(key)),
     );
-  }, [library.entries, tab, mediaTab, query]);
+  }, [library.entries, tab, mediaTab, query, artist]);
 
   const edit = useCallback(
     (entry: LibraryEntry) =>
@@ -140,15 +168,61 @@ export function LibraryPanel({ ctrl, library }: { ctrl: LiveConsole; library: Li
         onUpload={upload.addFiles}
         onYouTube={() => setDialog({ kind: "youtube" })}
       />
-      <TextField
-        id="library-search"
-        type="search"
-        aria-label="Buscar en la biblioteca"
-        placeholder="Buscar"
-        icon={<Search />}
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-      />
+      <div className="flex items-center gap-2">
+        <TextField
+          id="library-search"
+          density="sm"
+          type="search"
+          aria-label="Buscar en la biblioteca"
+          placeholder="Buscar"
+          icon={<Search />}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          containerClassName="min-w-0 flex-1"
+        />
+        {tab === "song" && artists.length > 0 && !showArchived && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label={artist ? `Artista: ${artist.name}` : "Filtrar por artista"}
+                title="Filtrar por artista"
+                className={cn(
+                  "flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-sm ring-1 transition ring-inset hover:bg-surface data-[state=open]:bg-surface",
+                  artist ? "text-ink ring-coral/60" : "text-ink-2 ring-line",
+                )}
+              >
+                <ListFilter aria-hidden className="size-4" />
+                {artist && <span className="max-w-24 truncate">{artist.name}</span>}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="max-h-[50vh] overflow-y-auto">
+              <DropdownMenuRadioGroup
+                value={artist?.key ?? ""}
+                onValueChange={(value) => setArtistKey(value || null)}
+              >
+                <DropdownMenuRadioItem value="">Todos los artistas</DropdownMenuRadioItem>
+                <DropdownMenuSeparator />
+                {artists.map((candidate) => (
+                  <DropdownMenuRadioItem key={candidate.key} value={candidate.key}>
+                    <span className="min-w-0 flex-1 truncate">{candidate.name}</span>
+                    <span className="ml-3 text-xs text-ink-2 tabular-nums">{candidate.count}</span>
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+              {artist && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => setArtistKey(null)}>
+                    <X />
+                    Quitar el filtro
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
       {tab === "song" && (
         <button
           type="button"

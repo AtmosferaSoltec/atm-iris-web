@@ -2,18 +2,23 @@
 
 import { Type } from "lucide-react";
 import { useState } from "react";
-import { IconButton } from "@/components/ui/button";
 import type { LiveConsole } from "../use-live-console";
 import { TypographyDialog } from "./typography-dialog";
 
-/** "Texto": next to the background, opens how the lyrics look. */
+/** "Texto": a pill like Biblia and Pantallas, opens how the lyrics look. */
 export function TypographyButton({ ctrl }: { ctrl: LiveConsole }) {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <>
-      <IconButton label="Texto: fuente y tamaño de la letra" onClick={() => setIsOpen(true)}>
-        <Type />
-      </IconButton>
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        title="Fuente y tamaño de la letra"
+        className="flex h-10 cursor-pointer items-center gap-2.5 rounded-full px-4 text-sm font-medium text-ink ring-1 ring-line transition ring-inset hover:bg-surface"
+      >
+        <Type aria-hidden className="size-4 text-ink-2" />
+        Texto
+      </button>
       {isOpen && <TypographyDialog ctrl={ctrl} onClose={() => setIsOpen(false)} />}
     </>
   );

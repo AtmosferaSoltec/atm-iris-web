@@ -10,7 +10,7 @@ import type { YouTubeVideo } from "@/lib/youtube";
 import { SongEditor } from "@/features/songs/components/song-editor";
 import { songForEditing } from "./actions";
 
-type Loaded = { song: Song; youtube?: Omit<YouTubeVideo, "music"> };
+type Loaded = { song: Song; youtube?: YouTubeVideo };
 
 /**
  * "Nueva canción" or "Editar canción", over the console: the whole editor (lyrics, track,
@@ -62,7 +62,7 @@ export function SongDialog({
       size="xl"
       actionsRef={setActionsSlot}
       title={title}
-      description="Escribe o busca la letra y pega el enlace de su pista en YouTube o YouTube Music."
+      description="Escribe o busca la letra y pega el enlace de su pista en YouTube."
     >
       <div className="pb-6">
         {!songId ? (

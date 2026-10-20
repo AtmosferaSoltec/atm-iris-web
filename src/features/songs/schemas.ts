@@ -8,7 +8,6 @@ export const SONG_FIELDS = [
   "lyrics",
   "audioId",
   "youtubeId",
-  "youtubeMusic",
   "backgroundId",
 ] as const;
 export type SongField = (typeof SONG_FIELDS)[number];
@@ -53,14 +52,8 @@ const backgroundId = z
   .optional()
   .transform((value) => (value === undefined ? undefined : value || null));
 
-/** "1" when the YouTube link was YouTube Music's (only changes how it is shown). */
-const youtubeMusic = z
-  .string()
-  .optional()
-  .transform((value) => value === "1");
-
 const songSchema = z
-  .object({ title, author, lyrics, audioId, youtubeId, youtubeMusic, backgroundId })
+  .object({ title, author, lyrics, audioId, youtubeId, backgroundId })
   .superRefine((song, ctx) => {
     if (song.audioId !== null && song.youtubeId !== null) {
       ctx.addIssue({
@@ -80,7 +73,6 @@ const songSchema = z
   })
   .transform(({ lyrics: sections, ...rest }) => ({
     ...rest,
-    youtubeMusic: rest.youtubeId !== null && rest.youtubeMusic,
     sections,
   }));
 

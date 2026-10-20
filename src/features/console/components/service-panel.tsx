@@ -5,6 +5,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import {
   Captions,
+  CirclePlay,
   GripVertical,
   ListMusic,
   Music,
@@ -203,8 +204,17 @@ function ServiceRow({
               <span aria-label="En vivo" className="size-1.5 shrink-0 rounded-full bg-live" />
             )}
           </span>
-          {item.subtitle && (
-            <span className="block truncate text-xs text-ink-2">{item.subtitle}</span>
+          {(item.subtitle || (item.youTubeId && item.kind !== "youtube")) && (
+            <span className="flex min-w-0 items-center gap-1.5 text-xs text-ink-2">
+              <span className="truncate">{item.subtitle}</span>
+              {item.youTubeId && item.kind !== "youtube" && (
+                <CirclePlay
+                  role="img"
+                  aria-label="Pista de YouTube"
+                  className="size-3.5 shrink-0 text-danger"
+                />
+              )}
+            </span>
           )}
         </span>
         {(item.kind === "image" || item.kind === "video") && item.file && (

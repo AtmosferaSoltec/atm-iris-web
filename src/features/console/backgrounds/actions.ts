@@ -52,7 +52,6 @@ export async function setSongBackground(
       sections: current.sections.map(({ label, text }) => ({ label, text })),
       audioId: current.audio?.id ?? null,
       youtubeId: current.youtubeId,
-      youtubeMusic: current.youtubeMusic,
       backgroundId: background.data,
     });
     return {};

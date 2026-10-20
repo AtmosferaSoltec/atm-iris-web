@@ -179,7 +179,6 @@ export function sampleSongs(now: Date, titles?: string[]): MockSong[] {
     sections: parseLyrics(song.lyrics).map((section) => ({ id: crypto.randomUUID(), ...section })),
     audioId: null,
     youtubeId: null,
-    youtubeMusic: false,
     backgroundId: null,
     archivedAt: null,
     lastUsedAt: null,

@@ -48,7 +48,7 @@ export function SongEditor({
 }: {
   song?: Song;
   /** The song's YouTube track with its title. */
-  youtubeVideo?: Omit<YouTubeVideo, "music">;
+  youtubeVideo?: YouTubeVideo;
   /** The church's backgrounds: with them, the song can have its own. */
   backgrounds?: ProjectionBackground[];
   /** The dialog's header: Eliminar, Cancelar and Guardar go there, always in sight. */
@@ -83,7 +83,6 @@ export function SongEditor({
                 title: "Video de YouTube",
                 author: "",
               }),
-              music: song.youtubeMusic,
             },
           }
         : null,

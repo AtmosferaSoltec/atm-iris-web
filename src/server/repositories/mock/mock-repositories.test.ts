@@ -109,7 +109,6 @@ describe("mock repositories", () => {
         sections: [],
         audioId: null,
         youtubeId: null,
-        youtubeMusic: false,
       }),
     ).rejects.toMatchObject({ errors: { sections: "Agrega la letra o una pista." } });
 
@@ -120,7 +119,6 @@ describe("mock repositories", () => {
       sections: [],
       audioId: first.id,
       youtubeId: null,
-      youtubeMusic: false,
     });
     expect(song.audio?.id).toBe(first.id);
     await expect(
@@ -130,7 +128,6 @@ describe("mock repositories", () => {
         sections: [],
         audioId: first.id,
         youtubeId: null,
-        youtubeMusic: false,
       }),
     ).rejects.toMatchObject({ errors: { audioId: "Esa pista ya es de otra canción." } });
     await expect(repos.servicePlan.add({ kind: "media", refId: first.id })).rejects.toMatchObject({
@@ -145,7 +142,6 @@ describe("mock repositories", () => {
       sections: [{ label: null, text: "Hoy te salvo" }],
       audioId: second.id,
       youtubeId: null,
-      youtubeMusic: false,
     });
     expect(await repos.media.get(first.id)).toBeNull();
     expect((await repos.church.get()).storage.breakdown.musicBytes).toBe(40);
@@ -158,7 +154,6 @@ describe("mock repositories", () => {
         sections: [],
         audioId: second.id,
         youtubeId: "aqz-KE-bpKQ",
-        youtubeMusic: false,
       }),
     ).rejects.toMatchObject({
       errors: { youtubeId: "La pista es un audio o un video de YouTube, no los dos." },
@@ -169,7 +164,6 @@ describe("mock repositories", () => {
       sections: [],
       audioId: null,
       youtubeId: "aqz-KE-bpKQ",
-      youtubeMusic: false,
     });
     expect(onYouTube).toMatchObject({ audio: null, youtubeId: "aqz-KE-bpKQ" });
     expect(await repos.media.get(second.id)).toBeNull();

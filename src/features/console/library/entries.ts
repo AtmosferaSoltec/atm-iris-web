@@ -1,5 +1,4 @@
 import type { MediaAsset, SongSummary, YoutubeVideo } from "@/domain/models";
-import { clock } from "@/lib/format";
 import { youTubeThumbnail } from "@/lib/youtube";
 import type { LibraryEntry } from "../model";
 
@@ -8,20 +7,12 @@ import type { LibraryEntry } from "../model";
 
 type SongFacts = Pick<
   SongSummary,
-  "id" | "title" | "author" | "sectionCount" | "audio" | "youtubeId" | "youtubeMusic"
+  "id" | "title" | "author" | "sectionCount" | "audio" | "youtubeId"
 >;
 
-/** "Hillsong · Con pista de YT Music", "Solo pista 3:45", or just the author. */
-export function songSubtitle(song: Omit<SongFacts, "id" | "title">): string {
-  const prefix = song.sectionCount === 0 ? "Solo pista" : "Con pista";
-  const track = song.audio
-    ? [prefix, song.audio.durationSeconds !== null ? clock(song.audio.durationSeconds) : null]
-        .filter(Boolean)
-        .join(" ")
-    : song.youtubeId
-      ? `${prefix} de ${song.youtubeMusic ? "YT Music" : "YouTube"}`
-      : null;
-  return [song.author || null, track].filter(Boolean).join(" · ");
+/** Just the author: a track is shown with its icon (YouTube or music), not words. */
+export function songSubtitle(song: Pick<SongFacts, "author">): string {
+  return song.author;
 }
 
 export function songEntry(song: SongFacts): LibraryEntry {
@@ -37,6 +28,9 @@ export function songEntry(song: SongFacts): LibraryEntry {
         : "songTrack",
     durationSeconds: song.audio?.durationSeconds ?? null,
     previewUrl: null,
+    author: song.author,
+    hasYouTube: Boolean(song.youtubeId),
+    hasAudio: Boolean(song.audio),
   };
 }
 

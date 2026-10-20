@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { fieldErrorsFrom, formValues, GENERIC_ERROR, type FormState } from "@/lib/form-state";
 import { idSchema } from "@/lib/validation";
-import { isYouTubeMusicLink, youTubeVideoId, type YouTubeVideo } from "@/lib/youtube";
+import { youTubeVideoId, type YouTubeVideo } from "@/lib/youtube";
 import { authorize } from "@/server/dal";
 import { errorMessage, toFormState } from "@/server/repositories/api/errors";
 import { searchLyrics, type FoundLyrics } from "@/server/lyrics";
@@ -59,18 +59,16 @@ export async function findLyrics(
   return searchLyrics(parsed.data.title, parsed.data.artist);
 }
 
-/** A pasted YouTube or YouTube Music link, checked: it exists and can play outside YouTube. */
+/** A pasted YouTube link, checked: it exists and can play outside YouTube. */
 export async function findYouTubeTrack(
   link: string,
 ): Promise<{ video?: YouTubeVideo; error?: string }> {
   const parsed = youTubeLinkSchema.safeParse(link);
   const videoId = parsed.success ? youTubeVideoId(parsed.data) : null;
-  if (!videoId) return { error: "Ese enlace no es de YouTube ni de YouTube Music." };
+  if (!videoId) return { error: "Ese enlace no es de YouTube." };
   await authorize();
   const found = await lookUpYouTube(videoId);
-  return found.video
-    ? { video: { ...found.video, music: isYouTubeMusicLink(parsed.data!) } }
-    : { error: found.error };
+  return found.video ? { video: found.video } : { error: found.error };
 }
 
 export async function deleteSong(songId: string): Promise<{ error?: string }> {

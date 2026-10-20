@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "@/components/ui/toaster";
 import { consoleChannel, type PreloadFile } from "@/features/projection/channel";
-import type {
-  ProjectionBackground,
-  ProjectionContent,
-  ProjectionFrame,
-  ProjectionTypography,
+import {
+  timerRemaining,
+  type ProjectionBackground,
+  type ProjectionContent,
+  type ProjectionFrame,
+  type ProjectionTypography,
 } from "@/features/projection/model";
 import { clearPlan, movePlanItem, removePlanItem } from "@/features/service-plan/actions";
 import { addToService, quickItem, refreshFileUrls } from "./actions";
@@ -65,6 +66,8 @@ export function useLiveConsole(data: ConsoleData) {
     return id && data.backgrounds.some((background) => background.id === id) ? id : null;
   });
   const [playback, setPlayback] = useState<Playback | null>(null);
+  // A countdown ("Temporizador"): on the screens over whatever was there until it is hidden.
+  const [timer, setTimer] = useState<Extract<ProjectionContent, { kind: "timer" }> | null>(null);
   // How the lyrics look (contract §6): the church's, changed live from "Texto".
   const [typography, setTypography] = useState<ProjectionTypography>(() => ({
     fontFamily: data.projection.fontFamily,
@@ -108,7 +111,9 @@ export function useLiveConsole(data: ConsoleData) {
   // ----- What the screens show (IRIS_SPEC §7.3) -----
 
   const liveContent = useMemo<ProjectionContent>(() => {
-    if (isCleared || !live) return { kind: "blank" };
+    if (isCleared) return { kind: "blank" };
+    if (timer) return timer;
+    if (!live) return { kind: "blank" };
     const item = itemByKey.get(live.key);
     if (!item) return { kind: "blank" };
     if (item.kind === "song" || item.kind === "bible") {
@@ -142,7 +147,7 @@ export function useLiveConsole(data: ConsoleData) {
       };
     }
     return { kind: "blank" };
-  }, [isCleared, live, itemByKey, playback]);
+  }, [isCleared, timer, live, itemByKey, playback]);
 
   const liveFrame = useMemo<ProjectionFrame>(
     () => ({
@@ -587,6 +592,26 @@ export function useLiveConsole(data: ConsoleData) {
     [items],
   );
 
+  const startTimer = useCallback((seconds: number) => {
+    setTimer({ kind: "timer", seconds, running: true, at: Date.now() });
+    setIsCleared(false);
+  }, []);
+  const pauseTimer = useCallback(() => {
+    setTimer((current) => {
+      if (!current?.running) return current;
+      const now = Date.now();
+      return { ...current, seconds: timerRemaining(current, now), running: false, at: now };
+    });
+  }, []);
+  const resumeTimer = useCallback(() => {
+    setTimer((current) =>
+      current && !current.running && current.seconds > 0
+        ? { ...current, running: true, at: Date.now() }
+        : current,
+    );
+  }, []);
+  const hideTimer = useCallback(() => setTimer(null), []);
+
   const clear = useCallback(() => {
     stopPlayback();
     setItems([]);
@@ -621,6 +646,11 @@ export function useLiveConsole(data: ConsoleData) {
   }, []);
 
   return {
+    timer,
+    startTimer,
+    pauseTimer,
+    resumeTimer,
+    hideTimer,
     presentPassage,
     presentQuick,
     addBackground,

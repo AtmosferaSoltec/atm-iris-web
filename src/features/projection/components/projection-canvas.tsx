@@ -2,12 +2,14 @@
 
 import { memo, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { clock } from "@/lib/format";
 import { youTubeThumbnail } from "@/lib/youtube";
 import { useResolveFile } from "../file-resolver";
 import { isEmbedBlocked, loadYouTube, type YouTubePlayer } from "../youtube-api";
 import {
   fontStack,
   lyricSizes,
+  timerRemaining,
   type ProjectionBackground,
   type ProjectionContent,
   type ProjectionFrame,
@@ -89,6 +91,8 @@ function contentKey(content: ProjectionContent): string {
       return "blank";
     case "text":
       return `text:${content.text}\u0000${content.footnote ?? ""}`;
+    case "timer":
+      return "timer";
     case "image":
     case "video":
     case "youtube":
@@ -296,6 +300,8 @@ function Content({
       );
     case "blank":
       return null;
+    case "timer":
+      return <Countdown timer={content} typography={typography} />;
     case "text":
       return <Lyrics text={content.text} footnote={content.footnote} typography={typography} />;
     case "image":
@@ -332,6 +338,34 @@ function Content({
 }
 
 /** Shrinks the lyrics (down to half) when a long slide would not fit the screen. */
+/** The big countdown on the screen: it follows `at` itself, so it only needs a new frame to start, pause or reset. */
+function Countdown({
+  timer,
+  typography,
+}: {
+  timer: Extract<ProjectionContent, { kind: "timer" }>;
+  typography: ProjectionTypography;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!timer.running) return;
+    const interval = setInterval(() => setNow(Date.now()), 200);
+    return () => clearInterval(interval);
+  }, [timer.running]);
+  const left = timerRemaining(timer, Math.max(now, timer.at));
+  return (
+    <div
+      className="absolute inset-0 grid place-items-center text-white [text-shadow:0_0_1.2cqw_rgb(0_0_0/0.45)]"
+      style={{
+        fontFamily: fontStack(typography.fontFamily),
+        fontWeight: typography.fontBold ? 700 : 500,
+      }}
+    >
+      <span className="text-[24cqw] leading-none tabular-nums">{clock(Math.ceil(left))}</span>
+    </div>
+  );
+}
+
 function Lyrics({
   text,
   footnote,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isYouTubeMusicLink, youTubeVideoId } from "./youtube";
+import { youTubeVideoId } from "./youtube";
 
 describe("youTubeVideoId", () => {
   it("reads every usual link", () => {
@@ -17,13 +17,6 @@ describe("youTubeVideoId", () => {
     ]) {
       expect(youTubeVideoId(link), link).toBe("dQw4w9WgXcQ");
     }
-  });
-
-  it("tells YouTube Music links apart", () => {
-    expect(isYouTubeMusicLink("https://music.youtube.com/watch?v=dQw4w9WgXcQ")).toBe(true);
-    expect(isYouTubeMusicLink("music.youtube.com/watch?v=dQw4w9WgXcQ")).toBe(true);
-    expect(isYouTubeMusicLink("https://www.youtube.com/watch?v=dQw4w9WgXcQ")).toBe(false);
-    expect(isYouTubeMusicLink("dQw4w9WgXcQ")).toBe(false);
   });
 
   it("rejects what is not a YouTube video", () => {

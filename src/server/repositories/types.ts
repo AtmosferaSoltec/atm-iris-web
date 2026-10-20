@@ -129,8 +129,6 @@ export type SongInput = {
   audioId: Id | null;
   /** Or the track on YouTube (never both). */
   youtubeId: string | null;
-  /** The link was YouTube Music's; saved false without `youtubeId`. */
-  youtubeMusic: boolean;
   /** Its background; omitted on an update, it stays as it was. Null clears it. */
   backgroundId?: Id | null;
 };
@@ -335,7 +333,6 @@ export type BackupFile = {
     author: string;
     sections: { label: string | null; text: string }[];
     youtubeId: string | null;
-    youtubeMusic: boolean;
   }[];
   youtubeVideos: { videoId: string; title: string; author: string }[];
 };

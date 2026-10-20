@@ -150,7 +150,7 @@ async function fromSong(repos: Repositories, song: Song, planItemId: string): Pr
     refId: song.id,
     kind: song.sections.length === 0 && (file || song.youtubeId) ? "track" : "song",
     title: song.title,
-    subtitle: songSubtitle({ ...song, sectionCount: song.sections.length }) || null,
+    subtitle: songSubtitle(song) || null,
     slides: song.sections.map((section) => ({ ...section })),
     file,
     // The track on YouTube: a visible player in the console plays it; nothing to download.

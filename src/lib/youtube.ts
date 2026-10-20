@@ -1,29 +1,15 @@
-// YouTube (and YouTube Music, whose songs are YouTube videos) without its API: links and
-// thumbnails. Videos play in YouTube's own player; nothing is ever downloaded.
+// YouTube without its API: links and thumbnails. A music.youtube.com link is read as the same
+// video (it is not told apart). Videos play in YouTube's own player; nothing is ever downloaded.
 
 /** A video as Iris shows it (from oEmbed). */
 export type YouTubeVideo = {
   videoId: string;
   title: string;
   author: string;
-  /** The link was YouTube Music's (only the music), not YouTube's (with video). */
-  music: boolean;
 };
 
-/** A music.youtube.com link: the same video, but the church chose it for its music only. */
-export function isYouTubeMusicLink(input: string): boolean {
-  try {
-    const text = input.trim();
-    return (
-      new URL(text.startsWith("http") ? text : `https://${text}`).hostname === "music.youtube.com"
-    );
-  } catch {
-    return false;
-  }
-}
-
 /**
- * The video id of a YouTube or YouTube Music link: watch?v=, youtu.be/, shorts/, embed/, live/ or the bare
+ * The video id of a YouTube link (music.youtube.com too): watch?v=, youtu.be/, shorts/, embed/, live/ or the bare
  * 11-character id. Null when it is not a YouTube video.
  */
 export function youTubeVideoId(input: string): string | null {

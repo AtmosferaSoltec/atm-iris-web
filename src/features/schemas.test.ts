@@ -17,7 +17,6 @@ describe("songFormSchema", () => {
       ],
       audioId: null,
       youtubeId: null,
-      youtubeMusic: false,
     });
   });
 

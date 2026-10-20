@@ -1,18 +1,19 @@
 "use client";
 
 import { Tv } from "lucide-react";
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import { IrisWordmark } from "@/components/brand/iris-mark";
 import type { UserSession } from "@/domain/models";
 import { AccountMenu } from "@/features/shell/account-menu";
 import { cn } from "@/lib/cn";
 import { BibleButton } from "../bible/bible-button";
 import { BackgroundPicker } from "../backgrounds/background-picker";
+import { TimerButton } from "../timer/timer-button";
 import { TypographyButton } from "../typography/typography-button";
 import type { LiveConsole } from "../use-live-console";
 import { DisplaysDialog } from "./displays-dialog";
 
-/** IRIS_SPEC §6.2 top bar: the service, the clock and the screens' status. */
+/** IRIS_SPEC §6.2 top bar: the service and the screens' status. */
 export function ConsoleTopBar({
   ctrl,
   churchName,
@@ -38,9 +39,10 @@ export function ConsoleTopBar({
       </div>
 
       <div className="ml-auto flex items-center gap-3">
-        <Clock />
-        <BibleButton ctrl={ctrl} />
+        <TypographyButton ctrl={ctrl} />
         <BackgroundPicker ctrl={ctrl} />
+        <BibleButton ctrl={ctrl} />
+        <TimerButton ctrl={ctrl} />
         <button
           type="button"
           onClick={() => setIsManagingScreens(true)}
@@ -76,27 +78,8 @@ export function ConsoleTopBar({
         {isManagingScreens && (
           <DisplaysDialog ctrl={ctrl} onClose={() => setIsManagingScreens(false)} />
         )}
-        <TypographyButton ctrl={ctrl} />
         <AccountMenu session={session} />
       </div>
     </header>
-  );
-}
-
-/** Re-renders every 15 s; on the server (and the first paint) it shows dashes. */
-const subscribeClock = (onChange: () => void) => {
-  const timer = setInterval(onChange, 15_000);
-  return () => clearInterval(timer);
-};
-const minuteNow = () => Math.floor(Date.now() / 15_000);
-
-function Clock() {
-  const tick = useSyncExternalStore(subscribeClock, minuteNow, () => null);
-  return (
-    <time className="font-mono text-xl font-semibold tabular-nums">
-      {tick === null
-        ? "--:--"
-        : new Date(tick * 15_000).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })}
-    </time>
   );
 }

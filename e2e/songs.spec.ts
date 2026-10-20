@@ -154,3 +154,32 @@ test("clic derecho en una diapositiva la edita, y una línea en blanco la parte 
   await expect(dialog).toBeHidden();
   await expect(page.getByRole("button", { name: /^Enviar a la pantalla/ })).toHaveCount(2);
 });
+
+test("el filtro por artista muestra solo las canciones de quien se elige", async ({ page }) => {
+  const artist = unique("Artista");
+  const other = unique("Otro artista");
+  const mine = unique("Canción de uno");
+  const theirs = unique("Canción de otro");
+  for (const [title, author] of [
+    [mine, artist],
+    [theirs, other],
+  ]) {
+    await page.getByRole("button", { name: "Nueva canción" }).click();
+    const dialog = page.getByRole("dialog", { name: "Nueva canción" });
+    await dialog.locator("#title").fill(title);
+    await dialog.locator("#author").fill(author);
+    await dialog.locator("#lyrics").fill("Letra");
+    await dialog.getByRole("button", { name: "Guardar", exact: true }).click();
+    await expect(toast(page, "Canción guardada")).toBeVisible();
+    await expect(dialog).toBeHidden();
+  }
+
+  await page.getByRole("button", { name: "Filtrar por artista" }).click();
+  await page.getByRole("menuitemradio", { name: new RegExp(artist) }).click();
+  await expect(library(page).getByText(mine, { exact: true })).toBeVisible();
+  await expect(library(page).getByText(theirs, { exact: true })).toHaveCount(0);
+
+  await page.getByRole("button", { name: `Artista: ${artist}` }).click();
+  await page.getByRole("menuitemradio", { name: "Todos los artistas" }).click();
+  await expect(library(page).getByText(theirs, { exact: true })).toBeVisible();
+});

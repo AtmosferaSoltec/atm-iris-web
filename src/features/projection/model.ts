@@ -20,6 +20,8 @@ export type ProjectionBackground = {
 export type ProjectionContent =
   | { kind: "blank" }
   | { kind: "text"; text: string; footnote: string | null }
+  /** A countdown: `seconds` left at `at` (epoch ms), running down from there or paused. */
+  | { kind: "timer"; seconds: number; running: boolean; at: number }
   | { kind: "image"; id: string; url: string }
   | {
       kind: "video";
@@ -72,8 +74,20 @@ export const BLACK_FRAME: ProjectionFrame = {
  */
 export function rebaseFrame(frame: ProjectionFrame, shiftMs: number): ProjectionFrame {
   const { content } = frame;
-  if ((content.kind !== "video" && content.kind !== "youtube") || !shiftMs) return frame;
+  if (
+    (content.kind !== "video" && content.kind !== "youtube" && content.kind !== "timer") ||
+    !shiftMs
+  )
+    return frame;
   return { ...frame, content: { ...content, at: content.at + shiftMs } };
+}
+
+/** Seconds left on a countdown at `now` (epoch ms); never below 0. */
+export function timerRemaining(
+  timer: { seconds: number; running: boolean; at: number },
+  now: number,
+): number {
+  return timer.running ? Math.max(0, timer.seconds - (now - timer.at) / 1000) : timer.seconds;
 }
 
 /** Placeholder stops for a church background while its file loads. */

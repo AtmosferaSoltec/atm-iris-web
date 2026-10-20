@@ -276,7 +276,6 @@ function toSummary(song: Song): SongSummary {
     firstLine: firstLine(song.sections),
     audio: song.audio,
     youtubeId: song.youtubeId,
-    youtubeMusic: song.youtubeMusic,
     backgroundId: song.backgroundId,
     archivedAt: song.archivedAt,
     lastUsedAt: song.lastUsedAt,
@@ -334,7 +333,6 @@ function songs(session?: UserSession): SongRepository {
       sections: input.sections.map((section) => ({ id: crypto.randomUUID(), ...section })),
       audioId: input.audioId,
       youtubeId: input.youtubeId,
-      youtubeMusic: input.youtubeId !== null && input.youtubeMusic,
       backgroundId:
         input.backgroundId !== undefined ? input.backgroundId : (existing?.backgroundId ?? null),
       archivedAt: existing?.archivedAt ?? null,
@@ -801,7 +799,6 @@ function backup(session?: UserSession): BackupRepository {
           author: song.author,
           sections: song.sections.map(({ label, text }) => ({ label, text })),
           youtubeId: song.youtubeId,
-          youtubeMusic: song.youtubeMusic,
         })),
         youtubeVideos: data.youtubeVideos.map(({ videoId, title, author }) => ({
           videoId,
@@ -836,7 +833,6 @@ function backup(session?: UserSession): BackupRepository {
           sections: song.sections,
           audioId: null,
           youtubeId: song.youtubeId,
-          youtubeMusic: song.youtubeMusic,
         });
         seen.add(key);
         result.songs += 1;
