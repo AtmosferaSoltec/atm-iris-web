@@ -15,7 +15,7 @@ async function newSong(page: Page, title: string, lyrics: string) {
   const dialog = page.getByRole("dialog", { name: "Nueva canción" });
   await dialog.locator("#title").fill(title);
   await dialog.locator("#lyrics").fill(lyrics);
-  await dialog.getByRole("button", { name: "Guardar canción" }).click();
+  await dialog.getByRole("button", { name: "Guardar", exact: true }).click();
   await expect(toast(page, "Canción guardada")).toBeVisible();
   await expect(dialog).toBeHidden();
 }
@@ -31,17 +31,17 @@ test("crea, edita y elimina una canción sin salir de la consola", async ({ page
   await expect(page.getByRole("heading", { name: title })).toBeVisible();
 
   // Edited: the service shows the new slides.
-  await page.getByRole("button", { name: `Opciones de «${title}»` }).click();
+  await page.getByRole("list").first().getByText(title, { exact: true }).click({ button: "right" });
   await page.getByRole("menuitem", { name: "Editar canción" }).click();
   const dialog = page.getByRole("dialog", { name: title });
   await expect(dialog.locator("#lyrics")).toHaveValue(/al contemplar los cielos/);
   await dialog.locator("#lyrics").fill("Una sola diapositiva nueva");
-  await dialog.getByRole("button", { name: "Guardar cambios" }).click();
+  await dialog.getByRole("button", { name: "Guardar", exact: true }).click();
   await expect(toast(page, "Canción guardada")).toBeVisible();
   await expect(page.getByText("Una sola diapositiva nueva").first()).toBeVisible();
 
   // Deleted: gone from the library and from the service.
-  await page.getByRole("button", { name: `Opciones de «${title}»` }).click();
+  await page.getByRole("list").first().getByText(title, { exact: true }).click({ button: "right" });
   await page.getByRole("menuitem", { name: "Eliminar" }).click();
   await page.getByRole("button", { name: "Eliminar", exact: true }).click();
   await expect(toast(page, `Se eliminó «${title}»`)).toBeVisible();
@@ -54,7 +54,7 @@ test("una canción necesita letra o pista, y conserva la pista que se le dio", a
   await page.getByRole("button", { name: "Nueva canción" }).click();
   const dialog = page.getByRole("dialog", { name: "Nueva canción" });
   await dialog.locator("#title").fill(title);
-  await dialog.getByRole("button", { name: "Guardar canción" }).click();
+  await dialog.getByRole("button", { name: "Guardar", exact: true }).click();
   await expect(dialog.getByText("Pega la letra o elige una pista", { exact: false })).toBeVisible();
 
   const chooser = page.waitForEvent("filechooser");
@@ -64,7 +64,7 @@ test("una canción necesita letra o pista, y conserva la pista que se le dio", a
   ).setFiles({ name: "hoy-te-salvo.mp3", mimeType: "audio/mpeg", buffer: Buffer.from("ID3 a") });
   await expect(toast(page, /Pista lista/)).toBeVisible();
   await expect(dialog.getByText("hoy-te-salvo.mp3")).toBeVisible();
-  await dialog.getByRole("button", { name: "Guardar canción" }).click();
+  await dialog.getByRole("button", { name: "Guardar", exact: true }).click();
   await expect(toast(page, "Canción guardada")).toBeVisible();
 
   await page.getByLabel("Buscar en la biblioteca").fill(title);
@@ -85,7 +85,7 @@ test("archivar saca la canción de la biblioteca y se restaura desde «Archivada
   await newSong(page, title, "Una letra que se conserva");
   await page.getByLabel("Buscar en la biblioteca").fill(title);
 
-  await page.getByRole("button", { name: `Opciones de «${title}»` }).click();
+  await page.getByRole("list").first().getByText(title, { exact: true }).click({ button: "right" });
   await page.getByRole("menuitem", { name: "Archivar" }).click();
   await expect(toast(page, `«${title}» se archivó`)).toBeVisible();
   await expect(library(page).getByText(title, { exact: true })).toHaveCount(0);
@@ -118,15 +118,15 @@ test("cada canción puede tener su fondo, que se guarda desde el selector de fon
 
   // The song's editor offers it as the song's own.
   await page.getByLabel("Buscar en la biblioteca").fill(title);
-  await page.getByRole("button", { name: `Opciones de «${title}»` }).click();
+  await page.getByRole("list").first().getByText(title, { exact: true }).click({ button: "right" });
   await page.getByRole("menuitem", { name: "Editar canción" }).click();
   const dialog = page.getByRole("dialog", { name: title });
   await dialog.getByRole("button", { name: background, exact: true }).click();
-  await dialog.getByRole("button", { name: "Guardar cambios" }).click();
+  await dialog.getByRole("button", { name: "Guardar", exact: true }).click();
   await expect(toast(page, "Canción guardada")).toBeVisible();
 
   // Reopened, it is still the chosen one.
-  await page.getByRole("button", { name: `Opciones de «${title}»` }).click();
+  await page.getByRole("list").first().getByText(title, { exact: true }).click({ button: "right" });
   await page.getByRole("menuitem", { name: "Editar canción" }).click();
   await expect(
     page

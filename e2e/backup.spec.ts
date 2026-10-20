@@ -32,7 +32,7 @@ test("«Empezar de cero» pide escribir ELIMINAR y borra lo elegido", async ({ p
   const dialog = page.getByRole("dialog", { name: "Nueva canción" });
   await dialog.locator("#title").fill(title);
   await dialog.locator("#lyrics").fill("Letra");
-  await dialog.getByRole("button", { name: "Guardar canción" }).click();
+  await dialog.getByRole("button", { name: "Guardar", exact: true }).click();
   await expect(toast(page, "Canción guardada")).toBeVisible();
 
   await page.goto("/settings");

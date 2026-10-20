@@ -30,6 +30,7 @@ export function SongDialog({
   onSaved: (id: string) => void;
   onDeleted: (id: string) => void;
 }) {
+  const [actionsSlot, setActionsSlot] = useState<HTMLElement | null>(null);
   const [loaded, setLoaded] = useState<Loaded | { error: string } | null>(null);
 
   useEffect(() => {
@@ -59,12 +60,14 @@ export function SongDialog({
       open
       onClose={onClose}
       size="xl"
+      actionsRef={setActionsSlot}
       title={title}
       description="Escribe o busca la letra y pega el enlace de su pista en YouTube o YouTube Music."
     >
       <div className="pb-6">
         {!songId ? (
           <SongEditor
+            actionsSlot={actionsSlot}
             backgrounds={backgrounds}
             onSaved={onSaved}
             onDeleted={onClose}
@@ -81,6 +84,7 @@ export function SongDialog({
             song={loaded.song}
             youtubeVideo={loaded.youtube}
             backgrounds={backgrounds}
+            actionsSlot={actionsSlot}
             onSaved={onSaved}
             onDeleted={() => onDeleted(loaded.song.id)}
             onCancel={onClose}

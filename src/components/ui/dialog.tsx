@@ -15,6 +15,8 @@ type DialogProps = {
   description?: ReactNode;
   children?: ReactNode;
   footer?: ReactNode;
+  /** An element in the header, in place of the close "X", for the dialog's own buttons (portal into it). */
+  actionsRef?: (element: HTMLElement | null) => void;
   /** `xl`: a whole editor (a song) on a wide screen. */
   size?: "sm" | "md" | "lg" | "xl";
 };
@@ -30,6 +32,7 @@ export function Dialog({
   description,
   children,
   footer,
+  actionsRef,
   size = "md",
 }: DialogProps) {
   return (
@@ -45,8 +48,8 @@ export function Dialog({
             widths[size],
           )}
         >
-          <header className="flex items-start gap-4 px-6 pt-6 pb-4">
-            <div className="min-w-0 flex-1">
+          <header className="flex flex-wrap items-start gap-x-4 gap-y-3 px-6 pt-6 pb-4">
+            <div className="min-w-0 flex-1 basis-48">
               {title ? (
                 <DialogPrimitive.Title className="font-serif text-2xl font-medium tracking-tight">
                   {title}
@@ -60,11 +63,15 @@ export function Dialog({
                 </DialogPrimitive.Description>
               )}
             </div>
-            <DialogPrimitive.Close asChild>
-              <IconButton label="Cerrar">
-                <X />
-              </IconButton>
-            </DialogPrimitive.Close>
+            {actionsRef ? (
+              <div ref={actionsRef} className="ml-auto flex shrink-0 items-center gap-2" />
+            ) : (
+              <DialogPrimitive.Close asChild>
+                <IconButton label="Cerrar">
+                  <X />
+                </IconButton>
+              </DialogPrimitive.Close>
+            )}
           </header>
           {children && <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-2">{children}</div>}
           {footer && (

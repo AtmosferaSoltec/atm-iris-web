@@ -2,9 +2,10 @@
 
 import { Music, Quote, Search, Trash2, User } from "lucide-react";
 import { useActionState, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { SlidePreview } from "@/components/projection/slide-preview";
 import { Banner } from "@/components/ui/banner";
-import { Button } from "@/components/ui/button";
+import { Button, IconButton } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { ConfirmDialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -27,6 +28,8 @@ import type { SongField } from "../schemas";
 import { LyricsSearchDialog } from "./lyrics-search-dialog";
 import { TrackField, type Track } from "./track-field";
 
+const FORM_ID = "song-form";
+
 /** A screen with more lines than this is hard to read from the back of the room. */
 const COMFORTABLE_LINES = 6;
 
@@ -38,6 +41,7 @@ export function SongEditor({
   song,
   youtubeVideo,
   backgrounds,
+  actionsSlot,
   onSaved,
   onDeleted,
   onCancel,
@@ -47,6 +51,8 @@ export function SongEditor({
   youtubeVideo?: Omit<YouTubeVideo, "music">;
   /** The church's backgrounds: with them, the song can have its own. */
   backgrounds?: ProjectionBackground[];
+  /** The dialog's header: Eliminar, Cancelar and Guardar go there, always in sight. */
+  actionsSlot: HTMLElement | null;
   onSaved: (id: string) => void;
   onDeleted: () => void;
   onCancel: () => void;
@@ -117,10 +123,30 @@ export function SongEditor({
 
   return (
     <form
+      id={FORM_ID}
       action={action}
       className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]"
       noValidate
     >
+      {actionsSlot &&
+        createPortal(
+          <>
+            {song && (
+              <IconButton
+                label="Eliminar canción"
+                className="hover:text-danger"
+                onClick={() => setIsConfirmingDelete(true)}
+              >
+                <Trash2 />
+              </IconButton>
+            )}
+            <Button variant="ghost" onClick={onCancel}>
+              Cancelar
+            </Button>
+            <SubmitButton form={FORM_ID}>Guardar</SubmitButton>
+          </>,
+          actionsSlot,
+        )}
       <Surface className="flex flex-col gap-6 self-start p-6 sm:p-8">
         {(state.message || deleteError) && (
           <Banner tone="error">{state.message ?? deleteError}</Banner>
@@ -182,24 +208,6 @@ export function SongEditor({
           className="min-h-[420px] font-serif text-[17px]"
           spellCheck
         />
-        <div className="flex flex-wrap items-center gap-3">
-          <SubmitButton size="lg">{song ? "Guardar cambios" : "Guardar canción"}</SubmitButton>
-          <Button variant="ghost" size="lg" onClick={onCancel}>
-            Cancelar
-          </Button>
-        </div>
-        {song && (
-          <div className="border-t border-line pt-5">
-            <Button
-              variant="ghost"
-              className="text-danger hover:text-danger"
-              icon={<Trash2 className="size-4" />}
-              onClick={() => setIsConfirmingDelete(true)}
-            >
-              Eliminar canción
-            </Button>
-          </div>
-        )}
       </Surface>
 
       <section aria-label="Vista previa" className="flex flex-col gap-4">

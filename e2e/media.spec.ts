@@ -24,13 +24,13 @@ test("sube una imagen desde la consola, la abre y la elimina", async ({ page }) 
   await expect(toast(page, `Se subió «${title}»`)).toBeVisible();
   await expect(page.getByRole("button", { name: `Agregar «${title}» al servicio` })).toBeVisible();
 
-  await page.getByRole("button", { name: `Opciones de «${title}»` }).click();
+  await page.getByTitle(`${title}: doble clic`, { exact: false }).click({ button: "right" });
   await page.getByRole("menuitem", { name: "Ver y editar" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText("PNG · 640 × 360", { exact: false })).toBeVisible();
   await page.keyboard.press("Escape");
 
-  await page.getByRole("button", { name: `Opciones de «${title}»` }).click();
+  await page.getByTitle(`${title}: doble clic`, { exact: false }).click({ button: "right" });
   await page.getByRole("menuitem", { name: "Eliminar" }).click();
   await page.getByRole("button", { name: "Eliminar", exact: true }).click();
   await expect(toast(page, `Se eliminó «${title}»`)).toBeVisible();
