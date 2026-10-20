@@ -6,6 +6,7 @@ import { idSchema } from "@/lib/validation";
 import { authorize } from "@/server/dal";
 import { errorMessage } from "@/server/repositories/api/errors";
 import { lookUpYouTube } from "@/server/youtube";
+import { parseLyrics } from "@/lib/lyrics";
 import { consoleItemFor } from "../load";
 import type { ConsoleItem, LibraryEntry } from "../model";
 import { mediaEntry, songEntry } from "./entries";
@@ -120,6 +121,55 @@ export async function archivedSongs(): Promise<{ entries?: LibraryEntry[]; error
     const { repos } = await authorize();
     const page = await repos.songs.list({ archived: true, limit: 100, sort: "title" });
     return { entries: page.data.map(songEntry) };
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
+}
+
+/**
+ * Edits one slide of a song from the console: its text can be split into several slides with
+ * a blank line. `before` is the text the console showed, to refuse an edit over a song that
+ * changed meanwhile.
+ */
+export async function editSongSlide(
+  songId: string,
+  index: number,
+  before: string,
+  text: string,
+): Promise<{ content?: ItemContent; error?: string }> {
+  const id = idSchema.safeParse(songId);
+  if (!id.success || !Number.isInteger(index) || index < 0 || text.length > 20_000) {
+    return { error: "Revisa los datos enviados." };
+  }
+  const parts = parseLyrics(text);
+  if (parts.length === 0) return { error: "Escribe el texto de la diapositiva." };
+  try {
+    const { repos } = await authorize();
+    const song = await repos.songs.get(id.data);
+    const current = song?.sections[index];
+    if (!song || !current || current.text !== before) {
+      return { error: "La canción cambió. Ciérrala y ábrela otra vez." };
+    }
+    const sections = song.sections.map(({ label, text: body }) => ({ label, text: body }));
+    // The first part keeps the slide's name; the others start unnamed (unless they bring one).
+    sections.splice(
+      index,
+      1,
+      ...parts.map((part, position) => ({
+        label: part.label ?? (position === 0 ? current.label : null),
+        text: part.text,
+      })),
+    );
+    await repos.songs.update(song.id, {
+      title: song.title,
+      author: song.author,
+      sections,
+      audioId: song.audio?.id ?? null,
+      youtubeId: song.youtubeId,
+      youtubeMusic: song.youtubeMusic,
+    });
+    const item = await consoleItemFor(repos, "song", song.id, "");
+    return item ? { content: withoutPlace(item) } : { error: "No pudimos abrir la canción." };
   } catch (error) {
     return { error: errorMessage(error) };
   }

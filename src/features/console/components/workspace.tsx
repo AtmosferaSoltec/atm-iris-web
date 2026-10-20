@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Eraser, MousePointerClick } from "lucide-react";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { Surface } from "@/components/ui/surface";
@@ -10,6 +10,7 @@ import { DEFAULT_TYPOGRAPHY, type ProjectionFrame } from "@/features/projection/
 import { cn } from "@/lib/cn";
 import { clock } from "@/lib/format";
 import type { ConsoleItem } from "../model";
+import { SlideEditorDialog } from "./slide-editor-dialog";
 import type { LiveConsole } from "../use-live-console";
 import { ENTRY_ICONS, itemIconKey } from "../library/entry-icons";
 
@@ -84,6 +85,7 @@ function SlideGrid({ ctrl, item }: { ctrl: LiveConsole; item: ConsoleItem }) {
     [item.slides],
   );
 
+  const [editing, setEditing] = useState<number | null>(null);
   const focus = item.focus;
   const focusCard = useRef<HTMLLIElement>(null);
 
@@ -102,53 +104,72 @@ function SlideGrid({ ctrl, item }: { ctrl: LiveConsole; item: ConsoleItem }) {
   }
 
   return (
-    <ol className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-x-4 gap-y-6 p-1">
-      {item.slides.map((slide, index) => (
-        <li
-          key={slide.id}
-          ref={index === liveIndex ? liveCard : index === focus?.first ? focusCard : undefined}
-          className={cn(
-            "flex flex-col gap-1.5",
-            focus && (index < focus.first || index > focus.last) && "opacity-55",
-          )}
-        >
+    <>
+      <ol className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-x-4 gap-y-6 p-1">
+        {item.slides.map((slide, index) => (
+          <li
+            key={slide.id}
+            ref={index === liveIndex ? liveCard : index === focus?.first ? focusCard : undefined}
+            className={cn(
+              "flex flex-col gap-1.5",
+              focus && (index < focus.first || index > focus.last) && "opacity-55",
+            )}
+          >
+            <button
+              type="button"
+              onClick={() => ctrl.presentSlide(index)}
+              onContextMenu={
+                item.kind === "song"
+                  ? (event) => {
+                      event.preventDefault();
+                      setEditing(index);
+                    }
+                  : undefined
+              }
+              title={item.kind === "song" ? "Clic derecho para editar o dividir" : undefined}
+              aria-label={`Enviar a la pantalla: ${slide.label ?? `diapositiva ${index + 1}`}`}
+              aria-current={index === liveIndex ? "true" : undefined}
+              className={cn(
+                "cursor-pointer overflow-hidden rounded-md transition-shadow",
+                index === liveIndex
+                  ? "shadow-[0_0_24px_-4px_rgb(255_122_89/0.55)] ring-[3px] ring-coral"
+                  : "ring-1 ring-line hover:ring-line-strong",
+              )}
+            >
+              <ProjectionCanvas frame={frames[index]} />
+            </button>
+            {slide.label && (
+              <span className="truncate text-[13px] font-medium text-ink-2">{slide.label}</span>
+            )}
+          </li>
+        ))}
+        <li className="flex flex-col gap-1.5">
           <button
             type="button"
-            onClick={() => ctrl.presentSlide(index)}
-            aria-label={`Enviar a la pantalla: ${slide.label ?? `diapositiva ${index + 1}`}`}
-            aria-current={index === liveIndex ? "true" : undefined}
+            onClick={ctrl.toggleCleared}
+            aria-label="Pantalla en blanco (B)"
+            aria-current={ctrl.isCleared ? "true" : undefined}
             className={cn(
-              "cursor-pointer overflow-hidden rounded-md transition-shadow",
-              index === liveIndex
+              "grid aspect-video w-full cursor-pointer place-items-center rounded-md bg-black text-ink-2 transition-shadow",
+              ctrl.isCleared
                 ? "shadow-[0_0_24px_-4px_rgb(255_122_89/0.55)] ring-[3px] ring-coral"
                 : "ring-1 ring-line hover:ring-line-strong",
             )}
           >
-            <ProjectionCanvas frame={frames[index]} />
+            <Eraser aria-hidden className="size-6" />
           </button>
-          {slide.label && (
-            <span className="truncate text-[13px] font-medium text-ink-2">{slide.label}</span>
-          )}
+          <span className="truncate text-[13px] font-medium text-ink-2">En blanco</span>
         </li>
-      ))}
-      <li className="flex flex-col gap-1.5">
-        <button
-          type="button"
-          onClick={ctrl.toggleCleared}
-          aria-label="Pantalla en blanco (B)"
-          aria-current={ctrl.isCleared ? "true" : undefined}
-          className={cn(
-            "grid aspect-video w-full cursor-pointer place-items-center rounded-md bg-black text-ink-2 transition-shadow",
-            ctrl.isCleared
-              ? "shadow-[0_0_24px_-4px_rgb(255_122_89/0.55)] ring-[3px] ring-coral"
-              : "ring-1 ring-line hover:ring-line-strong",
-          )}
-        >
-          <Eraser aria-hidden className="size-6" />
-        </button>
-        <span className="truncate text-[13px] font-medium text-ink-2">En blanco</span>
-      </li>
-    </ol>
+      </ol>
+      {editing !== null && (
+        <SlideEditorDialog
+          item={item}
+          index={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(content) => ctrl.updateRef(item.refId, content)}
+        />
+      )}
+    </>
   );
 }
 

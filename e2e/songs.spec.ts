@@ -134,3 +134,23 @@ test("cada canción puede tener su fondo, que se guarda desde el selector de fon
       .getByRole("button", { name: background, exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
 });
+
+test("clic derecho en una diapositiva la edita, y una línea en blanco la parte en dos", async ({
+  page,
+}) => {
+  const title = unique("Canción para partir");
+  await newSong(page, title, "Primera línea\nSegunda línea\nTercera línea\nCuarta línea");
+  await page.getByLabel("Buscar en la biblioteca").fill(title);
+  await addToService(page, title);
+  await expect(page.getByRole("button", { name: /^Enviar a la pantalla/ })).toHaveCount(1);
+
+  await page.getByRole("button", { name: /^Enviar a la pantalla/ }).click({ button: "right" });
+  const dialog = page.getByRole("dialog", { name: title });
+  await dialog
+    .getByLabel("Texto de la diapositiva")
+    .fill("Primera línea\nSegunda línea\n\nTercera línea\nCuarta línea");
+  await expect(dialog.getByText("Quedará en 2 diapositivas")).toBeVisible();
+  await dialog.getByRole("button", { name: "Guardar" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole("button", { name: /^Enviar a la pantalla/ })).toHaveCount(2);
+});
