@@ -1,5 +1,6 @@
 import "server-only";
 import type {
+  BibleChapter,
   Church,
   Display,
   MediaAsset,
@@ -10,6 +11,7 @@ import type {
   Song,
   SongSummary,
   UploadTicket,
+  YoutubeVideo,
 } from "@/domain/models";
 import type { DataRepositories, DisplayLink, DisplayPairing, PairingStatus } from "../types";
 import { env } from "../../env";
@@ -18,14 +20,21 @@ import { ApiError } from "./errors";
 
 // Implementation against atm-iris-api, route by route from docs/api-contract.md.
 
-const DEFAULT_PROJECTION = { fontFamily: "system", fontSizePt: 88, defaultBackgroundId: null };
+const DEFAULT_PROJECTION: Church["projection"] = {
+  fontFamily: "system",
+  fontSizePt: 100,
+  fontBold: false,
+  fontItalic: false,
+  uppercase: false,
+  defaultBackgroundId: null,
+};
 
-/** An API from before projection settings doesn't send them: the defaults. */
+/** An API from before some projection settings doesn't send them: the defaults fill in. */
 function withDefaults(church: Church): Church {
-  return { ...church, projection: church.projection ?? DEFAULT_PROJECTION };
+  return { ...church, projection: { ...DEFAULT_PROJECTION, ...church.projection } };
 }
 
-/** Contract §6, §8–§11, §14. */
+/** Contract §6, §8–§11b, §14. */
 export function apiDataRepositories(options: ClientOptions = {}): DataRepositories {
   const api = createApiClient(options);
 
@@ -34,6 +43,8 @@ export function apiDataRepositories(options: ClientOptions = {}): DataRepositori
       get: () => api<Church>("/church").then(withDefaults),
       update: (input) =>
         api<Church>("/church", { method: "PATCH", body: input }).then(withDefaults),
+      setProjection: (input) =>
+        api<Church>("/church/projection", { method: "PUT", body: input }).then(withDefaults),
     },
     people: {
       list: () => api<Person[]>("/people"),
@@ -71,6 +82,12 @@ export function apiDataRepositories(options: ClientOptions = {}): DataRepositori
       downloadUrl: (id) =>
         api<{ url: string; expiresAt: string }>(`/media/${segment(id)}/download-url`),
     },
+    youtubeVideos: {
+      list: () => api<YoutubeVideo[]>("/youtube-videos"),
+      get: (id) => orNull(api<YoutubeVideo>(`/youtube-videos/${segment(id)}`)),
+      create: (input) => api<YoutubeVideo>("/youtube-videos", { method: "POST", body: input }),
+      delete: (id) => api(`/youtube-videos/${segment(id)}`, { method: "DELETE" }),
+    },
     servicePlan: {
       list: () => api<ServicePlanItem[]>("/service-plan"),
       add: (input) => api<ServicePlanItem>("/service-plan", { method: "POST", body: input }),
@@ -78,6 +95,14 @@ export function apiDataRepositories(options: ClientOptions = {}): DataRepositori
         api(`/service-plan/${segment(id)}/position`, { method: "PUT", body: { position } }),
       remove: (id) => api(`/service-plan/${segment(id)}`, { method: "DELETE" }),
       clear: () => api("/service-plan", { method: "DELETE" }),
+    },
+    bible: {
+      chapter: (code, bookId, chapter) =>
+        orNull(
+          api<BibleChapter>(
+            `/bible/translations/${segment(code)}/books/${segment(bookId)}/chapters/${chapter}`,
+          ),
+        ),
     },
     displays: {
       list: () => api<Display[]>("/displays"),

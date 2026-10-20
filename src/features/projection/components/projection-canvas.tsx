@@ -366,14 +366,19 @@ function Lyrics({
     <div
       ref={box}
       className="absolute inset-[7cqw] flex flex-col items-center justify-center text-center text-white [text-shadow:0_0_1.2cqw_rgb(0_0_0/0.45)]"
-      style={{ fontFamily: fontStack(typography.fontFamily) }}
+      style={{
+        fontFamily: fontStack(typography.fontFamily),
+        fontWeight: typography.fontBold ? 700 : 500,
+        fontStyle: typography.fontItalic ? "italic" : "normal",
+        textTransform: typography.uppercase ? "uppercase" : "none",
+      }}
     >
       <div
         ref={inner}
         className="flex flex-col items-center gap-[2.5cqw]"
         style={{ fontSize: `calc(${sizes.body} * var(--fit, 1))`, ["--fit" as string]: scale }}
       >
-        <p className="leading-[1.22] font-medium whitespace-pre-line">{text}</p>
+        <p className="leading-[1.22] whitespace-pre-line">{text}</p>
         {footnote && (
           <p
             className="font-semibold tracking-[0.3cqw] uppercase opacity-60"

@@ -138,7 +138,14 @@ export function newChurch(id: string, name: string, now: Date): Church {
     id,
     name,
     timezone: "America/Lima",
-    projection: { fontFamily: "system", fontSizePt: 88, defaultBackgroundId: null },
+    projection: {
+      fontFamily: "system",
+      fontSizePt: 100,
+      fontBold: false,
+      fontItalic: false,
+      uppercase: false,
+      defaultBackgroundId: null,
+    },
     storage: {
       usedBytes: 0,
       quotaBytes: 5 * GIB,
@@ -157,6 +164,7 @@ export function emptyChurchData(church: Church): ChurchData {
     songs: [],
     media: [],
     uploads: [],
+    youtubeVideos: [],
     servicePlan: [],
     records: [],
   };
@@ -196,7 +204,6 @@ export function sampleContent(
   const culto: ServiceType = {
     id: id(),
     name: "Culto general",
-    color: "#FFB547",
     schedule: { weekday: 1, hour: 10, minute: 0 },
     blocks: CULTO_BLOCKS.map((block) => ({
       id: id(),
@@ -212,7 +219,6 @@ export function sampleContent(
     {
       id: id(),
       name: "Jóvenes",
-      color: "#F0508C",
       schedule: { weekday: 7, hour: 19, minute: 0 },
       blocks: [],
       createdAt: timestamp,
@@ -221,7 +227,6 @@ export function sampleContent(
     {
       id: id(),
       name: "ABC",
-      color: "#9B5CFF",
       schedule: { weekday: 1, hour: 9, minute: 0 },
       blocks: [],
       createdAt: timestamp,

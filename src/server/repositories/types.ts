@@ -1,4 +1,5 @@
 import type {
+  BibleChapter,
   Church,
   DeviceSession,
   Display,
@@ -17,6 +18,7 @@ import type {
   SongSummary,
   UploadTicket,
   UserSession,
+  YoutubeVideo,
 } from "@/domain/models";
 import type { SessionTokens } from "../session-token";
 
@@ -77,6 +79,8 @@ export interface AuthService {
 export interface ChurchRepository {
   get(): Promise<Church>;
   update(input: { name?: string; timezone?: string }): Promise<Church>;
+  /** How the lyrics look on every console (contract §6). Throws VALIDATION_FAILED. */
+  setProjection(input: Church["projection"]): Promise<Church>;
 }
 
 export interface PeopleRepository {
@@ -97,7 +101,6 @@ export type BlockTemplateInput = {
 
 export type ServiceTypeInput = {
   name: string;
-  color: string;
   schedule: Schedule | null;
   blocks: BlockTemplateInput[];
 };
@@ -186,6 +189,20 @@ export interface MediaRepository {
   downloadUrl(id: Id): Promise<{ url: string; expiresAt: string }>;
 }
 
+/* ----------------------------------------------------------------- YouTube */
+
+export type YoutubeVideoInput = { videoId: string; title: string; author: string };
+
+export interface YoutubeVideoRepository {
+  /** Newest first. */
+  list(): Promise<YoutubeVideo[]>;
+  get(id: Id): Promise<YoutubeVideo | null>;
+  /** The same video saved twice gives back the one already there. */
+  create(input: YoutubeVideoInput): Promise<YoutubeVideo>;
+  /** Also takes it out of the service plan. */
+  delete(id: Id): Promise<void>;
+}
+
 /* -------------------------------------------------------------------- Plan */
 
 export type CreateServicePlanItemInput = { kind: PlanItemKind; refId: Id };
@@ -193,12 +210,20 @@ export type CreateServicePlanItemInput = { kind: PlanItemKind; refId: Id };
 export interface ServicePlanRepository {
   /** In order. */
   list(): Promise<ServicePlanItem[]>;
-  /** Throws VALIDATION_FAILED (`errors.refId`) if the song/media doesn't exist. */
+  /** Throws VALIDATION_FAILED (`errors.refId`) if the song/media/video doesn't exist. */
   add(input: CreateServicePlanItemInput): Promise<ServicePlanItem>;
   /** Reorders; the rest shift to make room. */
   move(id: Id, position: number): Promise<void>;
   remove(id: Id): Promise<void>;
   clear(): Promise<void>;
+}
+
+/* ------------------------------------------------------------------- Bible */
+
+/** The Bible's text (contract §13): the same for every church. */
+export interface BibleRepository {
+  /** Null when the translation, book or chapter does not exist. */
+  chapter(code: string, bookId: string, chapter: number): Promise<BibleChapter | null>;
 }
 
 /* ---------------------------------------------------------------- Displays */
@@ -207,7 +232,13 @@ export interface ServicePlanRepository {
  * What the console sends its TVs (contract §18). The API passes the frame and the files
  * along without reading them; `clock` is the console's `Date.now()` when sending.
  */
-export type DisplayState = { frame?: object; preload?: object[]; clock: number };
+export type DisplayState = {
+  frame?: object;
+  preload?: object[];
+  clock: number;
+  /** The screen that presents: only it receives this; the rest do nothing. Without it, all. */
+  displayId?: Id;
+};
 
 export interface DisplayRepository {
   list(): Promise<Display[]>;
@@ -287,9 +318,11 @@ export type DataRepositories = {
   serviceTypes: ServiceTypeRepository;
   songs: SongRepository;
   media: MediaRepository;
+  youtubeVideos: YoutubeVideoRepository;
   servicePlan: ServicePlanRepository;
   records: TimeRecordRepository;
   displays: DisplayRepository;
+  bible: BibleRepository;
 };
 
 export type AppPlatform = "ios" | "windows";

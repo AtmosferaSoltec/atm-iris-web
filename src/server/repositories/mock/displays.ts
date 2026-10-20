@@ -15,6 +15,8 @@ type Pending = {
   result?: { token: string; display: { id: string; name: string } };
 };
 type Channel = {
+  /** The screen that presents: only it hears the console. Without it, all of them. */
+  target?: Id;
   frame?: object;
   preload?: object[];
   clock?: number;
@@ -98,19 +100,30 @@ export function mockDisplays(session?: UserSession): DisplayRepository {
         stream.end();
       }
     },
-    async publish(state: DisplayState) {
+    async publish({ displayId, ...state }: DisplayState) {
       const channel = channelOf(churchId());
+      if (displayId !== channel.target) {
+        // The screen that stops presenting goes blank; the console resends everything to the new one.
+        const before = channel.target;
+        channel.target = displayId;
+        for (const stream of channel.streams) {
+          if (stream.displayId === before) {
+            stream.send("state", { frame: null, preload: [], clock: null, receivedAt: null });
+          }
+        }
+      }
+      const hears = [...channel.streams].filter(
+        (stream) => !channel.target || stream.displayId === channel.target,
+      );
       const times = { clock: state.clock, receivedAt: Date.now() };
       Object.assign(channel, times);
       if (state.preload) {
         channel.preload = state.preload;
-        for (const stream of channel.streams)
-          stream.send("preload", { preload: state.preload, ...times });
+        for (const stream of hears) stream.send("preload", { preload: state.preload, ...times });
       }
       if (state.frame) {
         channel.frame = state.frame;
-        for (const stream of channel.streams)
-          stream.send("frame", { frame: state.frame, ...times });
+        for (const stream of hears) stream.send("frame", { frame: state.frame, ...times });
       }
     },
   };
@@ -170,9 +183,10 @@ export function mockDisplayLink(): DisplayLink {
           channel.streams.add(entry);
           display.lastSeenAt = new Date().toISOString();
           write("retry: 2000\n\n");
+          const presents = !channel.target || channel.target === display.id;
           entry.send("state", {
-            frame: channel.frame ?? null,
-            preload: channel.preload ?? [],
+            frame: presents ? (channel.frame ?? null) : null,
+            preload: presents ? (channel.preload ?? []) : [],
             clock: channel.clock ?? null,
             receivedAt: channel.receivedAt ?? null,
           });

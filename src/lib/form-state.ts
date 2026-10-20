@@ -8,6 +8,8 @@ export type FormState<Field extends string = string> = {
   fieldErrors?: Partial<Record<Field, string>>;
   /** Submitted values, so fields keep their content after an error (React resets forms). */
   values?: Partial<Record<Field, string>>;
+  /** What was saved (its id), for callers that go on with it. */
+  savedId?: string;
 };
 
 export const idleState: FormState = { status: "idle" };

@@ -1,28 +1,17 @@
-import Link from "next/link";
 import { IrisWordmark } from "@/components/brand/iris-mark";
-import { AccountMenu } from "@/features/shell/account-menu";
-import { AppNav } from "@/features/shell/app-nav";
+import { BackLink } from "@/components/ui/back-link";
 import { requireSession } from "@/server/dal";
 
+/** Times and settings: secondary pages. The console ("/") is the app; these lead back to it. */
 export default async function AppLayout({ children }: LayoutProps<"/">) {
-  const { session } = await requireSession();
+  await requireSession();
 
   return (
-    <div className="lg:grid lg:min-h-dvh lg:grid-cols-[248px_1fr]">
-      <aside className="sticky top-0 z-20 flex flex-col gap-4 border-b border-line bg-canvas/80 px-4 py-3 backdrop-blur-xl lg:h-dvh lg:gap-8 lg:border-r lg:border-b-0 lg:bg-canvas/40 lg:px-4 lg:py-6">
-        <div className="flex items-center justify-between gap-4 lg:px-2">
-          <Link href="/" aria-label="Inicio">
-            <IrisWordmark height={26} />
-          </Link>
-          <div className="lg:hidden">
-            <AccountMenu session={session} compact />
-          </div>
-        </div>
-        <AppNav />
-        <div className="mt-auto hidden border-t border-line pt-3 lg:block">
-          <AccountMenu session={session} />
-        </div>
-      </aside>
+    <div className="min-h-dvh">
+      <header className="flex items-center justify-between gap-4 border-b border-line px-4 py-3 sm:px-8 lg:px-12">
+        <BackLink href="/">Volver al servicio</BackLink>
+        <IrisWordmark height={24} />
+      </header>
       <main className="min-w-0 px-4 py-8 sm:px-8 lg:px-12 lg:py-10">{children}</main>
     </div>
   );

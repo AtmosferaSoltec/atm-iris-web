@@ -1,11 +1,10 @@
 "use client";
 
 import { Music, Quote, Search, Trash2, User } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
 import { SlidePreview } from "@/components/projection/slide-preview";
 import { Banner } from "@/components/ui/banner";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { ConfirmDialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -29,21 +28,30 @@ import { TrackField, type Track } from "./track-field";
 /** A screen with more lines than this is hard to read from the back of the room. */
 const COMFORTABLE_LINES = 6;
 
+/**
+ * A song's lyrics and track (contract §10), opened from the console's library. It says when
+ * it saved or deleted the song; whoever opened it decides what follows.
+ */
 export function SongEditor({
   song,
   youtubeVideo,
+  onSaved,
+  onDeleted,
+  onCancel,
 }: {
   song?: Song;
-  /** The song's YouTube track with its title (read by the page). */
+  /** The song's YouTube track with its title. */
   youtubeVideo?: Omit<YouTubeVideo, "music">;
+  onSaved: (id: string) => void;
+  onDeleted: () => void;
+  onCancel: () => void;
 }) {
-  const router = useRouter();
   const [state, action] = useActionState(
     async (previous: FormState<SongField>, formData: FormData) => {
       const next = await saveSong(song?.id ?? null, previous, formData);
-      if (next.status === "success") {
+      if (next.status === "success" && next.savedId) {
         toast.success("Canción guardada");
-        router.push("/songs");
+        onSaved(next.savedId);
       }
       return next;
     },
@@ -91,7 +99,8 @@ export function SongEditor({
         return;
       }
       toast.success(`Se eliminó «${song.title}»`);
-      router.push("/songs");
+      setIsConfirmingDelete(false);
+      onDeleted();
     });
   }
 
@@ -157,9 +166,9 @@ export function SongEditor({
         />
         <div className="flex flex-wrap items-center gap-3">
           <SubmitButton size="lg">{song ? "Guardar cambios" : "Guardar canción"}</SubmitButton>
-          <ButtonLink href="/songs" variant="ghost" size="lg">
+          <Button variant="ghost" size="lg" onClick={onCancel}>
             Cancelar
-          </ButtonLink>
+          </Button>
         </div>
         {song && (
           <div className="border-t border-line pt-5">

@@ -25,29 +25,43 @@ const nextConfig: NextConfig = {
     // Temporary redirects: nothing new gets cached in browsers. /letras once answered
     // as a permanent redirect target of /canciones, and both now end at /songs: no loop.
     const moved: [string, string][] = [
-      ["/canciones/nueva", "/songs/new"],
-      ["/canciones", "/songs"],
-      ["/letras", "/songs"],
-      ["/musica", "/songs"],
-      ["/servicios/nuevo", "/services/new"],
-      ["/servicios", "/services"],
+      // Songs and media are made and kept in the console (its BIBLIOTECA); the console is the home page ('/').
+      ["/songs", "/"],
+      ["/media", "/"],
+      ["/canciones", "/"],
+      ["/letras", "/"],
+      ["/musica", "/"],
+      ["/multimedia", "/"],
+      // So are services, people and backgrounds: chosen, added and uploaded from there.
+      ["/services", "/"],
+      ["/people", "/"],
+      ["/backgrounds", "/"],
+      ["/servicios", "/"],
       ["/ajustes", "/settings"],
-      ["/cuenta", "/account"],
-      ["/fondos", "/backgrounds"],
-      ["/multimedia", "/media"],
-      ["/personas", "/people"],
+      ["/cuenta", "/settings"],
+      ["/account", "/settings"],
+      ["/inicio", "/"],
+      ["/home", "/"],
+      ["/fondos", "/"],
+      ["/personas", "/"],
       ["/tiempos", "/times"],
-      ["/consola", "/console"],
+      ["/consola", "/"],
+      ["/console", "/"],
       ["/pantalla", "/display"],
       ["/recuperar/codigo", "/recover/code"],
       ["/recuperar/nueva", "/recover/new-password"],
       ["/recuperar", "/recover"],
       // The plan is the SERVICIO list of the console: it has no page of its own.
-      ["/plan", "/console"],
+      ["/plan", "/"],
     ];
     return moved.flatMap(([source, destination]) => [
       { source, destination, permanent: false },
-      { source: `${source}/:path*`, destination: `${destination}/:path*`, permanent: false },
+      {
+        source: `${source}/:path*`,
+        // A page that became part of the console has no sub-pages there.
+        destination: destination === "/" ? destination : `${destination}/:path*`,
+        permanent: false,
+      },
     ]);
   },
   async headers() {

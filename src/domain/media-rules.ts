@@ -66,26 +66,16 @@ export function tooLargeMessage(kind: MediaKind): string {
 /**
  * What a file needs to be a lyrics background (contract §11). The API has the
  * same table in `src/modules/media/media.background.ts`: change a value in both.
- * Videos loop without sound, so a short one is enough and keeps the file small.
+ * Any size and shape: the background fills the screen, cropping what is left over.
+ * Only the weight is limited and, for a video, its length: it loops without sound.
  */
 export const BACKGROUND_RULES = {
-  image: {
-    contentTypes: ["image/jpeg", "image/png", "image/webp"],
-    maxBytes: 10 * MB,
-    minWidth: 1280,
-    maxWidth: 3840,
-  },
-  video: {
-    contentTypes: ["video/mp4"],
-    maxBytes: 100 * MB,
-    minWidth: 1280,
-    maxWidth: 1920,
-    maxSeconds: 30,
-  },
-  /** 16:9 with a 2 % margin (1366 × 768 passes). */
-  aspectRatio: 16 / 9,
-  aspectTolerance: 0.02,
+  image: { contentTypes: ["image/jpeg", "image/png", "image/webp"], maxBytes: 15 * MB },
+  video: { contentTypes: ["video/mp4", "video/quicktime"], maxBytes: 200 * MB, maxSeconds: 30 },
 } as const;
+
+/** A "30 s" video often measures 30.03 s. */
+const SECONDS_TOLERANCE = 0.5;
 
 export const BACKGROUND_TYPES = [
   ...BACKGROUND_RULES.image.contentTypes,
@@ -107,26 +97,18 @@ export function backgroundProblem(media: BackgroundCandidate): string | null {
   const rules = BACKGROUND_RULES[media.kind];
   if (!(rules.contentTypes as readonly string[]).includes(media.contentType)) {
     return media.kind === "video"
-      ? "El video de fondo debe ser MP4."
+      ? "El video de fondo debe ser MP4 o MOV."
       : "La imagen de fondo debe ser JPG, PNG o WebP.";
   }
   if (media.sizeBytes > rules.maxBytes) {
     return `El archivo pesa demasiado para un fondo. El máximo es ${rules.maxBytes / MB} MB.`;
   }
-  if (!media.width || !media.height) return "No pudimos medir el archivo. Prueba con otro.";
-  const ratio = media.width / media.height;
-  if (Math.abs(ratio / BACKGROUND_RULES.aspectRatio - 1) > BACKGROUND_RULES.aspectTolerance) {
-    return "El fondo debe ser horizontal 16:9, por ejemplo 1920 × 1080.";
-  }
-  if (media.width < rules.minWidth || media.width > rules.maxWidth) {
-    const height = (width: number) => Math.round(width / BACKGROUND_RULES.aspectRatio);
-    return `El fondo debe medir entre ${rules.minWidth} × ${height(rules.minWidth)} y ${rules.maxWidth} × ${height(rules.maxWidth)} (recomendado 1920 × 1080).`;
-  }
-  if (
-    media.kind === "video" &&
-    (media.durationSeconds ?? Infinity) > BACKGROUND_RULES.video.maxSeconds
-  ) {
-    return `El video de fondo dura como máximo ${BACKGROUND_RULES.video.maxSeconds} segundos: se repite en bucle.`;
+  if (media.kind === "video") {
+    if (media.durationSeconds === null) return "No pudimos medir el video. Prueba con otro.";
+    const { maxSeconds } = BACKGROUND_RULES.video;
+    if (media.durationSeconds > maxSeconds + SECONDS_TOLERANCE) {
+      return `El video de fondo dura como máximo ${maxSeconds} segundos: se repite en bucle.`;
+    }
   }
   return null;
 }

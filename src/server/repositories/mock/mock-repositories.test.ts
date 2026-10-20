@@ -21,6 +21,23 @@ describe("mock repositories", () => {
     expect((await repos.records.list()).meta.total).toBe(10);
   });
 
+  it("saves a YouTube video once, plans it, and deleting it clears the plan", async () => {
+    const { repos } = await signedIn();
+    const video = { videoId: "dQw4w9WgXcQ", title: "Un video", author: "Un canal" };
+    const saved = await repos.youtubeVideos.create(video);
+    expect((await repos.youtubeVideos.create(video)).id).toBe(saved.id);
+    expect(await repos.youtubeVideos.list()).toHaveLength(1);
+
+    await repos.servicePlan.add({ kind: "youtube", refId: saved.id });
+    await expect(
+      repos.servicePlan.add({ kind: "youtube", refId: crypto.randomUUID() }),
+    ).rejects.toMatchObject({ errors: { refId: "Ese video no existe." } });
+
+    await repos.youtubeVideos.delete(saved.id);
+    expect(await repos.youtubeVideos.get(saved.id)).toBeNull();
+    expect(await repos.servicePlan.list()).toEqual([]);
+  });
+
   it("deleting a person keeps the records that name them", async () => {
     const { repos, session } = await signedIn();
     const church = mockWorld().churches.find((data) => data.church.id === session.church.id)!;

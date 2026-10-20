@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
 import { Panel } from "@/components/ui/panel";
+import { DeviceList } from "@/features/account/components/device-list";
+import { PasswordForm } from "@/features/account/components/password-form";
+import { ProfileForm } from "@/features/account/components/profile-form";
 import { ChurchForm } from "@/features/church/components/church-form";
 import { StorageBreakdown } from "@/features/church/components/storage-usage";
 import { fileSize } from "@/lib/format";
@@ -9,12 +12,28 @@ import { requireSession } from "@/server/dal";
 export const metadata: Metadata = { title: "Ajustes" };
 
 export default async function SettingsPage() {
-  const { repos } = await requireSession();
-  const church = await repos.church.get();
+  const { session, repos } = await requireSession();
+  const [church, sessions] = await Promise.all([repos.church.get(), repos.auth.listSessions()]);
 
   return (
     <div className="mx-auto flex max-w-settings flex-col gap-8">
-      <PageHeader title="Ajustes" description="Los datos de tu iglesia y su espacio." />
+      <PageHeader title="Ajustes" description="Tu cuenta, los datos de tu iglesia y su espacio." />
+      <Panel title="Perfil">
+        <ProfileForm fullName={session.fullName} email={session.email} />
+      </Panel>
+      <Panel
+        title="Contraseña"
+        description="Al cambiarla se cierran tus sesiones en los demás dispositivos."
+      >
+        <PasswordForm />
+      </Panel>
+      <Panel title="Dispositivos" description="Donde tu cuenta tiene la sesión abierta.">
+        <DeviceList
+          sessions={sessions}
+          timeZone={session.church.timezone}
+          now={new Date().toISOString()}
+        />
+      </Panel>
       <Panel title="Iglesia">
         <ChurchForm church={church} />
       </Panel>

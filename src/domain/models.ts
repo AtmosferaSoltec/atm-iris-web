@@ -57,8 +57,13 @@ export type Church = {
 
 /** Contract §6. `fontFamily` is a key each client maps to a real font; `fontSizePt` is for a 1920-wide screen. */
 export type ProjectionSettings = {
+  /** A key from `PROJECTION_FONTS`. */
   fontFamily: string;
   fontSizePt: number;
+  fontBold: boolean;
+  fontItalic: boolean;
+  /** All the lyrics in capitals. */
+  uppercase: boolean;
   /** A built-in gradient id or a background image/video id; null shows black. */
   defaultBackgroundId: string | null;
 };
@@ -90,8 +95,6 @@ export type BlockTemplate = {
 export type ServiceType = {
   id: Id;
   name: string;
-  /** "#RRGGBB", one of SERVICE_PALETTE. */
-  color: string;
   schedule: Schedule | null;
   /** Empty when the service does not track time. Already in order. */
   blocks: BlockTemplate[];
@@ -172,7 +175,22 @@ export type UploadTicket = {
 
 /* ------------------------------------------------------------ Plan */
 
-export type PlanItemKind = "song" | "media";
+/**
+ * `bible`: a passage, `refId` like `rvr1909:JHN.3.16-18`; `youtube`: a saved
+ * `YoutubeVideo`, by its id (contract §15).
+ */
+export type PlanItemKind = "song" | "media" | "bible" | "youtube";
+
+/** A YouTube video saved in Multimedia > YouTube: only the link, it plays in YouTube's player (contract §11b). */
+export type YoutubeVideo = {
+  id: Id;
+  /** The video's 11 characters on YouTube. */
+  videoId: string;
+  title: string;
+  author: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
 /**
  * A song or a media asset staged ahead for the next service, from any
@@ -241,4 +259,13 @@ export type Display = {
   online: boolean;
   lastSeenAt: string | null;
   createdAt: string;
+};
+
+/* ------------------------------------------------------------------- Bible */
+
+/** One chapter of a translation (contract §13). Some verses are empty: joined to the one before. */
+export type BibleChapter = {
+  bookId: string;
+  chapter: number;
+  verses: { number: number; text: string }[];
 };

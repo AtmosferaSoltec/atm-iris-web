@@ -1,23 +1,17 @@
 "use client";
 
-import { Eraser, ImagePlay, MousePointerClick, Pause, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eraser, MousePointerClick } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
-import { Button, IconButton } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Surface } from "@/components/ui/surface";
 import { ProjectionCanvas } from "@/features/projection/components/projection-canvas";
-import {
-  DEFAULT_TYPOGRAPHY,
-  type ProjectionBackground,
-  type ProjectionFrame,
-} from "@/features/projection/model";
+import { DEFAULT_TYPOGRAPHY, type ProjectionFrame } from "@/features/projection/model";
 import { cn } from "@/lib/cn";
 import { clock } from "@/lib/format";
 import type { ConsoleItem } from "../model";
 import type { LiveConsole } from "../use-live-console";
-import { FileStatus } from "./file-status";
-import { ENTRY_ICONS } from "./library-panel";
+import { ENTRY_ICONS, itemIconKey } from "../library/entry-icons";
 
 const KIND_NAMES: Record<ConsoleItem["kind"], string> = {
   song: "Canción",
@@ -25,6 +19,7 @@ const KIND_NAMES: Record<ConsoleItem["kind"], string> = {
   image: "Imagen",
   video: "Video",
   youtube: "YouTube",
+  bible: "Biblia",
 };
 
 /** Column 2 (IRIS_SPEC §6.2): the open item. Opening never changes the screens; clicking a card does. */
@@ -32,43 +27,28 @@ export function Workspace({ ctrl }: { ctrl: LiveConsole }) {
   const item = ctrl.openItem;
 
   return (
-    <Surface className="flex min-h-0 flex-1 flex-col gap-5 p-6">
-      <div className="flex items-start justify-between gap-4">
+    <Surface className="flex min-h-0 flex-1 flex-col gap-4 p-5">
+      {item ? (
         <div className="min-w-0">
-          {item ? (
-            <>
-              <Chip color={ENTRY_ICONS[item.kind].color}>{KIND_NAMES[item.kind]}</Chip>
-              <h1 className="mt-2 truncate font-serif text-[28px] leading-tight font-medium">
-                {item.title}
-              </h1>
-              {item.subtitle && <p className="truncate text-sm text-ink-2">{item.subtitle}</p>}
-              {item.kind === "song" && (item.file || item.youTubeId) && (
-                <TrackButton ctrl={ctrl} item={item} />
-              )}
-            </>
-          ) : (
-            <h1 className="font-serif text-[28px] leading-tight font-medium text-ink-2">
-              Servicio
+          <div className="flex items-center gap-3">
+            <Chip color={ENTRY_ICONS[itemIconKey(item)].color}>{KIND_NAMES[item.kind]}</Chip>
+            <h1 className="min-w-0 truncate font-serif text-xl leading-tight font-medium">
+              {item.title}
             </h1>
-          )}
+            {item.subtitle && (
+              <p className="hidden min-w-0 truncate text-sm text-ink-2 xl:block">{item.subtitle}</p>
+            )}
+          </div>
+          {item.kind === "bible" && <VerseSteps ctrl={ctrl} item={item} />}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <IconButton
-            label="Limpiar pantalla (B)"
-            aria-pressed={ctrl.isCleared}
-            onClick={ctrl.toggleCleared}
-            className={ctrl.isCleared ? "bg-coral/15 text-coral ring-coral/40" : undefined}
-          >
-            <Eraser />
-          </IconButton>
-          <BackgroundPicker ctrl={ctrl} />
-        </div>
-      </div>
+      ) : (
+        <h1 className="font-serif text-xl leading-tight font-medium text-ink-2">Servicio</h1>
+      )}
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {!item ? (
           <EmptyHint />
-        ) : item.kind === "song" ? (
+        ) : item.kind === "song" || item.kind === "bible" ? (
           <SlideGrid ctrl={ctrl} item={item} />
         ) : (
           <MediaStage ctrl={ctrl} item={item} />
@@ -90,25 +70,32 @@ function EmptyHint() {
   );
 }
 
-/** Black cards with white lyrics, always the same look; the one on the screens glows. */
+/** Black cards with white lyrics, always the same look (the chosen typography only shows on the preview); the one on the screens glows. */
 function SlideGrid({ ctrl, item }: { ctrl: LiveConsole; item: ConsoleItem }) {
   const liveIndex = ctrl.live?.key === item.planItemId && !ctrl.isCleared ? ctrl.live.slide : -1;
   const liveCard = useRef<HTMLLIElement>(null);
-  const typography = ctrl.liveFrame.typography;
   const frames = useMemo(
     () =>
       item.slides.map<ProjectionFrame>((slide) => ({
         background: null,
-        content: { kind: "text", text: slide.text, footnote: null },
-        typography: typography ?? DEFAULT_TYPOGRAPHY,
+        content: { kind: "text", text: slide.text, footnote: slide.footnote ?? null },
+        typography: DEFAULT_TYPOGRAPHY,
       })),
-    [item.slides, typography],
+    [item.slides],
   );
+
+  const focus = item.focus;
+  const focusCard = useRef<HTMLLIElement>(null);
 
   // Long songs: keep the card on the screens in view.
   useEffect(() => {
     liveCard.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [liveIndex]);
+
+  // A passage opens on the verses it chose, in its whole chapter.
+  useEffect(() => {
+    focusCard.current?.scrollIntoView({ block: "start" });
+  }, [item.planItemId]);
 
   if (item.slides.length === 0) {
     return <p className="py-10 text-center text-sm text-ink-2">Esta canción no tiene letra.</p>;
@@ -119,8 +106,11 @@ function SlideGrid({ ctrl, item }: { ctrl: LiveConsole; item: ConsoleItem }) {
       {item.slides.map((slide, index) => (
         <li
           key={slide.id}
-          ref={index === liveIndex ? liveCard : undefined}
-          className="flex flex-col gap-1.5"
+          ref={index === liveIndex ? liveCard : index === focus?.first ? focusCard : undefined}
+          className={cn(
+            "flex flex-col gap-1.5",
+            focus && (index < focus.first || index > focus.last) && "opacity-55",
+          )}
         >
           <button
             type="button"
@@ -141,6 +131,23 @@ function SlideGrid({ ctrl, item }: { ctrl: LiveConsole; item: ConsoleItem }) {
           )}
         </li>
       ))}
+      <li className="flex flex-col gap-1.5">
+        <button
+          type="button"
+          onClick={ctrl.toggleCleared}
+          aria-label="Pantalla en blanco (B)"
+          aria-current={ctrl.isCleared ? "true" : undefined}
+          className={cn(
+            "grid aspect-video w-full cursor-pointer place-items-center rounded-md bg-black text-ink-2 transition-shadow",
+            ctrl.isCleared
+              ? "shadow-[0_0_24px_-4px_rgb(255_122_89/0.55)] ring-[3px] ring-coral"
+              : "ring-1 ring-line hover:ring-line-strong",
+          )}
+        >
+          <Eraser aria-hidden className="size-6" />
+        </button>
+        <span className="truncate text-[13px] font-medium text-ink-2">En blanco</span>
+      </li>
     </ol>
   );
 }
@@ -195,7 +202,7 @@ function MediaStage({ ctrl, item }: { ctrl: LiveConsole; item: ConsoleItem }) {
         text: item.title,
         footnote: item.file?.durationSeconds ? clock(item.file.durationSeconds) : null,
       },
-      typography: { fontFamily: "system", fontSizePt: 64 },
+      typography: { ...DEFAULT_TYPOGRAPHY, fontSizePt: 64 },
     };
   }, [item]);
 
@@ -239,113 +246,46 @@ function MediaStage({ ctrl, item }: { ctrl: LiveConsole; item: ConsoleItem }) {
             ? "Reproduciendo"
             : "Reproducir"}
       </Button>
+      {item.kind !== "track" && (
+        <Button
+          variant="secondary"
+          icon={<Eraser className="size-4" />}
+          onClick={ctrl.toggleCleared}
+        >
+          Pantalla en blanco (B)
+        </Button>
+      )}
       <p className="max-w-md text-center text-sm text-ink-2">{hint}</p>
     </div>
   );
 }
 
-/** "Pista" of a song with lyrics: plays it in the room while the slides go to the screens. */
-function TrackButton({ ctrl, item }: { ctrl: LiveConsole; item: ConsoleItem }) {
-  const isPlaying = ctrl.playback?.key === item.planItemId && ctrl.playback.playing;
+/** A passage on the screens: the verse before or after (also ← →), through its chapter. */
+function VerseSteps({ ctrl, item }: { ctrl: LiveConsole; item: ConsoleItem }) {
+  const index = ctrl.live?.key === item.planItemId ? ctrl.live.slide : -1;
   return (
-    <button
-      type="button"
-      onClick={ctrl.toggleTrack}
-      title="La pista suena en el salón; la pantalla no cambia (P)"
-      className={cn(
-        "mt-3 inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-semibold transition active:scale-95",
-        isPlaying
-          ? "bg-success/15 text-success ring-1 ring-success/40 ring-inset hover:bg-success/20"
-          : "bg-success text-ink-inverse hover:brightness-110",
-      )}
-    >
-      {isPlaying ? (
-        <Pause aria-hidden className="size-4" />
-      ) : (
-        <Play aria-hidden className="size-4" />
-      )}
-      {isPlaying ? "Pausar pista" : "Reproducir pista"}
-      {item.file?.durationSeconds ? (
-        <span className="font-mono font-medium tabular-nums opacity-70">
-          {clock(item.file.durationSeconds)}
-        </span>
-      ) : null}
-    </button>
-  );
-}
-
-/** FONDOS (IRIS_SPEC §6.5): the six gradients and the church's backgrounds. */
-function BackgroundPicker({ ctrl }: { ctrl: LiveConsole }) {
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <IconButton label="Cambiar fondo">
-          <ImagePlay />
-        </IconButton>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-[372px]">
-        <h3 className="mb-3 eyebrow text-ink-2">Fondos</h3>
-        <div className="grid max-h-[60vh] grid-cols-3 gap-3 overflow-y-auto p-0.5">
-          <Swatch
-            name="Negro"
-            isSelected={ctrl.backgroundId === null}
-            onSelect={() => ctrl.setBackgroundId(null)}
-          />
-          {ctrl.backgrounds.map((background) => (
-            <Swatch
-              key={background.id}
-              name={background.name}
-              background={background}
-              isSelected={ctrl.backgroundId === background.id}
-              state={
-                background.imageUrl || background.videoUrl ? ctrl.fileState(background.id) : null
-              }
-              onSelect={() => ctrl.setBackgroundId(background.id)}
-            />
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function Swatch({
-  name,
-  background,
-  isSelected,
-  onSelect,
-  state = null,
-}: {
-  name: string;
-  background?: ProjectionBackground;
-  isSelected: boolean;
-  onSelect: () => void;
-  /** Whether a church background (a file) is already on the screens. */
-  state?: "ready" | "loading" | null;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className="flex cursor-pointer flex-col gap-1.5 text-left"
-      aria-pressed={isSelected}
-    >
-      <span
-        className={cn(
-          "relative block overflow-hidden rounded-sm",
-          isSelected ? "ring-2 ring-white" : "ring-1 ring-line",
-        )}
+    <div className="mt-3 flex items-center gap-2">
+      <Button
+        variant="secondary"
+        size="sm"
+        icon={<ChevronLeft className="size-4" />}
+        disabled={index === 0}
+        onClick={() => ctrl.step(-1)}
       >
-        <ProjectionCanvas
-          frame={{
-            background: background ?? null,
-            content: { kind: "blank" },
-            typography: DEFAULT_TYPOGRAPHY,
-          }}
-        />
-        <FileStatus state={state} className="absolute right-1 bottom-1" />
-      </span>
-      <span className="truncate text-xs text-ink-2">{name}</span>
-    </button>
+        Anterior
+      </Button>
+      <Button
+        variant="secondary"
+        size="sm"
+        disabled={index === item.slides.length - 1}
+        onClick={() => ctrl.step(1)}
+      >
+        Siguiente
+        <ChevronRight className="size-4" />
+      </Button>
+      {index >= 0 && (
+        <span className="text-sm text-ink-2">En pantalla: {item.slides[index]?.label}</span>
+      )}
+    </div>
   );
 }

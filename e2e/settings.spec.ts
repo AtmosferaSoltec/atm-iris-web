@@ -11,10 +11,14 @@ test("Ajustes has the church and its space, without modules or plans", async ({ 
   await expect(page.getByRole("switch")).toHaveCount(0);
   await expect(page.getByText("Plan Plus", { exact: false })).toHaveCount(0);
 
-  // Everything is always in the menu.
-  for (const item of ["Canciones", "Multimedia", "Fondos", "Personas", "Tiempos"]) {
-    await expect(
-      page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: item }),
-    ).toBeVisible();
-  }
+  await page.getByRole("link", { name: "Volver al servicio" }).click();
+  await expect(page).toHaveURL("/");
+});
+
+test("the console's avatar menu leads to Tiempos and Ajustes, and signs out", async ({ page }) => {
+  await page.getByRole("button", { name: /^Cuenta:/ }).click();
+  await expect(page.getByRole("menuitem", { name: "Tiempos" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Cerrar sesión" })).toBeVisible();
+  await page.getByRole("menuitem", { name: "Ajustes" }).click();
+  await expect(page).toHaveURL("/settings");
 });

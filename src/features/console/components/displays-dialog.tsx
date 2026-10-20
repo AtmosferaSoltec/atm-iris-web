@@ -13,13 +13,14 @@ import { claimDisplay, removeDisplay } from "../actions";
 import type { LiveConsole } from "../use-live-console";
 
 /**
- * "Televisores" (contract §18): the church's linked TVs, and linking a new one with the
- * code it shows at `/display`, like Netflix.
+ * "Pantallas" (contract §18): the church's linked screens and which one presents, and linking a
+ * new one with the code it shows at `/display`, like Netflix. One presents at a time: the rest
+ * stay connected but do nothing.
  */
 export function DisplaysDialog({ ctrl, onClose }: { ctrl: LiveConsole; onClose: () => void }) {
-  const { displays, added, removed, refresh } = ctrl.remote;
+  const { displays, activeId, select, added, removed, refresh } = ctrl.remote;
   const [code, setCode] = useState("");
-  const [name, setName] = useState(displays.length === 0 ? "TV del salón" : "");
+  const [name, setName] = useState(`Pantalla ${displays.length + 1}`);
   const [errors, setErrors] = useState<{ code?: string; name?: string; form?: string }>({});
   const [isLinking, startLink] = useTransition();
   const [removing, setRemoving] = useState<string | null>(null);
@@ -36,9 +37,9 @@ export function DisplaysDialog({ ctrl, onClose }: { ctrl: LiveConsole; onClose: 
       const result = await claimDisplay(code, name);
       if (result.display) {
         added(result.display);
-        toast.success(`«${result.display.name}» conectado`);
+        toast.success(`«${result.display.name}» conectada`);
         setCode("");
-        setName("");
+        setName(`Pantalla ${displays.length + 2}`);
       } else {
         setErrors({ ...result.fieldErrors, form: result.error });
       }
@@ -52,7 +53,7 @@ export function DisplaysDialog({ ctrl, onClose }: { ctrl: LiveConsole; onClose: 
     if (result.error) toast.error(result.error);
     else {
       removed(display.id);
-      toast.success(`«${display.name}» desconectado`);
+      toast.success(`«${display.name}» desconectada`);
     }
   }
 
@@ -60,34 +61,57 @@ export function DisplaysDialog({ ctrl, onClose }: { ctrl: LiveConsole; onClose: 
     <Dialog
       open
       onClose={onClose}
-      title="Televisores"
-      description="Un televisor con internet muestra lo que proyectas, sin cables. Se conecta una sola vez."
+      title="Pantallas"
+      description="Elige en cuál se proyecta. Se proyecta en una a la vez: las demás se quedan conectadas sin hacer nada."
       size="md"
     >
       <div className="flex flex-col gap-6 pb-6">
         {displays.length > 0 && (
-          <ul className="flex flex-col divide-y divide-line rounded-md ring-1 ring-line">
-            {displays.map((display) => (
-              <li key={display.id} className="flex items-center gap-3 px-4 py-3">
-                <Tv
-                  aria-hidden
-                  className={cn("size-5 shrink-0", display.online ? "text-success" : "text-ink-2")}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold">{display.name}</span>
-                  <span className="block text-xs text-ink-2">
-                    {display.online ? "Conectado" : "Apagado o sin internet"}
-                  </span>
-                </span>
-                <IconButton
-                  label={`Desconectar ${display.name}`}
-                  disabled={removing === display.id}
-                  onClick={() => void unlink(display)}
-                >
-                  <X />
-                </IconButton>
-              </li>
-            ))}
+          <ul
+            role="radiogroup"
+            aria-label="Pantalla donde se proyecta"
+            className="flex flex-col divide-y divide-line rounded-md ring-1 ring-line"
+          >
+            {displays.map((display) => {
+              const isActive = display.id === activeId;
+              return (
+                <li key={display.id} className="flex items-center gap-1 pr-2">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={isActive}
+                    onClick={() => select(display.id)}
+                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-md px-4 py-3 text-left transition hover:bg-surface"
+                  >
+                    <Tv
+                      aria-hidden
+                      className={cn(
+                        "size-5 shrink-0",
+                        display.online ? "text-success" : "text-ink-2",
+                      )}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold">{display.name}</span>
+                      <span className="block text-xs text-ink-2">
+                        {display.online ? "Encendida" : "Apagada o sin internet"}
+                      </span>
+                    </span>
+                    {isActive && (
+                      <span className="bg-accent/15 shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-ink">
+                        Proyecta aquí
+                      </span>
+                    )}
+                  </button>
+                  <IconButton
+                    label={`Desconectar ${display.name}`}
+                    disabled={removing === display.id}
+                    onClick={() => void unlink(display)}
+                  >
+                    <X />
+                  </IconButton>
+                </li>
+              );
+            })}
           </ul>
         )}
 
@@ -98,11 +122,13 @@ export function DisplaysDialog({ ctrl, onClose }: { ctrl: LiveConsole; onClose: 
             link();
           }}
         >
+          <h3 className="eyebrow text-ink-2">Agregar pantalla</h3>
           <ol className="flex list-decimal flex-col gap-1 pl-5 text-sm text-ink-2">
             <li>
-              En el navegador del televisor abre <strong className="text-ink">{address}</strong>
+              En el navegador de la pantalla (un televisor con internet o una ventana en otro
+              monitor) abre <strong className="text-ink">{address}</strong>
             </li>
-            <li>Escribe aquí el código que aparece en el televisor.</li>
+            <li>Escribe aquí el código que aparece en ella.</li>
           </ol>
           {errors.form && <Banner tone="error">{errors.form}</Banner>}
           <div className="grid gap-4 sm:grid-cols-[1fr_1.2fr]">
@@ -121,13 +147,13 @@ export function DisplaysDialog({ ctrl, onClose }: { ctrl: LiveConsole; onClose: 
               }
               error={errors.code}
               autoComplete="off"
-              autoFocus
+              autoFocus={displays.length === 0}
               className="font-mono text-lg tracking-[0.3em] uppercase"
             />
             <TextField
               id="display-name"
               label="Nombre"
-              placeholder="TV del salón"
+              placeholder="Pantalla 1"
               value={name}
               onChange={(event) => setName(event.target.value)}
               error={errors.name}
@@ -138,7 +164,7 @@ export function DisplaysDialog({ ctrl, onClose }: { ctrl: LiveConsole; onClose: 
               Cerrar
             </Button>
             <Button type="submit" isLoading={isLinking} disabled={code.length !== 6}>
-              Conectar televisor
+              Agregar pantalla
             </Button>
           </div>
         </form>

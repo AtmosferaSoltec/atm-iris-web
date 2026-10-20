@@ -88,35 +88,3 @@ export const lyricsSearchSchema = z.object({
 
 /** What the track picker sends: a pasted link. */
 export const youTubeLinkSchema = z.string().trim().min(1).max(500);
-
-/** A track uploaded on its own becomes a song with just that track, named after the file. */
-export const trackSongSchema = z.object({ audioId: idSchema, title });
-
-/** One song as it travels in an export/import file: same shape as `SongInput`. */
-const songExportItemSchema = z
-  .object({
-    title: z.string().trim().min(1).max(120),
-    author: z.string().trim().max(120).default(""),
-    sections: z
-      .array(
-        z.object({
-          label: z.string().trim().max(40).nullable(),
-          text: z.string().trim().min(1).max(2000),
-        }),
-      )
-      .max(80),
-    // Older exports have no track; a YouTube track travels with the lyrics (it is only an id).
-    youtubeId: youtubeIdSchema.nullable().default(null),
-    youtubeMusic: z.boolean().default(false),
-  })
-  .refine((song) => song.sections.length > 0 || song.youtubeId !== null);
-
-/**
- * A whole library export: `{ songs: [...] }`. Lyrics and YouTube tracks: uploaded tracks are
- * files and stay in Iris. Up to 2000 so a bad paste can't hang the import.
- */
-export const songImportSchema = z.object({
-  songs: z.array(songExportItemSchema).min(1).max(2000),
-});
-
-export type SongExportItem = z.infer<typeof songExportItemSchema>;

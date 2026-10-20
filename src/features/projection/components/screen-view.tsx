@@ -110,8 +110,8 @@ export function ScreenView({
           <div className="absolute inset-x-0 bottom-[8vh] flex flex-col items-center gap-3 text-center text-sm text-white/45">
             <p>
               {source.kind === "remote"
-                ? "Televisor conectado. Esperando la consola… Abre «Iniciar servicio» en tu computadora."
-                : "Esperando la consola… Abre «Iniciar servicio» en la otra pantalla."}
+                ? "Pantalla conectada. Esperando la consola… Abre Iris en tu computadora."
+                : "Esperando la consola… Abre Iris en la otra pantalla."}
             </p>
             {onLinkInstead && (
               <button
@@ -251,7 +251,9 @@ function useRemoteSource(
           preload: PreloadFile[];
         };
         announce(data.preload);
-        onFrame(data);
+        // Without a frame this screen is not the one presenting (or nothing was sent yet): black.
+        if (data.frame) onFrame(data);
+        else showFrame(BLACK_FRAME);
       });
       source.addEventListener("frame", (event) => onFrame(JSON.parse(event.data)));
       source.addEventListener("preload", (event) =>

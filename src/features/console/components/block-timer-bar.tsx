@@ -1,20 +1,9 @@
 "use client";
 
-import {
-  Check,
-  ChevronDown,
-  CircleCheck,
-  Play,
-  Plus,
-  SkipForward,
-  Timer,
-  Trash2,
-} from "lucide-react";
-import Link from "next/link";
+import { ChevronDown, CircleCheck, Play, Plus, Timer, Trash2 } from "lucide-react";
 import { useState, useTransition, type ReactNode } from "react";
 import { Banner } from "@/components/ui/banner";
 import { Button, IconButton } from "@/components/ui/button";
-import { ColorDot } from "@/components/ui/chip";
 import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
 import { Surface } from "@/components/ui/surface";
 import { TextField } from "@/components/ui/text-field";
@@ -31,7 +20,8 @@ import {
   type ClockState,
   type ServiceTimer,
 } from "../block-timer";
-import type { Leader, ServiceTimerControls } from "../use-service-timer";
+import type { ServiceTimerControls } from "../use-service-timer";
+import { LeaderDialog } from "./leader-dialog";
 
 const CLOCK_TEXT: Record<ClockState, string> = {
   normal: "text-ink",
@@ -45,16 +35,18 @@ const CLOCK_BAR: Record<ClockState, string> = {
 };
 
 /**
- * BLOQUES (IRIS_SPEC §6.9), always above the open item: choose the service, start it, move
- * through its blocks and finish it. One service at a time, until "Finalizar servicio".
+ * BLOQUES DE TIEMPO (IRIS_SPEC §6.9), always above the open item: choose the service, start it, move
+ * through its blocks (every one is run, none skipped) and finish it from the last. One service at a time, until "Finalizar servicio".
  */
 export function BlockTimerBar({
   service,
-  people,
+  people: initialPeople,
 }: {
   service: ServiceTimerControls;
   people: Person[];
 }) {
+  // Someone added from "¿Quién dirige…?" is there for the next block too.
+  const [people, setPeople] = useState(initialPeople);
   const timer = service.timer;
   const [isChoosing, setIsChoosing] = useState(false);
   const [changingLeader, setChangingLeader] = useState<number | null>(null);
@@ -65,7 +57,7 @@ export function BlockTimerBar({
     <Surface className="flex flex-col gap-3 px-5 py-4">
       {!service.serviceType ? (
         <Idle
-          title="Bloques"
+          title="Bloques de tiempo"
           text="Elige el servicio que vas a dirigir para llevar sus tiempos."
           action={
             <Button icon={<Timer className="size-4" />} onClick={() => setIsChoosing(true)}>
@@ -112,7 +104,6 @@ export function BlockTimerBar({
           next={next}
           onChangeLeader={() => setChangingLeader(timer.current)}
           onNext={service.startNext}
-          onSkipNext={service.skipNext}
           onFinish={() => setIsConfirmingFinish(true)}
         />
       ) : (
@@ -159,6 +150,13 @@ export function BlockTimerBar({
             service.setLeader(changingLeader, leader);
             setChangingLeader(null);
           }}
+          onPersonAdded={(person) =>
+            setPeople((current) =>
+              current.some((candidate) => candidate.id === person.id)
+                ? current
+                : [...current, person].sort((a, b) => a.name.localeCompare(b.name, "es")),
+            )
+          }
         />
       )}
       <ConfirmDialog
@@ -194,7 +192,6 @@ function Running({
   next,
   onChangeLeader,
   onNext,
-  onSkipNext,
   onFinish,
 }: {
   timer: ServiceTimer;
@@ -202,7 +199,6 @@ function Running({
   next: number | null;
   onChangeLeader: () => void;
   onNext: () => void;
-  onSkipNext: () => void;
   onFinish: () => void;
 }) {
   const block = timer.blocks[timer.current!];
@@ -224,7 +220,7 @@ function Running({
               title="Elegir quién dirige este bloque"
               className="flex cursor-pointer items-center gap-1 text-sm text-ink-2 hover:text-ink"
             >
-              · {block.personName ?? "Sin responsable"}
+              · {block.personName ?? "Elegir responsable"}
               <ChevronDown aria-hidden className="size-3.5" />
             </button>
           </p>
@@ -248,24 +244,13 @@ function Running({
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          {next !== null && (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={<SkipForward className="size-4" />}
-                onClick={onSkipNext}
-              >
-                Omitir {timer.blocks[next].name}
-              </Button>
-              <Button className="min-w-[220px]" onClick={onNext}>
-                Siguiente: {timer.blocks[next].name} →
-              </Button>
-            </>
+          {next !== null ? (
+            <Button className="min-w-[220px]" onClick={onNext}>
+              Siguiente: {timer.blocks[next].name} →
+            </Button>
+          ) : (
+            <Button onClick={onFinish}>Finalizar servicio</Button>
           )}
-          <Button variant={next === null ? "primary" : "secondary"} onClick={onFinish}>
-            Finalizar servicio
-          </Button>
         </div>
       </div>
       <div className="h-1 overflow-hidden rounded-full bg-surface-raised">
@@ -281,16 +266,13 @@ function Running({
 function Finished({ timer, now, onNew }: { timer: ServiceTimer; now: number; onNew: () => void }) {
   const { actual, planned, overtime: over } = totals(timer, now);
   return (
-    <div className="flex items-center gap-3">
-      <CircleCheck aria-hidden className="size-5 text-success" />
+    <div className="flex min-h-11 items-center gap-3">
+      <CircleCheck aria-hidden className="size-5 shrink-0 text-success" />
       <p className="flex-1 text-sm">
         <span className="font-semibold">Servicio finalizado</span> · {clock(actual)} (previsto{" "}
         {clock(planned)} · {over > 0 ? overtime(over) : "a tiempo"})
       </p>
-      <Link href="/times" className="text-sm font-semibold text-coral hover:underline">
-        Ver en Tiempos
-      </Link>
-      <Button variant="secondary" size="sm" onClick={onNew}>
+      <Button variant="secondary" onClick={onNew}>
         Nuevo servicio
       </Button>
     </div>
@@ -375,7 +357,6 @@ function ChooseServiceDialog({
                   : "ring-line hover:bg-surface",
               )}
             >
-              <ColorDot color={type.color} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-semibold">{type.name}</span>
                 <span className="block text-xs text-ink-2">
@@ -401,8 +382,6 @@ function ChooseServiceDialog({
 }
 
 type DraftBlock = { key: number; name: string; minutes: string };
-
-const BLOCK_EXAMPLES = ["Bienvenida", "Alabanza", "Mensaje", "Ofrenda"];
 
 function CreateServiceForm({
   onCreated,
@@ -461,7 +440,7 @@ function CreateServiceForm({
             <TextField
               id={`quick-block-${block.key}`}
               aria-label={`Nombre del bloque ${index + 1}`}
-              placeholder={BLOCK_EXAMPLES[index] ?? "Bloque"}
+              placeholder="Bloque"
               value={block.name}
               onChange={(event) => update(block.key, { name: event.target.value })}
               containerClassName="flex-1"
@@ -469,11 +448,12 @@ function CreateServiceForm({
             <TextField
               id={`quick-minutes-${block.key}`}
               aria-label={`Minutos del bloque ${index + 1}`}
-              type="number"
-              min={1}
-              max={240}
+              inputMode="numeric"
+              maxLength={3}
               value={block.minutes}
-              onChange={(event) => update(block.key, { minutes: event.target.value })}
+              onChange={(event) =>
+                update(block.key, { minutes: event.target.value.replace(/\D/g, "") })
+              }
               containerClassName="w-24"
             />
             <span className="text-xs text-ink-2">min</span>
@@ -512,68 +492,5 @@ function CreateServiceForm({
         </Button>
       </div>
     </form>
-  );
-}
-
-/** "¿Quién dirige {bloque}?" (IRIS_SPEC §6.9), from the leader's name while it runs. */
-function LeaderDialog({
-  blockName,
-  people,
-  initialId,
-  onClose,
-  onConfirm,
-}: {
-  blockName: string;
-  people: Person[];
-  initialId: string | null;
-  onClose: () => void;
-  onConfirm: (leader: Leader) => void;
-}) {
-  const [selected, setSelected] = useState<string | null>(initialId);
-  const leaderOf = (id: string | null): Leader => {
-    const person = people.find((candidate) => candidate.id === id);
-    return person ? { id: person.id, name: person.name } : { id: null, name: null };
-  };
-
-  return (
-    <Dialog
-      open
-      onClose={onClose}
-      title={`¿Quién dirige ${blockName}?`}
-      size="sm"
-      footer={
-        <>
-          <Button variant="ghost" onClick={() => onConfirm({ id: null, name: null })}>
-            Sin responsable
-          </Button>
-          <Button onClick={() => onConfirm(leaderOf(selected))}>Guardar</Button>
-        </>
-      }
-    >
-      {people.length === 0 ? (
-        <p className="pb-4 text-sm text-ink-2">Aún no hay personas. Agrégalas en Personas.</p>
-      ) : (
-        <ul className="flex max-h-[50vh] flex-col gap-1 overflow-y-auto pb-4" role="radiogroup">
-          {people.map((person) => (
-            <li key={person.id}>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={selected === person.id}
-                onClick={() => setSelected(person.id)}
-                onDoubleClick={() => onConfirm(leaderOf(person.id))}
-                className={cn(
-                  "flex w-full cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-2.5 text-left text-sm transition",
-                  selected === person.id ? "bg-surface-raised font-semibold" : "hover:bg-surface",
-                )}
-              >
-                {person.name}
-                {selected === person.id && <Check aria-hidden className="size-4 text-coral" />}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Dialog>
   );
 }

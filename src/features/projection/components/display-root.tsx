@@ -38,7 +38,7 @@ type Pairing = { code: string } | { error: string } | null;
 const POLL_MS = 2000;
 
 /**
- * Like linking Netflix on a TV: a big code to type in the console ("Conectar televisor").
+ * Like linking Netflix on a TV: a big code to type in the console ("Pantallas").
  * Once linked, this browser remembers it and goes straight to the projection next time.
  */
 function PairingScreen({ onLinked }: { onLinked: () => void }) {
@@ -88,9 +88,8 @@ function PairingScreen({ onLinked }: { onLinked: () => void }) {
       <IrisWordmark height={44} />
       <div className="flex flex-col items-center gap-[3vh]">
         <p className="text-[2.4vw] leading-tight text-white/75">
-          Para conectar este televisor, abre{" "}
-          <strong className="text-white">Iniciar servicio</strong> en tu computadora, toca{" "}
-          <strong className="text-white">Conectar televisor</strong> y escribe:
+          Para conectar esta pantalla, abre Iris en tu computadora, toca{" "}
+          <strong className="text-white">Pantallas</strong> y escribe:
         </p>
         {pairing && "code" in pairing ? (
           <p

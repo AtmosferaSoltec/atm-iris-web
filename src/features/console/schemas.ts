@@ -63,10 +63,11 @@ export const displayStateSchema = z
     frame: z.record(z.string(), z.unknown()).optional(),
     preload: z.array(z.record(z.string(), z.unknown())).max(500).optional(),
     clock: z.number().int().positive(),
+    displayId: idSchema.optional(),
   })
   .refine((state) => state.frame || state.preload);
 
-/** "Conectar televisor": the code the TV shows and a name for it. */
+/** "Agregar pantalla": the code the screen shows and a name for it. */
 export const claimDisplaySchema = z.object({
   code: z
     .string()

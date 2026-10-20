@@ -7,22 +7,6 @@ import { createLoader, parseAsInteger, parseAsString, parseAsStringLiteral } fro
 export const pageParser = parseAsInteger.withDefault(1);
 export const searchParser = parseAsString.withDefault("");
 
-/* ---------------------------------------------------------------- Songs */
-
-export const songSearchParams = {
-  search: searchParser,
-  page: pageParser,
-};
-export const loadSongSearchParams = createLoader(songSearchParams);
-
-/* ---------------------------------------------------------------- Media */
-
-export const mediaSearchParams = {
-  search: searchParser,
-  page: pageParser,
-};
-export const loadMediaSearchParams = createLoader(mediaSearchParams);
-
 /* ---------------------------------------------------------------- Times */
 
 export const TIME_TABS = ["records", "summaries"] as const;

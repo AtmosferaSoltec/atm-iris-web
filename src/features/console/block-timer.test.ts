@@ -14,7 +14,6 @@ import {
 const culto: ServiceType = {
   id: "culto",
   name: "Culto general",
-  color: "#FFB547",
   schedule: null,
   blocks: [
     { id: "t1", name: "Bienvenida", plannedMinutes: 10 },

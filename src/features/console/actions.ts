@@ -5,10 +5,10 @@ import { idSchema } from "@/lib/validation";
 import { authorize } from "@/server/dal";
 import { errorMessage, isApiError } from "@/server/repositories/api/errors";
 import { consoleItemFor } from "./load";
-import type { ConsoleItem } from "./model";
+import type { ConsoleItem, LibraryEntry } from "./model";
+import { youtubeEntry } from "./library/entries";
 import { z } from "zod";
 import type { Display, ServiceType } from "@/domain/models";
-import { SERVICE_PALETTE } from "@/domain/rules";
 import {
   addToServiceSchema,
   claimDisplaySchema,
@@ -17,7 +17,7 @@ import {
   serviceRecordSchema,
   youTubeLinkSchema,
 } from "./schemas";
-import { youTubeVideoId, type YouTubeVideo } from "@/lib/youtube";
+import { youTubeVideoId } from "@/lib/youtube";
 import { lookUpYouTube } from "@/server/youtube";
 
 /**
@@ -25,7 +25,7 @@ import { lookUpYouTube } from "@/server/youtube";
  * so the iPad and the Plan page see it too.
  */
 export async function addToService(
-  kind: "song" | "media",
+  kind: "song" | "media" | "bible" | "youtube",
   refId: string,
 ): Promise<{ item?: ConsoleItem; error?: string }> {
   const parsed = addToServiceSchema.safeParse({ kind, refId });
@@ -40,6 +40,22 @@ export async function addToService(
     if (isApiError(error, "VALIDATION_FAILED") && error.errors?.refId) {
       return { error: error.errors.refId };
     }
+    return { error: errorMessage(error) };
+  }
+}
+
+/** An image, video or YouTube link as the console shows it, to put on the screens without adding it to the service. */
+export async function quickItem(
+  kind: "media" | "youtube",
+  refId: string,
+): Promise<{ item?: ConsoleItem; error?: string }> {
+  const parsed = addToServiceSchema.safeParse({ kind, refId });
+  if (!parsed.success) return { error: "Revisa los datos enviados." };
+  try {
+    const { repos } = await authorize();
+    const item = await consoleItemFor(repos, kind, refId, `quick:${refId}`);
+    return item ? { item } : { error: "No pudimos abrir ese elemento." };
+  } catch (error) {
     return { error: errorMessage(error) };
   }
 }
@@ -89,11 +105,9 @@ export async function createConsoleService(
     const { repos } = await authorize();
     const serviceType = await repos.serviceTypes.create({
       name: parsed.data.name,
-      color: SERVICE_PALETTE[0].value,
       schedule: null,
       blocks: parsed.data.blocks,
     });
-    revalidatePath("/services");
     return { serviceType };
   } catch (error) {
     return { error: errorMessage(error) };
@@ -101,17 +115,43 @@ export async function createConsoleService(
 }
 
 /**
- * The title of a YouTube video, from its oEmbed (public, no API key). The video plays in
- * YouTube's own player on the screens; nothing is downloaded (YouTube's terms forbid it).
+ * Saves a YouTube link in the library (Multimedia > YouTube). The title comes from YouTube's
+ * oEmbed (public, no API key); the video plays in YouTube's own player, nothing is downloaded
+ * (YouTube's terms forbid it).
  */
-export async function youTubeVideo(
+export async function saveYouTubeVideo(
   link: string,
-): Promise<{ video?: Omit<YouTubeVideo, "music">; error?: string }> {
+): Promise<{ entry?: LibraryEntry; error?: string }> {
   const parsed = youTubeLinkSchema.safeParse(link);
   const videoId = parsed.success ? youTubeVideoId(parsed.data) : null;
   if (!videoId) return { error: "Ese enlace no es de un video de YouTube." };
-  await authorize();
-  return lookUpYouTube(videoId);
+  const { repos } = await authorize();
+  const found = await lookUpYouTube(videoId);
+  if (!found.video) return { error: found.error };
+  try {
+    const video = await repos.youtubeVideos.create({
+      videoId,
+      title: found.video.title,
+      author: found.video.author,
+    });
+    return { entry: youtubeEntry(video) };
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
+}
+
+/** Takes a YouTube video out of the library; the API also takes it out of the plan. */
+export async function deleteYouTubeVideo(id: string): Promise<{ error?: string }> {
+  const parsed = idSchema.safeParse(id);
+  if (!parsed.success) return { error: "Revisa los datos enviados." };
+  try {
+    const { repos } = await authorize();
+    await repos.youtubeVideos.delete(parsed.data);
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
+  revalidatePath("/");
+  return {};
 }
 
 /** The church's TVs and whether they are on (contract §18). */
@@ -124,7 +164,7 @@ export async function listDisplays(): Promise<Display[]> {
   }
 }
 
-/** "Conectar televisor": links the TV that shows this code. */
+/** "Agregar pantalla": links the screen that shows this code. */
 export async function claimDisplay(
   code: string,
   name: string,

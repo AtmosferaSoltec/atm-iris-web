@@ -8,7 +8,6 @@ import {
   recordInput,
   resumeTimer,
   setLeader,
-  skipNext,
   startNext,
   timerFor,
   type ServiceTimer,
@@ -118,7 +117,6 @@ export function useServiceTimer({
     clear,
     /** Closes the current block (if any) and starts the next one right away; the leader is set after. */
     startNext: () => timer && apply(startNext(timer, NO_LEADER, Date.now())),
-    skipNext: () => timer && apply(skipNext(timer)),
     setLeader: (index: number, leader: Leader) => timer && apply(setLeader(timer, index, leader)),
     finish: () => {
       if (!timer) return;
@@ -143,7 +141,6 @@ function initialState(
       serviceType: types.find((type) => type.id === inProgress.serviceTypeId) ?? {
         id: inProgress.serviceTypeId,
         name: inProgress.serviceTypeName,
-        color: "#FFB547",
         schedule: null,
         blocks: [],
         createdAt: inProgress.createdAt,

@@ -25,6 +25,14 @@ export async function chooseInSubmenu(page: Page, submenu: string, item: string)
   await page.keyboard.press("Enter");
 }
 
+/** Adds a library row to the service the way a person does: a double click on it (or a drag). */
+export async function addToService(page: Page, title: string) {
+  const row = page
+    .getByRole("button", { name: `Agregar «${title}» al servicio` })
+    .locator("xpath=ancestor::div[contains(@class,'group')][1]");
+  await row.dblclick({ position: { x: 50, y: 10 } });
+}
+
 export function toast(page: Page, text: string | RegExp) {
   return page.locator("[data-sonner-toast]").filter({ hasText: text });
 }

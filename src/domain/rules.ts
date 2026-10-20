@@ -1,15 +1,5 @@
 import type { BlockTemplate, ServiceType } from "./models";
 
-/** Colors a service can take: the spectrum tokens plus success. */
-export const SERVICE_PALETTE = [
-  { value: "#FFB547", name: "Ámbar" },
-  { value: "#FF7A59", name: "Coral" },
-  { value: "#F0508C", name: "Rosa" },
-  { value: "#9B5CFF", name: "Violeta" },
-  { value: "#4E5BFF", name: "Índigo" },
-  { value: "#3DDC97", name: "Verde" },
-] as const;
-
 /** Rotating colors for avatars, timelines and rows (`SPECTRUM[i % 5]`). */
 export const SPECTRUM = ["#FFB547", "#FF7A59", "#F0508C", "#9B5CFF", "#4E5BFF"] as const;
 

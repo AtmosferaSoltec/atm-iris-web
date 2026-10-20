@@ -18,6 +18,7 @@ import {
   type SongSummary,
   type StorageUsage,
   type UserSession,
+  type YoutubeVideo,
 } from "@/domain/models";
 import { firstLine } from "@/lib/lyrics";
 import { compareNames, nameKey } from "@/lib/text";
@@ -34,6 +35,7 @@ import type {
   SongInput,
   SongRepository,
   TimeRecordRepository,
+  YoutubeVideoRepository,
 } from "../types";
 import {
   churchOf,
@@ -47,6 +49,9 @@ import {
   type MockSong,
 } from "./world";
 import { mockDisplays } from "./displays";
+import { PROJECTION_FONT_KEYS, PROJECTION_FONT_SIZE } from "@/domain/projection-fonts";
+import { mockBible, mockPassageExists } from "./bible";
+import { parsePassageId } from "@/lib/bible-reference";
 
 /* ---------------------------------------------------------------- Helpers */
 
@@ -102,6 +107,27 @@ function church(session?: UserSession): ChurchRepository {
       await delay();
       const data = churchOf(session);
       Object.assign(data.church, input, { updatedAt: now() });
+      return view(data);
+    },
+    async setProjection(input) {
+      await delay();
+      const keys: readonly string[] = PROJECTION_FONT_KEYS;
+      if (!keys.includes(input.fontFamily)) {
+        throw new ApiError(400, "VALIDATION_FAILED", "Revisa los datos enviados.", {
+          fontFamily: "Esa tipografía no existe.",
+        });
+      }
+      if (
+        input.fontSizePt < PROJECTION_FONT_SIZE.min ||
+        input.fontSizePt > PROJECTION_FONT_SIZE.max
+      ) {
+        throw new ApiError(400, "VALIDATION_FAILED", "Revisa los datos enviados.", {
+          fontSizePt: `El tamaño va de ${PROJECTION_FONT_SIZE.min} a ${PROJECTION_FONT_SIZE.max}.`,
+        });
+      }
+      const data = churchOf(session);
+      data.church.projection = { ...input, defaultBackgroundId: input.defaultBackgroundId || null };
+      data.church.updatedAt = now();
       return view(data);
     },
   };
@@ -181,7 +207,6 @@ function serviceTypes(session?: UserSession): ServiceTypeRepository {
     return {
       id: existing?.id ?? crypto.randomUUID(),
       name: input.name,
-      color: input.color,
       schedule: input.schedule ? { ...input.schedule } : null,
       // Blocks without id get a new one; those with id keep it (contract §9).
       blocks: input.blocks.map((block) => ({
@@ -531,11 +556,59 @@ function media(session?: UserSession): MediaRepository {
   };
 }
 
+/* ----------------------------------------------------------------- YouTube */
+
+function youtubeVideos(session?: UserSession): YoutubeVideoRepository {
+  return {
+    async list() {
+      await delay();
+      return clone(churchOf(session).youtubeVideos).sort((a, b) =>
+        b.createdAt.localeCompare(a.createdAt),
+      );
+    },
+    async get(id) {
+      await delay();
+      const video = churchOf(session).youtubeVideos.find((candidate) => candidate.id === id);
+      return video ? clone(video) : null;
+    },
+    async create({ videoId, title, author }) {
+      await delay();
+      const data = churchOf(session);
+      const same = data.youtubeVideos.find((candidate) => candidate.videoId === videoId);
+      if (same) return clone(same);
+      const video: YoutubeVideo = {
+        id: crypto.randomUUID(),
+        videoId,
+        title,
+        author,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+      data.youtubeVideos.push(video);
+      return clone(video);
+    },
+    async delete(id) {
+      await delay();
+      const data = churchOf(session);
+      if (!data.youtubeVideos.some((video) => video.id === id)) throw notFound();
+      data.youtubeVideos = data.youtubeVideos.filter((video) => video.id !== id);
+      data.servicePlan = data.servicePlan.filter(
+        (item) => !(item.kind === "youtube" && item.refId === id),
+      );
+    },
+  };
+}
+
 /* -------------------------------------------------------------------- Plan */
 
 const refNotFound = (kind: CreateServicePlanItemInput["kind"]) =>
   new ApiError(400, "VALIDATION_FAILED", "Revisa los datos enviados.", {
-    refId: kind === "song" ? "Esa canción no existe." : "Ese medio no existe.",
+    refId:
+      kind === "song"
+        ? "Esa canción no existe."
+        : kind === "youtube"
+          ? "Ese video no existe."
+          : "Ese medio no existe.",
   });
 
 function servicePlan(session?: UserSession): ServicePlanRepository {
@@ -547,8 +620,21 @@ function servicePlan(session?: UserSession): ServicePlanRepository {
     async add({ kind, refId }) {
       await delay();
       const data = churchOf(session);
+      if (kind === "bible") {
+        if (!(await mockPassageExists(mockBible(), parsePassageId(refId)))) {
+          throw new ApiError(400, "VALIDATION_FAILED", "Revisa los datos enviados.", {
+            refId: "Ese pasaje no existe.",
+          });
+        }
+      }
       const asset = kind === "media" ? data.media.find((m) => m.id === refId) : undefined;
-      const exists = kind === "song" ? data.songs.some((song) => song.id === refId) : !!asset;
+      const exists =
+        kind === "bible" ||
+        (kind === "song"
+          ? data.songs.some((song) => song.id === refId)
+          : kind === "youtube"
+            ? data.youtubeVideos.some((video) => video.id === refId)
+            : !!asset);
       if (!exists) throw refNotFound(kind);
       // A track always belongs to a song: the song is what goes in the plan.
       if (asset?.kind === "audio") {
@@ -671,8 +757,10 @@ export function mockDataRepositories(session?: UserSession): DataRepositories {
     serviceTypes: serviceTypes(session),
     songs: songs(session),
     media: media(session),
+    youtubeVideos: youtubeVideos(session),
     servicePlan: servicePlan(session),
     records: records(session),
     displays: mockDisplays(session),
+    bible: mockBible(),
   };
 }

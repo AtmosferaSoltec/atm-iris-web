@@ -199,14 +199,17 @@ Ejemplo `AuthResult`:
 
 ```ts
 type ProjectionFont =
-  | "system" | "systemRounded" | "serif" | "georgia" | "avenirNext"
-  | "futura" | "gillSans" | "optima" | "baskerville" | "palatino";
+  | "system" | "inter" | "montserrat" | "poppins" | "oswald"
+  | "bebasNeue" | "playfairDisplay" | "lora" | "merriweather";
 type ProjectionSettings = {
   fontFamily: ProjectionFont;
   fontSizePt: number;              // 40–200, referido a una pantalla de 1920 de ancho
+  fontBold: boolean;               // negrita
+  fontItalic: boolean;             // cursiva
+  uppercase: boolean;              // todo en mayúsculas
   defaultBackgroundId: string | null;  // fondo cuando no hay ninguno elegido; null = negro
 };
-type ProjectionSettingsInput = ProjectionSettings;  // defaultBackgroundId: "" o null limpian
+type ProjectionSettingsInput = ProjectionSettings;  // defaultBackgroundId: "" o null limpian; fontBold, fontItalic y uppercase omitidos = false
 type Church = {
   id: string; name: string; timezone: string;
   projection: ProjectionSettings;   // cómo se ve la letra proyectada; igual en todas las consolas
@@ -231,9 +234,11 @@ type StorageUsage = {
   `breakdown` dice cuánto ocupa cada sección (solo medios no borrados; las subidas en curso no cuentan aquí).
   En `/sync` la iglesia solo viaja cuando cambia, así que una consola que muestre el uso lo pide a `GET /church`.
 - **Letra proyectada** (`projection`): tipografía, tamaño y fondo por defecto, iguales en todas las consolas de la
-  iglesia. `fontFamily` es una clave, no un nombre de fuente: cada cliente la traduce a la fuente real de su
-  plataforma (10 claves — ver `src/modules/church/projection-fonts.ts` en la API para la traducción sugerida por
-  plataforma). `defaultBackgroundId` es el id de un fondo (uno de los degradados fijos o una imagen de la
+  iglesia. `fontFamily` es una clave, no un nombre de fuente. Salvo `system` (la fuente del aparato), son fuentes web
+  libres (Google Fonts, OFL) que **cada cliente incluye consigo**, para que la letra se vea igual en la computadora,
+  el televisor y el iPad: Inter, Montserrat, Poppins, Oswald, Bebas Neue, Playfair Display, Lora y Merriweather (ver
+  `src/modules/church/projection-fonts.ts` en la API). Las claves anteriores (fuentes de Apple: `georgia`, `futura`…)
+  se migraron a la más parecida y ya no se aceptan (400). `defaultBackgroundId` es el id de un fondo (uno de los degradados fijos o una imagen de la
   biblioteca) que se muestra cuando la consola no tiene ninguno elegido; un id que ya no existe (una imagen
   borrada) cae a negro sin avisar, los clientes no lo validan contra nada.
 ---
@@ -410,13 +415,14 @@ type MediaAsset = {
 
 | | Imagen | Video |
 |---|---|---|
-| Formato | JPG, PNG, WebP | solo MP4 |
-| Proporción | 16:9 (±2 %) | 16:9 (±2 %) |
-| Tamaño | 1280 × 720 a 3840 × 2160; recomendado 1920 × 1080 | 1280 × 720 a 1920 × 1080 |
-| Duración | — | hasta **30 s**; las consolas lo repiten en bucle y sin sonido |
-| Peso | hasta 10 MB | hasta 100 MB |
+| Formato | JPG, PNG, WebP | MP4 o MOV |
+| Tamaño y proporción | cualquiera | cualquiera |
+| Duración | — | hasta **30 s** (con 0,5 s de margen); las consolas lo repiten en bucle y sin sonido. Sin `durationSeconds` → "No pudimos medir el video." |
+| Peso | hasta 15 MB | hasta 200 MB |
 
-Un audio no puede ser fondo. Los fondos cuentan para la cuota como cualquier medio.
+**El fondo siempre llena la pantalla**: las consolas lo muestran recortando lo que sobra (como `object-fit: cover`,
+centrado). Un archivo vertical o pequeño se acepta igual; solo se verá recortado o menos nítido. Un audio no puede ser
+fondo. Los fondos cuentan para la cuota como cualquier medio.
 
 Flujo:
 1. `POST /media/uploads` valida tipo, tamaño y cuota (`UNSUPPORTED_MEDIA_TYPE`, `FILE_TOO_LARGE`, `STORAGE_QUOTA_EXCEEDED`).
@@ -484,10 +490,9 @@ Reglas:
 
 ## 13. Biblia — `/bible`
 
-> **Fuera de servicio por ahora** (2026-10-19): las consolas no la muestran y estas rutas responden 404. Su código y
-> sus tablas siguen en la API para volver a activarla; lo de abajo describe cómo funcionaba.
-
-Texto: **Reina-Valera 1909** (dominio público), código `rvr1909`.
+Texto: **Reina-Valera 1909** (dominio público), código `rvr1909`. Es la misma para todas las iglesias, sin selector:
+el texto es global (no tiene `churchId`). Las rutas ya aceptan un `:code`, así que otra traducción (cuando haya
+licencia) se suma importando su archivo, sin cambiar el contrato.
 
 | Método | Ruta | Respuesta |
 |---|---|---|
@@ -511,7 +516,10 @@ type BibleDownload = {
 };
 ```
 
-- Las consolas descargan `download` una vez (y de nuevo si cambia `version`) y buscan sin conexión.
+- Las consolas descargan `download` una vez (y de nuevo si cambia `version`) y buscan sin conexión. La web pide solo
+  el capítulo que se va a proyectar.
+- Un capítulo que no existe → 404. Algunos versículos vienen con texto vacío: en esta edición están unidos al
+  anterior (p. ej. Números 12:16).
 - Requieren sesión.
 
 ---
@@ -589,13 +597,17 @@ entidad del feed).
 
 ```ts
 type ServicePlanItem = {
-  id: string; kind: "song" | "media"; refId: string; position: number;   // media = imagen o video
+  id: string; kind: "song" | "media" | "bible"; refId: string; position: number;   // media = imagen o video
   createdAt: string; updatedAt: string;
 };
 ```
 
 - `refId` es el id de una canción (§10, con su pista si tiene) o de una imagen o video (§11); la API responde 400
-  `VALIDATION_FAILED` (`errors.refId`) si no existe. Una pista no se agrega suelta: `kind: "media"` con un audio
+  `VALIDATION_FAILED` (`errors.refId`) si no existe.
+- **Pasaje** (`kind: "bible"`): `refId` es `<traducción>:<libro USFM>.<capítulo>.<desde>[-<hasta>]`, dentro de un
+  capítulo: `rvr1909:JHN.3.16` (un versículo), `rvr1909:PSA.23.1-6` (seis). Lleva la traducción para que el plan
+  siga diciendo cuál era si algún día hay otra. Si algún versículo del rango no existe → 400 (`errors.refId`: "Ese
+  pasaje no existe."). El texto no se copia al plan: el cliente lo lee de §13. Una pista no se agrega suelta: `kind: "media"` con un audio
   responde "Las pistas se agregan con su canción.".
 - Si la canción o el medio referenciado se borra, su elemento del plan se borra (suave) con él: nunca queda una
   referencia colgando (mismo principio que `projectionDefaultBackground`, §6, pero aquí sí se limpia porque el
@@ -638,3 +650,60 @@ type AppVersionCheck = {
 - **Un fallo nunca bloquea a nadie.** Sin conexión, con la API caída o con cualquier error (incluido 400), la app abre
   normal: solo `updateRequired: true` obliga a actualizar. Nunca se muestra con un servicio en curso.
 - Sin fila para la plataforma, `updateRequired` es `false`.
+
+---
+
+## 18. Pantallas (televisores) — `/displays`
+
+Un televisor con navegador (o cualquier pantalla con internet) muestra lo que manda la consola, sin cables. Se
+vincula a la iglesia **una vez**, con un código como el de Netflix, y queda vinculado hasta que se lo desvincule.
+
+| Método | Ruta | Cuerpo / cabecera | Respuesta | Acceso |
+|---|---|---|---|---|
+| POST | `/displays/pairings` | — | 201 `DisplayPairing` | **Pública** (20/min por IP) |
+| GET | `/displays/pairings/:id` | cabecera `X-Pairing-Secret: <secret>` | `PairingStatus` | **Pública** |
+| POST | `/displays` | `{ code, name }` | 201 `Display` | Sesión |
+| GET | `/displays` | — | `Display[]` (por fecha de vinculación) | Sesión |
+| DELETE | `/displays/:id` | — | 204 | Sesión |
+| PUT | `/displays/state` | `{ frame?, preload?, clock }` | 204 | Sesión |
+| GET | `/displays/stream` | `Authorization: Bearer <token del televisor>` | canal SSE (`text/event-stream`) | Token del televisor |
+
+```ts
+type DisplayPairing = { id: string; code: string; secret: string; expiresAt: string };  // code: 6 de A–Z sin I/L/O y 2–9
+type PairingStatus =
+  | { status: "pending" }
+  | { status: "paired"; token: string; display: { id: string; name: string } };          // sale UNA vez
+type Display = { id: string; name: string; online: boolean; lastSeenAt: string | null; createdAt: string };
+```
+
+**Vincular**
+1. El televisor pide un código (`POST /displays/pairings`) y lo muestra en grande. Vence a los 10 minutos.
+2. Pregunta cada 2 s (`GET /displays/pairings/:id` con su `secret`) hasta recibir `paired`. Un código vencido, ya
+   recogido o con otro `secret` → 404 (pide uno nuevo).
+3. En la consola alguien escribe el código y un nombre (`POST /displays`; mayúsculas o minúsculas da igual).
+   Código inexistente, vencido o ya usado → 400 `VALIDATION_FAILED` (`errors.code`: "Ese código no existe o ya venció.").
+   `name` 1–60.
+4. El televisor recibe su `token` (una sola vez) y lo guarda. Con él abre el canal cada vez que se enciende.
+
+**El canal** (`GET /displays/stream`, Server-Sent Events). Eventos:
+- `state` `{ frame, preload, clock, receivedAt, now }` — al conectarse: lo último que mandó la consola (`frame: null`,
+  `preload: []` y horas `null` si todavía nada).
+- `frame` `{ frame, clock, receivedAt, now }` y `preload` `{ preload, clock, receivedAt, now }` — cada vez que la consola
+  manda algo.
+- Las horas (epoch ms): `clock` es el reloj de la consola al mandarlo, `receivedAt` el del API al recibirlo y `now` el
+  del API al enviar el evento. El televisor pasa una hora de la consola a la suya sumándole
+  `(receivedAt − clock) + (Date.now() − now)`; así los videos quedan en sincronía aunque los relojes difieran.
+- `bye` `{}` — lo desvincularon: borra su token y vuelve a pedir un código.
+- Cada 20 s llega un comentario (`: ok`) para mantenerlo abierto. Si se corta, el navegador se reconecta solo
+  (`retry: 2000`). Un token desvinculado o inválido → 401: el televisor vuelve a pedir un código.
+
+**Lo que manda la consola** (`PUT /displays/state`): el cuadro (`frame`) y/o la lista de archivos a precargar
+(`preload`), con `clock` = `Date.now()` de la consola al mandarlo. **El API no interpreta ni guarda en la base el cuadro
+ni la lista**: los reenvía a los televisores de la iglesia y recuerda el último (en memoria) para el que se conecte
+después. Su forma la definen los clientes (referencia: `ProjectionFrame` y `PreloadFile` en
+`atm-iris-web/src/features/projection/`). Las horas dentro del cuadro (`at` de un video) vienen en el reloj de la
+consola: el televisor las corrige como se explica arriba.
+
+- `online` es `true` mientras el televisor tiene el canal abierto. Desvincular (`DELETE`) cierra su canal en el acto.
+- El canal y las vinculaciones pendientes viven en memoria: un reinicio del API corta los canales (se reconectan
+  solos) y anula los códigos sin usar.

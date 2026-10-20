@@ -10,6 +10,7 @@ import type {
   ServiceType,
   Song,
   UserSession,
+  YoutubeVideo,
 } from "@/domain/models";
 import { ApiError } from "../api/errors";
 import { emptyChurchData, newChurch, sampleContent } from "./seed";
@@ -47,6 +48,7 @@ export type ChurchData = {
   songs: MockSong[];
   media: MockMedia[];
   uploads: MockUpload[];
+  youtubeVideos: YoutubeVideo[];
   servicePlan: ServicePlanItem[];
   records: ServiceRecord[];
 };

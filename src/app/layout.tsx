@@ -4,6 +4,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { IrisBackground } from "@/components/brand/iris-background";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { projectionFontVariables } from "@/features/projection/fonts";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
@@ -26,7 +27,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${inter.variable} ${newsreader.variable} h-full`}>
+    <html
+      lang="es"
+      className={`${inter.variable} ${newsreader.variable} ${projectionFontVariables} h-full`}
+    >
       <body className="min-h-full">
         <IrisBackground />
         <NuqsAdapter>

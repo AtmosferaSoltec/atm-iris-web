@@ -13,6 +13,8 @@ export type ProjectionBackground = {
   imageUrl?: string;
   /** A church video marked as background: muted, looping, filling the screen. */
   videoUrl?: string;
+  /** A video background's length, for the picker. */
+  durationSeconds?: number | null;
 };
 
 export type ProjectionContent =
@@ -39,7 +41,10 @@ export type ProjectionContent =
       captions: boolean;
     };
 
-export type ProjectionTypography = Pick<ProjectionSettings, "fontFamily" | "fontSizePt">;
+export type ProjectionTypography = Pick<
+  ProjectionSettings,
+  "fontFamily" | "fontSizePt" | "fontBold" | "fontItalic" | "uppercase"
+>;
 
 export type ProjectionFrame = {
   background: ProjectionBackground | null;
@@ -47,7 +52,13 @@ export type ProjectionFrame = {
   typography: ProjectionTypography;
 };
 
-export const DEFAULT_TYPOGRAPHY: ProjectionTypography = { fontFamily: "system", fontSizePt: 88 };
+export const DEFAULT_TYPOGRAPHY: ProjectionTypography = {
+  fontFamily: "system",
+  fontSizePt: 100,
+  fontBold: false,
+  fontItalic: false,
+  uppercase: false,
+};
 
 export const BLACK_FRAME: ProjectionFrame = {
   background: null,
@@ -65,34 +76,20 @@ export function rebaseFrame(frame: ProjectionFrame, shiftMs: number): Projection
   return { ...frame, content: { ...content, at: content.at + shiftMs } };
 }
 
-/** The six built-in gradients every church has (same ids as the iPad, contract §6). */
-export const GRADIENTS: ProjectionBackground[] = [
-  { id: "aurora", name: "Aurora", colors: ["#2A1658", "#4E2A8C", "#131E5C"] },
-  { id: "brasa", name: "Brasa", colors: ["#3A1E08", "#8C3A1E", "#3D1235"] },
-  { id: "oceano", name: "Océano", colors: ["#06283D", "#0E5E6F", "#0A1931"] },
-  { id: "olivo", name: "Olivo", colors: ["#0F2417", "#2F5233", "#111A12"] },
-  { id: "alba", name: "Alba", colors: ["#5B2A3C", "#C0694E", "#2B1A3A"] },
-  { id: "medianoche", name: "Medianoche", colors: ["#07070B", "#15151F", "#07070B"] },
-];
-
 /** Placeholder stops for a church background while its file loads. */
 export const MEDIA_BACKGROUND_COLORS = ["#15151F", "#07070B"];
 
-/**
- * The 10 projection typeface keys (contract §6) as web font stacks. Apple names come
- * first (Mac, iPad browsers), then the closest Windows/TV fonts, then a generic family.
- */
+/** The projection typeface keys (contract §6) as CSS stacks; the web fonts come from fonts.ts. */
 const FONT_STACKS: Record<string, string> = {
   system: 'system-ui, -apple-system, "Segoe UI Variable", "Segoe UI", Roboto, sans-serif',
-  systemRounded: 'ui-rounded, "SF Pro Rounded", "Segoe UI", Roboto, sans-serif',
-  serif: 'ui-serif, "New York", Georgia, serif',
-  georgia: "Georgia, serif",
-  avenirNext: '"Avenir Next", Avenir, "Century Gothic", sans-serif',
-  futura: 'Futura, "Century Gothic", Bahnschrift, sans-serif',
-  gillSans: '"Gill Sans", "Gill Sans MT", Corbel, sans-serif',
-  optima: 'Optima, Candara, "Segoe UI", sans-serif',
-  baskerville: 'Baskerville, "Baskerville Old Face", Cambria, serif',
-  palatino: 'Palatino, "Palatino Linotype", "Book Antiqua", serif',
+  inter: "var(--font-projection-inter), system-ui, sans-serif",
+  montserrat: "var(--font-projection-montserrat), system-ui, sans-serif",
+  poppins: "var(--font-projection-poppins), system-ui, sans-serif",
+  oswald: "var(--font-projection-oswald), system-ui, sans-serif",
+  bebasNeue: "var(--font-projection-bebas), system-ui, sans-serif",
+  playfairDisplay: "var(--font-projection-playfair), Georgia, serif",
+  lora: "var(--font-projection-lora), Georgia, serif",
+  merriweather: "var(--font-projection-merriweather), Georgia, serif",
 };
 
 export function fontStack(key: string): string {

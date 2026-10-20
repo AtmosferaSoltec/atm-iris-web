@@ -11,18 +11,29 @@ const POLL_MS = 10_000;
 /** A send that failed (no internet for a moment) goes again after this. */
 const RETRY_MS = 2000;
 
-type Outgoing = { frame?: ProjectionFrame; preload?: PreloadFile[] };
+type Outgoing = { frame?: ProjectionFrame; preload?: PreloadFile[]; displayId?: string };
+
+/** The screen that presents is remembered in this browser. */
+const ACTIVE_KEY = "iris-active-display";
+
+function storedActive(): string | null {
+  try {
+    return localStorage.getItem(ACTIVE_KEY);
+  } catch {
+    return null;
+  }
+}
 
 /**
- * Sends to the TVs (contract §18) one request at a time. Changes that pile up while one is
+ * Sends to the screens (contract §18) one request at a time. Changes that pile up while one is
  * on its way travel together in the next, newest first: arrows held down never queue up.
  */
 class DisplaySender {
   private pending: Outgoing | null = null;
   private busy = false;
 
-  push(part: Outgoing) {
-    this.pending = { ...this.pending, ...part };
+  push(part: Omit<Outgoing, "displayId">, displayId: string | undefined) {
+    this.pending = { ...this.pending, ...part, displayId };
     void this.flush();
   }
 
@@ -49,13 +60,17 @@ class DisplaySender {
   }
 }
 
-/** The church's linked TVs: what they show follows the console while there is any. */
+/**
+ * The church's linked screens. For now one presents: `activeId`, the one the person chose (or
+ * the first). Only it follows the console; the others do nothing, so nothing is sent twice.
+ */
 export function useRemoteDisplays(
   initial: Display[],
   frame: ProjectionFrame,
   preload: PreloadFile[],
 ) {
   const [displays, setDisplays] = useState(initial);
+  const [chosenId, setChosenId] = useState<string | null>(storedActive);
   const [sender] = useState(() => new DisplaySender());
   const latest = useRef({ frame, preload });
   useEffect(() => {
@@ -63,6 +78,7 @@ export function useRemoteDisplays(
   }, [frame, preload]);
 
   const hasDisplays = displays.length > 0;
+  const activeId = displays.find((display) => display.id === chosenId)?.id ?? displays[0]?.id;
   const preloadKey = JSON.stringify(preload);
   const onlineKey = displays
     .filter((display) => display.online)
@@ -78,20 +94,30 @@ export function useRemoteDisplays(
   }, [hasDisplays, refresh]);
 
   useEffect(() => {
-    if (hasDisplays) sender.push({ frame });
-  }, [frame, hasDisplays, sender]);
+    if (hasDisplays) sender.push({ frame }, activeId);
+  }, [frame, hasDisplays, activeId, sender]);
 
   useEffect(() => {
-    if (hasDisplays) sender.push({ preload: JSON.parse(preloadKey) as PreloadFile[] });
-  }, [preloadKey, hasDisplays, sender]);
+    if (hasDisplays) sender.push({ preload: JSON.parse(preloadKey) as PreloadFile[] }, activeId);
+  }, [preloadKey, hasDisplays, activeId, sender]);
 
-  // A TV that just came on (or an API that restarted) gets everything again.
+  // A screen that just came on, the one that now presents, or an API that restarted: everything again.
   useEffect(() => {
-    if (onlineKey) sender.push(latest.current);
-  }, [onlineKey, sender]);
+    if (onlineKey) sender.push(latest.current, activeId);
+  }, [onlineKey, activeId, sender]);
 
   return {
     displays,
+    /** The screen that presents, or undefined without screens. */
+    activeId,
+    select: (id: string) => {
+      setChosenId(id);
+      try {
+        localStorage.setItem(ACTIVE_KEY, id);
+      } catch {
+        // No storage: it holds until the page closes.
+      }
+    },
     refresh,
     /** Just linked: it opens its channel within seconds, so look again soon. */
     added: (display: Display) => {

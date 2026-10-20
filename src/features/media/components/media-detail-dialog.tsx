@@ -20,16 +20,22 @@ type Props = {
   /** Signed download URL; null when it couldn't be fetched. */
   url: string | null;
   onClose: () => void;
+  /** Its title or description changed. */
+  onSaved?: () => void;
+  onDeleted?: () => void;
 };
 
-export function MediaDetailDialog({ asset, url, onClose }: Props) {
+export function MediaDetailDialog({ asset, url, onClose, onSaved, onDeleted }: Props) {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string>();
   const [isPending, startTransition] = useTransition();
   const [state, action] = useActionState(
     async (previous: FormState<MediaField>, formData: FormData) => {
       const next = await updateMediaDetails(asset.id, previous, formData);
-      if (next.status === "success") toast.success("Cambios guardados");
+      if (next.status === "success") {
+        toast.success("Cambios guardados");
+        onSaved?.();
+      }
       return next;
     },
     idleState,
@@ -44,6 +50,7 @@ export function MediaDetailDialog({ asset, url, onClose }: Props) {
       }
       toast.success(`Se eliminó «${asset.title}»`);
       setIsConfirmingDelete(false);
+      onDeleted?.();
       onClose();
     });
   }

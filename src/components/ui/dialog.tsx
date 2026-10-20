@@ -15,10 +15,11 @@ type DialogProps = {
   description?: ReactNode;
   children?: ReactNode;
   footer?: ReactNode;
-  size?: "sm" | "md" | "lg";
+  /** `xl`: a whole editor (a song) on a wide screen. */
+  size?: "sm" | "md" | "lg" | "xl";
 };
 
-const widths = { sm: "max-w-sm", md: "max-w-lg", lg: "max-w-3xl" };
+const widths = { sm: "max-w-sm", md: "max-w-lg", lg: "max-w-3xl", xl: "max-w-6xl max-h-[92dvh]" };
 
 /** Modal on Radix Dialog: focus trap, Esc, outside click and scroll lock. */
 export function Dialog({

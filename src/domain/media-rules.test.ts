@@ -19,31 +19,26 @@ const video = {
 };
 
 describe("backgroundProblem", () => {
-  it("accepts a 1920 × 1080 image and a 20 s MP4", () => {
+  it("takes any size and shape: the background is cropped to fill", () => {
     expect(backgroundProblem(image)).toBeNull();
-    expect(backgroundProblem(video)).toBeNull();
+    expect(backgroundProblem({ ...image, width: 640, height: 640 })).toBeNull();
+    expect(backgroundProblem({ ...video, width: 1080, height: 1920 })).toBeNull();
+    expect(backgroundProblem({ ...video, contentType: "video/quicktime" })).toBeNull();
   });
 
-  it("rejects audio, wrong formats and heavy files", () => {
+  it("rejects audio, other types and heavy files", () => {
     expect(backgroundProblem({ ...image, kind: "audio" })).toMatch(/audio/i);
-    expect(backgroundProblem({ ...video, contentType: "video/quicktime" })).toMatch(/MP4/);
-    expect(backgroundProblem({ ...image, sizeBytes: 11 * 1024 * 1024 })).toMatch(/10 MB/);
+    expect(backgroundProblem({ ...image, contentType: "image/gif" })).toMatch(/JPG/);
+    expect(backgroundProblem({ ...image, sizeBytes: 16 * 1024 * 1024 })).toMatch(/15 MB/);
+    expect(backgroundProblem({ ...video, sizeBytes: 201 * 1024 * 1024 })).toMatch(/200 MB/);
   });
 
-  it("needs 16:9 and a size inside the range", () => {
-    expect(backgroundProblem({ ...image, width: 1080, height: 1080 })).toMatch(/16:9/);
-    expect(backgroundProblem({ ...image, width: 640, height: 360 })).toMatch(/entre 1280/);
-    expect(backgroundProblem({ ...video, width: 3840, height: 2160 })).toMatch(/entre 1280/);
-    expect(backgroundProblem({ ...image, width: 1366, height: 768 })).toBeNull();
-    expect(backgroundProblem({ ...image, width: null, height: null })).toMatch(/medir/);
-  });
-
-  it("limits a video to 30 seconds", () => {
-    expect(backgroundProblem({ ...video, durationSeconds: 30 })).toBeNull();
+  it("limits videos to 30 seconds", () => {
+    expect(backgroundProblem({ ...video, durationSeconds: 30.03 })).toBeNull();
     expect(backgroundProblem({ ...video, durationSeconds: 31 })).toMatch(/30 segundos/);
+    expect(backgroundProblem({ ...video, durationSeconds: null })).toMatch(/medir/);
   });
 });
-
 describe("mediaSection", () => {
   it("puts audio with the songs (tracks), backgrounds in Fondos and the rest in Multimedia", () => {
     expect(mediaSection({ kind: "audio", isBackground: false })).toBe("music");

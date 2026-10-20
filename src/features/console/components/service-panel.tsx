@@ -1,10 +1,13 @@
 "use client";
 
+import { useDndContext, useDroppable } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   Captions,
-  ChevronDown,
-  ChevronUp,
+  GripVertical,
   ListMusic,
+  Music,
   Pause,
   Play,
   Repeat,
@@ -25,11 +28,16 @@ import { plural } from "@/lib/text";
 import type { ConsoleItem } from "../model";
 import { elapsedOf, type LiveConsole } from "../use-live-console";
 import { FileStatus } from "./file-status";
-import { ENTRY_ICONS } from "./library-panel";
+import { dragListener, SERVICE_DROP_ID } from "../dnd";
+import { ENTRY_ICONS, itemIconKey } from "../library/entry-icons";
 
 /** SERVICIO over EN VIVO (IRIS_SPEC §6.2, column 1 of the iPad; right column on the desktop). */
 export function ServicePanel({ ctrl }: { ctrl: LiveConsole }) {
   const [isConfirmingClear, setIsConfirmingClear] = useState(false);
+  // The whole list is a drop target for what is dragged from the library.
+  const { setNodeRef, isOver } = useDroppable({ id: SERVICE_DROP_ID });
+  const { active } = useDndContext();
+  const isReceiving = isOver || (active?.data.current?.type === "library" && !!active);
 
   return (
     <div className="flex min-h-0 flex-col gap-4">
@@ -49,31 +57,45 @@ export function ServicePanel({ ctrl }: { ctrl: LiveConsole }) {
           )}
         </div>
 
-        {ctrl.items.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center text-ink-2">
-            <ListMusic aria-hidden className="size-7" />
-            <p className="text-sm font-medium text-ink">Servicio vacío</p>
-            <p className="text-xs">Agrega canciones o multimedia desde la biblioteca.</p>
-          </div>
-        ) : (
-          <ol className="-mx-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
-            {ctrl.items.map((item, index) => (
-              <ServiceRow
-                key={item.planItemId}
-                item={item}
-                index={index}
-                fileState={ctrl.fileState}
-                isOpen={item.planItemId === ctrl.openKey}
-                isLive={item.planItemId === ctrl.live?.key && !ctrl.isCleared}
-                isFirst={index === 0}
-                isLast={index === ctrl.items.length - 1}
-                onOpen={() => ctrl.setOpenKey(item.planItemId)}
-                onMove={(offset) => ctrl.move(item.planItemId, offset)}
-                onRemove={() => ctrl.remove(item.planItemId)}
-              />
-            ))}
-          </ol>
-        )}
+        <div
+          ref={setNodeRef}
+          className={cn(
+            "-mx-1 flex min-h-0 flex-1 flex-col rounded-md px-1 transition",
+            isReceiving && "ring-1 ring-line-strong ring-inset",
+            isOver && "bg-surface",
+          )}
+        >
+          {ctrl.items.length === 0 ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center text-ink-2">
+              <ListMusic aria-hidden className="size-7" />
+              <p className="text-sm font-medium text-ink">Servicio vacío</p>
+              <p className="text-xs">Arrastra canciones o multimedia desde la biblioteca.</p>
+            </div>
+          ) : (
+            <SortableContext
+              items={ctrl.items.map((item) => item.planItemId)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ol
+                aria-label="Elementos del servicio"
+                className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto"
+              >
+                {ctrl.items.map((item, index) => (
+                  <ServiceRow
+                    key={item.planItemId}
+                    item={item}
+                    index={index}
+                    fileState={ctrl.fileState}
+                    isOpen={item.planItemId === ctrl.openKey}
+                    isLive={item.planItemId === ctrl.live?.key && !ctrl.isCleared}
+                    onOpen={() => ctrl.setOpenKey(item.planItemId)}
+                    onRemove={() => ctrl.remove(item.planItemId)}
+                  />
+                ))}
+              </ol>
+            </SortableContext>
+          )}
+        </div>
       </Surface>
 
       <Surface className="flex flex-col gap-3 p-3">
@@ -92,6 +114,7 @@ export function ServicePanel({ ctrl }: { ctrl: LiveConsole }) {
           </span>
         </div>
         {ctrl.playback && <NowPlaying ctrl={ctrl} />}
+        <OpenTrack ctrl={ctrl} />
       </Surface>
 
       <ConfirmDialog
@@ -115,10 +138,7 @@ function ServiceRow({
   fileState,
   isOpen,
   isLive,
-  isFirst,
-  isLast,
   onOpen,
-  onMove,
   onRemove,
 }: {
   item: ConsoleItem;
@@ -127,18 +147,30 @@ function ServiceRow({
   fileState: LiveConsole["fileState"];
   isOpen: boolean;
   isLive: boolean;
-  isFirst: boolean;
-  isLast: boolean;
   onOpen: () => void;
-  onMove: (offset: number) => void;
   onRemove: () => void;
 }) {
-  const { icon: Icon, color } = ENTRY_ICONS[item.kind];
+  const { icon: Icon, color } = ENTRY_ICONS[itemIconKey(item)];
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.planItemId });
   return (
     <li
+      ref={setNodeRef}
+      // The whole row is dragged with the pointer; the grip is the keyboard's handle.
+      {...dragListener(listeners, "onPointerDown")}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
       className={cn(
         "group relative flex items-center gap-3 rounded-md py-2 pr-1 pl-3 transition-colors",
         isOpen ? "bg-surface-raised" : "hover:bg-surface",
+        isDragging &&
+          "relative z-10 cursor-grabbing bg-surface-raised opacity-90 shadow-xl ring-1 ring-line-strong",
       )}
     >
       {isOpen && (
@@ -179,32 +211,68 @@ function ServiceRow({
           <FileStatus state={fileState(item.file.id)} className="mr-1" />
         )}
       </button>
-      <span className="hidden shrink-0 items-center group-focus-within:flex group-hover:flex">
-        <IconButton
-          label="Subir"
-          className="size-7 ring-0"
-          disabled={isFirst}
-          onClick={() => onMove(-1)}
-        >
-          <ChevronUp />
-        </IconButton>
-        <IconButton
-          label="Bajar"
-          className="size-7 ring-0"
-          disabled={isLast}
-          onClick={() => onMove(1)}
-        >
-          <ChevronDown />
-        </IconButton>
-        <IconButton
-          label={`Quitar «${item.title}»`}
-          className="size-7 ring-0 hover:text-danger"
-          onClick={onRemove}
-        >
-          <X />
-        </IconButton>
-      </span>
+      <button
+        type="button"
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...dragListener(listeners, "onKeyDown")}
+        aria-label={`Mover «${item.title}»`}
+        className="grid size-7 shrink-0 cursor-grab place-items-center rounded-full text-ink-2 opacity-0 transition group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
+      >
+        <GripVertical aria-hidden className="size-4" />
+      </button>
+      <IconButton
+        label={`Quitar «${item.title}»`}
+        className="size-7 shrink-0 opacity-0 ring-0 group-focus-within:opacity-100 group-hover:opacity-100 hover:text-danger"
+        onClick={onRemove}
+      >
+        <X />
+      </IconButton>
     </li>
+  );
+}
+
+/**
+ * The open song's track, ready to play. It never starts or replaces anything by itself: with
+ * nothing loaded it is the player's idle state; with another track loaded, that one keeps
+ * playing and this is only an offer to switch.
+ */
+function OpenTrack({ ctrl }: { ctrl: LiveConsole }) {
+  const item = ctrl.openItem;
+  if (!item || item.kind !== "song" || !(item.file || item.youTubeId)) return null;
+  if (ctrl.playback?.key === item.planItemId) return null;
+  const duration = item.file?.durationSeconds;
+
+  if (ctrl.playback) {
+    return (
+      <button
+        type="button"
+        onClick={ctrl.toggleTrack}
+        className="flex h-9 cursor-pointer items-center justify-center gap-2 rounded-full px-3 text-xs font-medium text-ink-2 ring-1 ring-line transition ring-inset hover:bg-surface hover:text-ink"
+      >
+        <Music aria-hidden className="size-3.5" />
+        <span className="truncate">Cambiar a la pista de «{item.title}»</span>
+      </button>
+    );
+  }
+  return (
+    <div className="flex items-center gap-3 px-1">
+      <button
+        type="button"
+        aria-label={`Reproducir la pista de «${item.title}»`}
+        title="Reproducir la pista (P)"
+        onClick={ctrl.toggleTrack}
+        className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-coral text-ink-inverse transition hover:brightness-110 active:scale-95"
+      >
+        <Play aria-hidden className="ml-0.5 size-5" fill="currentColor" />
+      </button>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold">{item.title}</span>
+        <span className="block text-xs text-ink-2">
+          Pista lista{duration ? ` · ${clock(duration)}` : ""}
+        </span>
+      </span>
+    </div>
   );
 }
 

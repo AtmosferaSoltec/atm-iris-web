@@ -7,12 +7,13 @@ import type {
   ProjectionBackground,
   ProjectionContent,
   ProjectionFrame,
+  ProjectionTypography,
 } from "@/features/projection/model";
 import { clearPlan, movePlanItem, removePlanItem } from "@/features/service-plan/actions";
-import { addToService, refreshFileUrls } from "./actions";
+import { addToService, quickItem, refreshFileUrls } from "./actions";
 import { RoomAudio } from "./room-audio";
 import { useRemoteDisplays } from "./use-remote-displays";
-import type { ConsoleData, ConsoleItem } from "./model";
+import type { ConsoleData, ConsoleItem, LibraryEntry } from "./model";
 
 export type LivePosition = { key: string; slide: number };
 
@@ -64,12 +65,28 @@ export function useLiveConsole(data: ConsoleData) {
     return id && data.backgrounds.some((background) => background.id === id) ? id : null;
   });
   const [playback, setPlayback] = useState<Playback | null>(null);
+  // How the lyrics look (contract §6): the church's, changed live from "Texto".
+  const [typography, setTypography] = useState<ProjectionTypography>(() => ({
+    fontFamily: data.projection.fontFamily,
+    fontSizePt: data.projection.fontSizePt,
+    fontBold: data.projection.fontBold ?? false,
+    fontItalic: data.projection.fontItalic ?? false,
+    uppercase: data.projection.uppercase ?? false,
+  }));
   const [screens, setScreens] = useState<
     Record<string, { lastSeen: number; width: number; height: number; ready: string[] }>
   >({});
   const [room] = useState(() => new RoomAudio());
 
-  const itemByKey = useMemo(() => new Map(items.map((item) => [item.planItemId, item])), [items]);
+  // A passage shown from "Biblia" (V): straight to the screens, never in the service.
+  const [quickPassage, setQuickPassage] = useState<ConsoleItem | null>(null);
+  const itemByKey = useMemo(
+    () =>
+      new Map(
+        [...items, ...(quickPassage ? [quickPassage] : [])].map((item) => [item.planItemId, item]),
+      ),
+    [items, quickPassage],
+  );
   const openItem = openKey ? (itemByKey.get(openKey) ?? null) : null;
   const background = backgrounds.find((candidate) => candidate.id === backgroundId) ?? null;
 
@@ -79,9 +96,11 @@ export function useLiveConsole(data: ConsoleData) {
     if (isCleared || !live) return { kind: "blank" };
     const item = itemByKey.get(live.key);
     if (!item) return { kind: "blank" };
-    if (item.kind === "song") {
+    if (item.kind === "song" || item.kind === "bible") {
       const slide = item.slides[live.slide];
-      return slide ? { kind: "text", text: slide.text, footnote: null } : { kind: "blank" };
+      return slide
+        ? { kind: "text", text: slide.text, footnote: slide.footnote ?? null }
+        : { kind: "blank" };
     }
     if (item.kind === "image" && item.file)
       return { kind: "image", id: item.file.id, url: item.file.url };
@@ -114,12 +133,9 @@ export function useLiveConsole(data: ConsoleData) {
     () => ({
       background,
       content: liveContent,
-      typography: {
-        fontFamily: data.projection.fontFamily,
-        fontSizePt: data.projection.fontSizePt,
-      },
+      typography,
     }),
-    [background, liveContent, data.projection.fontFamily, data.projection.fontSizePt],
+    [background, liveContent, typography],
   );
 
   // ----- Talking to the screens -----
@@ -155,7 +171,10 @@ export function useLiveConsole(data: ConsoleData) {
 
   const channel = useRef<ReturnType<typeof consoleChannel> | null>(null);
   const seq = useRef(0);
-  const preload = useMemo(() => preloadOf(items, backgrounds), [items, backgrounds]);
+  const preload = useMemo(
+    () => preloadOf(quickPassage ? [...items, quickPassage] : items, backgrounds),
+    [items, quickPassage, backgrounds],
+  );
   const preloadKey = JSON.stringify(preload);
   // Linked TVs (contract §18) follow the same frame over the internet.
   const remote = useRemoteDisplays(data.displays, liveFrame, preload);
@@ -386,6 +405,39 @@ export function useLiveConsole(data: ConsoleData) {
     setIsCleared(false);
   }, []);
 
+  /** "Biblia": the verse goes on the screens at once; the arrows move through its chapter. */
+  const presentPassage = useCallback(
+    (item: ConsoleItem, slide: number) => {
+      setQuickPassage(item);
+      setOpenKey(item.planItemId);
+      show({ key: item.planItemId, slide });
+    },
+    [show],
+  );
+
+  /**
+   * Library "doble clic" on an image, video or YouTube link: straight to the screens, without
+   * adding it to the service (unless it is already there). Videos and YouTube start playing.
+   */
+  const presentQuick = useCallback(
+    async (entry: LibraryEntry) => {
+      let item = items.find((candidate) => candidate.refId === entry.id) ?? null;
+      if (!item) {
+        const result = await quickItem(entry.kind === "youtube" ? "youtube" : "media", entry.id);
+        if (!result.item) {
+          toast.error(result.error ?? "No pudimos mostrarlo.");
+          return;
+        }
+        item = result.item;
+        setQuickPassage(item);
+      }
+      setOpenKey(item.planItemId);
+      show({ key: item.planItemId, slide: 0 });
+      if (item.kind === "video" || item.kind === "youtube") startPlayback(item);
+    },
+    [items, show, startPlayback],
+  );
+
   const presentSlide = useCallback(
     (index: number) => {
       if (openKey) show({ key: openKey, slide: index });
@@ -415,8 +467,13 @@ export function useLiveConsole(data: ConsoleData) {
     (offset: number) => {
       const key = live?.key ?? openKey;
       const item = key ? itemByKey.get(key) : null;
-      if (!item || item.kind !== "song" || item.slides.length === 0) return;
-      const current = live?.key === key ? live.slide : offset > 0 ? -1 : item.slides.length;
+      if (!item || (item.kind !== "song" && item.kind !== "bible") || item.slides.length === 0) {
+        return;
+      }
+      // Not on the screens yet: a passage starts at its first verse (or ends at its last).
+      const before = item.focus ? item.focus.first - 1 : -1;
+      const after = item.focus ? item.focus.last + 1 : item.slides.length;
+      const current = live?.key === key ? live.slide : offset > 0 ? before : after;
       const next = Math.min(Math.max(current + offset, 0), item.slides.length - 1);
       if (key !== openKey) setOpenKey(key);
       show({ key: item.planItemId, slide: next });
@@ -426,66 +483,84 @@ export function useLiveConsole(data: ConsoleData) {
 
   // ----- Editing the service (IRIS_SPEC §7.6); the plan follows -----
 
-  const add = useCallback(async (kind: "song" | "media", refId: string) => {
-    const result = await addToService(kind, refId);
-    if (!result.item) {
-      toast.error(result.error ?? "No pudimos agregarlo.");
-      return;
-    }
-    const item = result.item;
-    setItems((current) => [...current, item]);
-    setOpenKey(item.planItemId);
-  }, []);
+  /** Adds to the end of the service, or at `index` when dropped between two rows. */
+  const add = useCallback(
+    async (kind: "song" | "media" | "bible" | "youtube", refId: string, index?: number) => {
+      const result = await addToService(kind, refId);
+      if (!result.item) {
+        toast.error(result.error ?? "No pudimos agregarlo.");
+        return;
+      }
+      const item = result.item;
+      setItems((current) => {
+        const at = Math.min(index ?? current.length, current.length);
+        return [...current.slice(0, at), item, ...current.slice(at)];
+      });
+      setOpenKey(item.planItemId);
+      if (index !== undefined) {
+        void movePlanItem(item.planItemId, index).then(
+          (moved) => moved.error && toast.error(moved.error),
+        );
+      }
+    },
+    [],
+  );
 
-  /**
-   * A YouTube video, only for this service: it is not saved in the plan (contract §15 has no
-   * such kind yet), so it stays in this console until it is removed or the page reloads.
-   */
-  const addYouTube = useCallback((video: { videoId: string; title: string; author: string }) => {
-    const item: ConsoleItem = {
-      planItemId: `youtube-${crypto.randomUUID()}`,
-      refId: video.videoId,
-      kind: "youtube",
-      title: video.title,
-      subtitle: video.author ? `YouTube · ${video.author}` : "YouTube",
-      slides: [],
-      file: null,
-      youTubeId: video.videoId,
-    };
-    setItems((current) => [...current, item]);
-    setOpenKey(item.planItemId);
-  }, []);
+  /** Takes rows out of this console: what was open moves on, what was playing stops. */
+  const forget = useCallback(
+    (keys: Set<string>) => {
+      const index = items.findIndex((item) => keys.has(item.planItemId));
+      if (index === -1) return;
+      const rest = items.filter((item) => !keys.has(item.planItemId));
+      setItems(rest);
+      if (openKey && keys.has(openKey)) {
+        setOpenKey(rest[Math.min(index, rest.length - 1)]?.planItemId ?? null);
+      }
+      if (playback && keys.has(playback.key)) stopPlayback();
+      if (live && keys.has(live.key)) setLive(null);
+    },
+    [items, openKey, playback, live, stopPlayback],
+  );
 
   const remove = useCallback(
     (key: string) => {
-      const index = items.findIndex((item) => item.planItemId === key);
-      if (index === -1) return;
-      const isPlanItem = items[index].kind !== "youtube";
-      const rest = items.filter((item) => item.planItemId !== key);
-      setItems(rest);
-      if (openKey === key) setOpenKey(rest[Math.min(index, rest.length - 1)]?.planItemId ?? null);
-      if (playback?.key === key) stopPlayback();
-      if (live?.key === key) setLive(null);
-      if (isPlanItem) {
-        void removePlanItem(key).then((result) => result.error && toast.error(result.error));
-      }
+      const item = items.find((candidate) => candidate.planItemId === key);
+      if (!item) return;
+      forget(new Set([key]));
+      void removePlanItem(key).then((result) => result.error && toast.error(result.error));
     },
-    [items, openKey, playback?.key, live?.key, stopPlayback],
+    [items, forget],
   );
 
-  const move = useCallback(
-    (key: string, offset: number) => {
+  /**
+   * A song or file changed in the library (edited, or its track replaced): every row of it in
+   * the service shows the new version.
+   */
+  const updateRef = useCallback((refId: string, content: Omit<ConsoleItem, "planItemId">) => {
+    setItems((current) =>
+      current.map((item) =>
+        item.refId === refId ? { ...content, planItemId: item.planItemId } : item,
+      ),
+    );
+  }, []);
+
+  /** Deleted from the library: the API already took it out of the plan, so only here. */
+  const dropRef = useCallback(
+    (refId: string) =>
+      forget(new Set(items.filter((item) => item.refId === refId).map((item) => item.planItemId))),
+    [items, forget],
+  );
+
+  /** Drag and drop: the row `key` goes to place `to` (0-based), the others make room. */
+  const moveTo = useCallback(
+    (key: string, to: number) => {
       const from = items.findIndex((item) => item.planItemId === key);
-      const to = from + offset;
-      if (from === -1 || to < 0 || to >= items.length) return;
+      if (from === -1 || to < 0 || to >= items.length || to === from) return;
       const next = [...items];
       const [moved] = next.splice(from, 1);
       next.splice(to, 0, moved);
       setItems(next);
-      if (moved.kind === "youtube") return;
-      // The plan only has its own rows: the position counts those, not the YouTube videos.
-      const position = next.filter((item) => item.kind !== "youtube").indexOf(moved);
-      void movePlanItem(key, position).then((result) => result.error && toast.error(result.error));
+      void movePlanItem(key, to).then((result) => result.error && toast.error(result.error));
     },
     [items],
   );
@@ -512,7 +587,26 @@ export function useLiveConsole(data: ConsoleData) {
     [connectedScreens],
   );
 
+  /** A background uploaded from the console joins the list (and the screens preload it). */
+  const addBackground = useCallback((added: ProjectionBackground) => {
+    setBackgrounds((current) => [...current.filter((item) => item.id !== added.id), added]);
+  }, []);
+
+  /** A deleted background leaves the list; if it was showing, the screens go black. */
+  const removeBackground = useCallback((id: string) => {
+    setBackgrounds((current) => current.filter((item) => item.id !== id));
+    setBackgroundId((current) => (current === id ? null : current));
+  }, []);
+
   return {
+    presentPassage,
+    presentQuick,
+    addBackground,
+    removeBackground,
+    typography,
+    setTypography,
+    updateRef,
+    dropRef,
     remote,
     items,
     openItem,
@@ -536,10 +630,9 @@ export function useLiveConsole(data: ConsoleData) {
     toggleTrack,
     step,
     add,
-    addYouTube,
     followVideo,
     remove,
-    move,
+    moveTo,
     clear,
     screens: connectedScreens,
     fileState,

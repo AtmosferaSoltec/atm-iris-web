@@ -8,7 +8,6 @@ function type(name: string, schedule: ServiceType["schedule"]): ServiceType {
   return {
     id: name,
     name,
-    color: "#FFB547",
     schedule,
     blocks: [],
     createdAt: "",

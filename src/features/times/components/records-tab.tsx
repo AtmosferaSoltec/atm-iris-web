@@ -1,7 +1,6 @@
 "use client";
 
 import { Timer } from "lucide-react";
-import { ColorDot } from "@/components/ui/chip";
 import { Chip } from "@/components/ui/chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Select } from "@/components/ui/select";
@@ -66,7 +65,6 @@ export function RecordsTab({
                 <ul className="px-2 pb-2">
                   {group.records.map((record) => {
                     const totals = recordTotals(record);
-                    const type = types.find((candidate) => candidate.id === record.serviceTypeId);
                     const isSelected = record.id === selected?.id;
                     return (
                       <li key={record.id}>
@@ -85,7 +83,6 @@ export function RecordsTab({
                               className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-accent"
                             />
                           )}
-                          <ColorDot color={type?.color ?? "var(--color-ink-3)"} />
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-semibold">
                               {serviceName(record, types)}

@@ -11,7 +11,6 @@ type Result = { error?: string };
 function revalidateTimes() {
   revalidatePath("/times");
   // Block counts per person and the home tile read records too.
-  revalidatePath("/people");
   revalidatePath("/");
 }
 
