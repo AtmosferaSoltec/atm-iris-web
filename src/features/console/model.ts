@@ -65,6 +65,9 @@ export type LibraryEntry = {
   hasAudio?: boolean;
 };
 
+/** A sound effect the church uploaded: one click plays it in the room. */
+export type SoundEntry = { id: string; title: string; icon: string };
+
 export type ConsoleData = {
   churchId: string;
   churchName: string;
@@ -72,6 +75,7 @@ export type ConsoleData = {
   items: ConsoleItem[];
   library: LibraryEntry[];
   backgrounds: ProjectionBackground[];
+  sounds: SoundEntry[];
   timeZone: string;
   /** For the block timer (IRIS_SPEC §6.9). */
   serviceTypes: ServiceType[];

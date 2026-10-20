@@ -14,7 +14,7 @@ import { clearPlan, movePlanItem, removePlanItem } from "@/features/service-plan
 import { addToService, quickItem, refreshFileUrls } from "./actions";
 import { RoomAudio } from "./room-audio";
 import { useRemoteDisplays } from "./use-remote-displays";
-import type { ConsoleData, ConsoleItem, LibraryEntry } from "./model";
+import type { ConsoleData, ConsoleItem, LibraryEntry, SoundEntry } from "./model";
 
 export type LivePosition = { key: string; slide: number };
 
@@ -58,6 +58,7 @@ const REFRESH_URLS_EVERY_MS = 45 * 60 * 1000;
 export function useLiveConsole(data: ConsoleData) {
   const [items, setItems] = useState(data.items);
   const [backgrounds, setBackgrounds] = useState(data.backgrounds);
+  const [sounds, setSounds] = useState(data.sounds);
   const [openKey, setOpenKey] = useState<string | null>(data.items[0]?.planItemId ?? null);
   const [live, setLive] = useState<LivePosition | null>(null);
   const [isCleared, setIsCleared] = useState(false);
@@ -592,8 +593,14 @@ export function useLiveConsole(data: ConsoleData) {
     [items],
   );
 
-  const startTimer = useCallback((seconds: number) => {
-    setTimer({ kind: "timer", seconds, running: true, at: Date.now() });
+  const startTimer = useCallback((seconds: number, label?: string) => {
+    setTimer({
+      kind: "timer",
+      seconds,
+      running: true,
+      at: Date.now(),
+      ...(label?.trim() ? { label: label.trim() } : {}),
+    });
     setIsCleared(false);
   }, []);
   const pauseTimer = useCallback(() => {
@@ -653,6 +660,10 @@ export function useLiveConsole(data: ConsoleData) {
     hideTimer,
     presentPassage,
     presentQuick,
+    sounds,
+    addSound: (sound: SoundEntry) =>
+      setSounds((current) => [...current.filter((item) => item.id !== sound.id), sound]),
+    removeSound: (id: string) => setSounds((current) => current.filter((item) => item.id !== id)),
     addBackground,
     removeBackground,
     typography,

@@ -163,6 +163,8 @@ export type MediaListQuery = {
   kind?: MediaKind | readonly MediaKind[];
   search?: string;
   isBackground?: boolean;
+  /** `true`: only the console's sound effects; `false`: everything else. */
+  isSound?: boolean;
   page?: number;
   limit?: number;
 };
@@ -182,6 +184,8 @@ export type ConfirmUploadInput = {
   width?: number | null;
   height?: number | null;
   isBackground?: boolean;
+  /** An audio saved as a sound effect, with the icon chosen for it. */
+  soundIcon?: string | null;
 };
 
 export type MediaPatch = { title?: string; description?: string | null; isBackground?: boolean };

@@ -7,12 +7,13 @@ import { parsePassageId } from "@/lib/bible-reference";
 import { passageItem } from "./bible/passage-item";
 import { mediaEntry, songEntry, songSubtitle, sortEntries, youtubeEntry } from "./library/entries";
 import type { ConsoleData, ConsoleFile, ConsoleItem, LibraryEntry } from "./model";
+import { soundEntry } from "./sounds/sound-icons";
 import { selectedServiceTypeId } from "./selected-service";
 
 /** Everything the console needs to open: the service (the plan), the library and the backgrounds. */
 export async function loadConsole(repos: Repositories): Promise<ConsoleData> {
   const church = await repos.church.get();
-  const [plan, songs, media, videos, backgrounds, serviceTypes, people, running, displays] =
+  const [plan, songs, media, videos, backgrounds, sounds, serviceTypes, people, running, displays] =
     await Promise.all([
       repos.servicePlan.list(),
       allSongs(repos),
@@ -20,6 +21,8 @@ export async function loadConsole(repos: Repositories): Promise<ConsoleData> {
       // An API without saved videos yet must not keep the console from opening.
       repos.youtubeVideos.list().catch(() => []),
       allPages((page) => repos.media.list({ isBackground: true, page, limit: 100 })),
+      // An API without sounds yet must not keep the console from opening.
+      allPages((page) => repos.media.list({ isSound: true, page, limit: 100 })).catch(() => []),
       repos.serviceTypes.list(),
       repos.people.list(),
       repos.records.list({ status: "inProgress", limit: 1 }),
@@ -48,6 +51,7 @@ export async function loadConsole(repos: Repositories): Promise<ConsoleData> {
     projection: church.projection,
     items,
     library,
+    sounds: sounds.map(soundEntry),
     backgrounds: [
       ...backgroundFiles
         .filter(({ url }) => url !== null)

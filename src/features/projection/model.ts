@@ -20,8 +20,8 @@ export type ProjectionBackground = {
 export type ProjectionContent =
   | { kind: "blank" }
   | { kind: "text"; text: string; footnote: string | null }
-  /** A countdown: `seconds` left at `at` (epoch ms), running down from there or paused. */
-  | { kind: "timer"; seconds: number; running: boolean; at: number }
+  /** A countdown: `seconds` left at `at` (epoch ms), running down from there or paused; `label` goes above it. */
+  | { kind: "timer"; seconds: number; running: boolean; at: number; label?: string }
   | { kind: "image"; id: string; url: string }
   | {
       kind: "video";

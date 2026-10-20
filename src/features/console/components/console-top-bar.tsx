@@ -8,8 +8,7 @@ import { AccountMenu } from "@/features/shell/account-menu";
 import { cn } from "@/lib/cn";
 import { BibleButton } from "../bible/bible-button";
 import { BackgroundPicker } from "../backgrounds/background-picker";
-import { TimerButton } from "../timer/timer-button";
-import { TypographyButton } from "../typography/typography-button";
+import { ToolsButton } from "../tools/tools-button";
 import type { LiveConsole } from "../use-live-console";
 import { DisplaysDialog } from "./displays-dialog";
 
@@ -39,10 +38,9 @@ export function ConsoleTopBar({
       </div>
 
       <div className="ml-auto flex items-center gap-3">
-        <TypographyButton ctrl={ctrl} />
+        <ToolsButton ctrl={ctrl} />
         <BackgroundPicker ctrl={ctrl} />
         <BibleButton ctrl={ctrl} />
-        <TimerButton ctrl={ctrl} />
         <button
           type="button"
           onClick={() => setIsManagingScreens(true)}

@@ -32,6 +32,9 @@ export type UploadItem = {
   canRetry?: boolean;
 };
 
+/** What the person chose for a file beyond the file itself (a sound's name and icon). */
+export type UploadExtras = { title?: string; soundIcon?: string };
+
 export const NETWORK_UPLOAD_ERROR = "No se pudo subir.";
 
 class UploadCancelled extends Error {}
@@ -56,6 +59,7 @@ export function useMediaUpload({
   const [items, setItems] = useState<UploadItem[]>([]);
   const files = useRef(new Map<string, File>());
   const requests = useRef(new Map<string, XMLHttpRequest>());
+  const extras = useRef(new Map<string, UploadExtras>());
 
   function patch(id: string, change: Partial<UploadItem>) {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...change } : item)));
@@ -63,7 +67,8 @@ export function useMediaUpload({
 
   async function run(id: string, file: File) {
     const kind = mediaKindOf(file.type);
-    const title = titleFromFileName(file.name) || file.name;
+    const chosen = extras.current.get(id);
+    const title = chosen?.title?.trim() || titleFromFileName(file.name) || file.name;
     const fail = (error: string, canRetry = false) =>
       patch(id, { status: "error", error, canRetry });
 
@@ -107,6 +112,7 @@ export function useMediaUpload({
       title,
       ...measures,
       isBackground: background,
+      ...(chosen?.soundIcon ? { soundIcon: chosen.soundIcon } : {}),
     }).catch(() => ({ error: NETWORK_UPLOAD_ERROR, asset: undefined }));
     if (!confirmed.asset) return fail(confirmed.error ?? NETWORK_UPLOAD_ERROR, true);
 
@@ -146,14 +152,15 @@ export function useMediaUpload({
     });
   }
 
-  function addFiles(list: FileList | File[]) {
+  function addFiles(list: FileList | File[], options?: UploadExtras) {
     const added = Array.from(list).map((file) => {
       const id = crypto.randomUUID();
       files.current.set(id, file);
+      if (options) extras.current.set(id, options);
       const item: UploadItem = {
         id,
         fileName: file.name,
-        title: titleFromFileName(file.name) || file.name,
+        title: options?.title?.trim() || titleFromFileName(file.name) || file.name,
         kind: mediaKindOf(file.type),
         sizeBytes: file.size,
         status: "measuring",
@@ -176,6 +183,7 @@ export function useMediaUpload({
 
   function dismiss(id: string) {
     files.current.delete(id);
+    extras.current.delete(id);
     setItems((current) => current.filter((item) => item.id !== id));
   }
 

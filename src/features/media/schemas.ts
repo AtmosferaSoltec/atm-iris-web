@@ -27,6 +27,7 @@ export const confirmUploadSchema = z.object({
   width: measure,
   height: measure,
   isBackground: z.boolean().optional(),
+  soundIcon: z.string().trim().min(1).max(30).nullable().optional(),
 });
 
 export const MEDIA_FIELDS = ["title", "description"] as const;

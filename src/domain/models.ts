@@ -165,6 +165,8 @@ export type MediaAsset = {
   height: number | null;
   /** Lyrics background (image or video); see `BACKGROUND_RULES`. */
   isBackground: boolean;
+  /** Audio only: a sound effect for the console (applause, drum…) with this icon; null otherwise. */
+  soundIcon: string | null;
   createdAt: string;
   updatedAt: string;
 };

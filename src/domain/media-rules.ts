@@ -21,7 +21,7 @@ export const MEDIA_KINDS: readonly MediaKind[] = ["image", "video", "audio"];
  * Where an asset lives in the web (contract §11): audio is a song's track (Canciones),
  * Fondos takes the backgrounds and Multimedia the rest of images and videos.
  */
-export type MediaSection = "music" | "backgrounds" | "media";
+export type MediaSection = "music" | "sounds" | "backgrounds" | "media";
 
 export function mediaSection(asset: { kind: MediaKind; isBackground: boolean }): MediaSection {
   if (asset.kind === "audio") return "music";
@@ -31,6 +31,7 @@ export function mediaSection(asset: { kind: MediaKind; isBackground: boolean }):
 /** The kinds each upload section takes. Backgrounds narrow it further (`backgroundProblem`). */
 export const SECTION_KINDS: Record<MediaSection, readonly MediaKind[]> = {
   music: ["audio"],
+  sounds: ["audio"],
   backgrounds: ["image", "video"],
   media: ["image", "video"],
 };
@@ -53,6 +54,7 @@ export const MEDIA_ERRORS = {
 /** Shown when a file is dropped in the wrong section; the API would take it, the section doesn't. */
 export const WRONG_SECTION: Record<MediaSection, string> = {
   music: "Una pista es un archivo de audio: MP3, M4A, AAC o WAV.",
+  sounds: "Un sonido es un archivo de audio: MP3, M4A, AAC o WAV.",
   backgrounds: "Un fondo es una imagen o un video.",
   media: "Las pistas se suben en Canciones, dentro de cada canción.",
 };

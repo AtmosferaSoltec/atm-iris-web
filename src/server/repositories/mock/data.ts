@@ -444,7 +444,7 @@ function media(session?: UserSession): MediaRepository {
   const toAsset = toMediaAsset;
 
   return {
-    async list({ kind, search, isBackground, page, limit } = {}) {
+    async list({ kind, search, isBackground, isSound, page, limit } = {}) {
       await delay();
       const key = nameKey(search ?? "");
       const kinds = typeof kind === "string" ? [kind] : kind;
@@ -453,6 +453,7 @@ function media(session?: UserSession): MediaRepository {
           (asset) =>
             (!kinds || kinds.includes(asset.kind)) &&
             (isBackground === undefined || asset.isBackground === isBackground) &&
+            (isSound === undefined || (asset.soundIcon !== null) === isSound) &&
             (!key || nameKey(`${asset.title} ${asset.description ?? ""}`).includes(key)),
         )
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -528,6 +529,7 @@ function media(session?: UserSession): MediaRepository {
         width: upload.kind === "audio" ? null : (input.width ?? null),
         height: upload.kind === "audio" ? null : (input.height ?? null),
         isBackground: Boolean(input.isBackground),
+        soundIcon: upload.kind === "audio" ? (input.soundIcon ?? null) : null,
         createdAt: now(),
         updatedAt: now(),
         storageKey: upload.id,

@@ -355,12 +355,13 @@ function Countdown({
   const left = timerRemaining(timer, Math.max(now, timer.at));
   return (
     <div
-      className="absolute inset-0 grid place-items-center text-white [text-shadow:0_0_1.2cqw_rgb(0_0_0/0.45)]"
+      className="absolute inset-0 flex flex-col items-center justify-center gap-[3cqw] px-[7cqw] text-center text-white [text-shadow:0_0_1.2cqw_rgb(0_0_0/0.45)]"
       style={{
         fontFamily: fontStack(typography.fontFamily),
         fontWeight: typography.fontBold ? 700 : 500,
       }}
     >
+      {timer.label && <span className="text-[5.5cqw] leading-tight">{timer.label}</span>}
       <span className="text-[24cqw] leading-none tabular-nums">{clock(Math.ceil(left))}</span>
     </div>
   );
