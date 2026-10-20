@@ -81,6 +81,13 @@
   }
 }
 
+/* The lyrics on screen leave before the next ones come in: they never overlap. */
+@keyframes projection-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
 /* ember → coral → rose */
 @utility bg-accent {
   background-image: linear-gradient(

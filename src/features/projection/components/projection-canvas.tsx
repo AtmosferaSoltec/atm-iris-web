@@ -33,6 +33,9 @@ type Props = {
 };
 
 const FADE_MS = 450;
+/** Contents go out, then in: the old lyrics are gone before the new ones show. */
+const CONTENT_OUT_MS = 200;
+const CONTENT_IN_MS = 260;
 
 /**
  * Draws a `ProjectionFrame` in 16:9 at any size (IRIS_SPEC §5.12): black, then the
@@ -62,7 +65,7 @@ export function ProjectionCanvas({
           background && <Background background={background} playsVideo={playsVideo} />
         }
       </Layers>
-      <Layers value={frame.content} keyOf={contentKey} transitions={transitions}>
+      <Sequence value={frame.content} keyOf={contentKey} transitions={transitions}>
         {(content) => (
           <Content
             content={content}
@@ -73,7 +76,7 @@ export function ProjectionCanvas({
             onVideoError={onVideoError}
           />
         )}
-      </Layers>
+      </Sequence>
       {children}
     </div>
   );
@@ -94,8 +97,8 @@ function contentKey(content: ProjectionContent): string {
 }
 
 /**
- * Keeps the outgoing layer under the incoming one until the new one has faded in, so a
- * change never flashes black. Without transitions it simply swaps.
+ * Backgrounds cross-fade: the outgoing one stays under the incoming one until it has faded
+ * in, so a change never flashes black. Without transitions it simply swaps.
  */
 function Layers<T>({
   value,
@@ -137,6 +140,68 @@ function Layers<T>({
       {children(layer.value)}
     </div>
   ));
+}
+
+type Layer<T> = { key: string; value: T };
+
+/**
+ * The content (lyrics, an image, a video): the one on screen fades out first and only then
+ * the next fades in, so two slides never mix. A change that comes while one is leaving just
+ * becomes the next to come in. The same key only takes the new value (a video's play state).
+ */
+function Sequence<T>({
+  value,
+  keyOf,
+  transitions,
+  children,
+}: {
+  value: T;
+  keyOf: (value: T) => string;
+  transitions: boolean;
+  children: (value: T) => ReactNode;
+}) {
+  const key = keyOf(value);
+  const [state, setState] = useState<{
+    current: Layer<T>;
+    leaving: Layer<T> | null;
+    /** The current one came in after another: it fades in. */
+    entering: boolean;
+  }>({ current: { key, value }, leaving: null, entering: false });
+
+  if (state.current.key !== key) {
+    setState({
+      current: { key, value },
+      // Already leaving: that one keeps leaving; the new one waits its turn.
+      leaving: transitions ? (state.leaving ?? state.current) : null,
+      entering: transitions,
+    });
+  } else if (state.current.value !== value) {
+    setState({ ...state, current: { key, value } });
+  }
+
+  useEffect(() => {
+    if (!state.leaving) return;
+    const timer = setTimeout(() => setState((now) => ({ ...now, leaving: null })), CONTENT_OUT_MS);
+    return () => clearTimeout(timer);
+  }, [state.leaving]);
+
+  const layer = state.leaving ?? state.current;
+  return (
+    <div
+      // The same element fades out (no remount: a leaving video does not reload).
+      key={layer.key}
+      className="absolute inset-0"
+      style={
+        state.leaving
+          ? { animation: `projection-fade-out ${CONTENT_OUT_MS}ms ease-in both` }
+          : state.entering
+            ? { animation: `projection-fade ${CONTENT_IN_MS}ms ease-out both` }
+            : undefined
+      }
+    >
+      {children(layer.value)}
+    </div>
+  );
 }
 
 const Background = memo(function Background({
@@ -456,6 +521,23 @@ function YouTubeVideo({
     else yt.pauseVideo();
   }, [content, audible, isReady]);
 
+  // A screen keeps checking it is in step with the sound (the console's player), not only
+  // when something changes: a TV that started late, or stalled, catches up by itself.
+  useEffect(() => {
+    if (!isReady || audible || !content.playing) return;
+    let lastSeek = 0;
+    const timer = setInterval(() => {
+      const yt = player.current;
+      if (!yt || yt.getPlayerState() !== PLAYING || Date.now() - lastSeek < RESEEK_AFTER_MS) return;
+      const target = content.position + (Date.now() - content.at) / 1000;
+      if (Math.abs(yt.getCurrentTime() - target) <= MAX_DRIFT_S) return;
+      lastSeek = Date.now();
+      // A seek takes a moment to land: aim a little ahead.
+      yt.seekTo(target + SEEK_LEAD_S, true);
+    }, CHECK_DRIFT_MS);
+    return () => clearInterval(timer);
+  }, [content, audible, isReady]);
+
   // Where it really is, for the console's player (its length only YouTube knows).
   const reportsTime = onVideoTime !== undefined;
   useEffect(() => {
@@ -482,6 +564,11 @@ function YouTubeVideo({
 
 /** `YT.PlayerState.PLAYING`. */
 const PLAYING = 1;
+/** Screens: how often they check, how far behind or ahead is fine, and the pause after a seek. */
+const CHECK_DRIFT_MS = 1000;
+const MAX_DRIFT_S = 0.1;
+const RESEEK_AFTER_MS = 3000;
+const SEEK_LEAD_S = 0.05;
 
 function applyCaptions(player: YouTubePlayer | null, captions: boolean) {
   if (!player) return;

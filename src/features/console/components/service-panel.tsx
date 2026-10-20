@@ -83,7 +83,7 @@ export function ServicePanel({ ctrl }: { ctrl: LiveConsole }) {
             transitions
             playsVideo
             audible
-            onVideoTime={(time) => ctrl.followVideo(time.id, time.position, time.duration)}
+            onVideoTime={(time) => ctrl.followVideo(time.id, time.position, time.duration, true)}
             onVideoError={(message) => toast.error(message)}
           />
           <span className="absolute top-2 left-2 flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-bold tracking-[0.12em] text-white uppercase backdrop-blur">
@@ -322,7 +322,7 @@ function YouTubeTrack({ ctrl }: { ctrl: LiveConsole }) {
       frame={frame}
       playsVideo
       audible
-      onVideoTime={(time) => ctrl.followVideo(time.id, time.position, time.duration)}
+      onVideoTime={(time) => ctrl.followVideo(time.id, time.position, time.duration, true)}
       onVideoError={(message) => toast.error(message)}
       className="rounded-md"
     />

@@ -42,6 +42,9 @@ export type Playback = {
   youTube: boolean;
 };
 
+/** How far the timeline may be from what the console's YouTube player is really playing. */
+const SOUND_DRIFT_S = 0.08;
+
 /** A track from an uploaded file: the room's audio element plays it. */
 const inRoom = (playback: Playback | null) => playback?.kind === "track" && !playback.youTube;
 
@@ -121,21 +124,34 @@ export function useLiveConsole(data: ConsoleData) {
 
   // ----- Talking to the screens -----
 
-  /** The screen says where its video really is: its real length, and its end. */
-  const followVideo = useCallback((fileId: string, position: number, duration: number) => {
-    setPlayback((current) => {
-      if (!current || (current.kind !== "video" && !current.youTube)) return current;
-      if (current.fileId !== fileId || !duration) return current;
-      if (current.playing && position >= duration - 0.25) {
-        // The end: again from 0 when repeating; otherwise it stops and the screen keeps only the
-        // background (a track leaves the lyrics where they are).
-        if (current.loop) return { ...current, duration, position: 0, at: Date.now() };
-        if (current.kind === "video") setLive((now) => (now?.key === current.key ? null : now));
-        return null;
-      }
-      return Math.abs(duration - current.duration) > 0.5 ? { ...current, duration } : current;
-    });
-  }, []);
+  /**
+   * A player says where its video really is: its real length, and its end. The one with the
+   * sound (YouTube in this console) is also the clock: when it runs late (it buffered) the
+   * timeline moves to it, and the screens follow, so picture and sound stay together.
+   */
+  const followVideo = useCallback(
+    (fileId: string, position: number, duration: number, isSound = false) => {
+      setPlayback((current) => {
+        if (!current || (current.kind !== "video" && !current.youTube)) return current;
+        if (current.fileId !== fileId || !duration) return current;
+        if (isSound && current.youTube && current.playing && position < duration - 0.25) {
+          const now = Date.now();
+          if (Math.abs(elapsedOf(current, now) - position) > SOUND_DRIFT_S) {
+            return { ...current, duration, position, at: now };
+          }
+        }
+        if (current.playing && position >= duration - 0.25) {
+          // The end: again from 0 when repeating; otherwise it stops and the screen keeps only the
+          // background (a track leaves the lyrics where they are).
+          if (current.loop) return { ...current, duration, position: 0, at: Date.now() };
+          if (current.kind === "video") setLive((now) => (now?.key === current.key ? null : now));
+          return null;
+        }
+        return Math.abs(duration - current.duration) > 0.5 ? { ...current, duration } : current;
+      });
+    },
+    [],
+  );
 
   const channel = useRef<ReturnType<typeof consoleChannel> | null>(null);
   const seq = useRef(0);
