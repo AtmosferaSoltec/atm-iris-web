@@ -3,32 +3,12 @@
 import { revalidatePath } from "next/cache";
 import type { MediaAsset, SongSummary } from "@/domain/models";
 import { authorize } from "@/server/dal";
-import { errorMessage, isApiError } from "@/server/repositories/api/errors";
-import { addPlanItemSchema, movePlanItemSchema } from "./schemas";
+import { errorMessage } from "@/server/repositories/api/errors";
+import { movePlanItemSchema } from "./schemas";
 
+// The plan is the console's SERVICIO list (contract §15); Inicio shows what is in it.
 function revalidatePlan() {
-  revalidatePath("/plan");
   revalidatePath("/");
-}
-
-export async function addPlanItem(
-  kind: "song" | "media",
-  refId: string,
-): Promise<{ error?: string }> {
-  const parsed = addPlanItemSchema.safeParse({ kind, refId });
-  if (!parsed.success) return { error: "Revisa los datos enviados." };
-
-  try {
-    const { repos } = await authorize();
-    await repos.servicePlan.add(parsed.data);
-  } catch (error) {
-    if (isApiError(error, "VALIDATION_FAILED") && error.errors?.refId) {
-      return { error: error.errors.refId };
-    }
-    return { error: errorMessage(error) };
-  }
-  revalidatePlan();
-  return {};
 }
 
 export async function movePlanItem(id: string, position: number): Promise<{ error?: string }> {

@@ -1,12 +1,13 @@
 import "server-only";
 import type { UserSession } from "@/domain/models";
 import { env } from "../env";
-import { apiDataRepositories } from "./api";
+import { apiDataRepositories, apiDisplayLink } from "./api";
 import { apiAuth } from "./api/auth";
 import { apiReleases } from "./api/releases";
 import type { ClientOptions } from "./api/client";
 import { mockAuth, mockDataRepositories, mockReleases } from "./mock";
-import type { Repositories } from "./types";
+import { mockDisplayLink } from "./mock/displays";
+import type { DisplayLink, Repositories } from "./types";
 
 export type { Repositories } from "./types";
 
@@ -29,4 +30,9 @@ export function getRepositories({ session, ...apiOptions }: RepositoryContext = 
       ? apiDataRepositories(apiOptions)
       : mockDataRepositories(session)),
   };
+}
+
+/** The TV's side of the displays (contract §18): no session. */
+export function getDisplayLink(): DisplayLink {
+  return env.DATA_SOURCE === "api" ? apiDisplayLink() : mockDisplayLink();
 }

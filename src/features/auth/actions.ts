@@ -102,13 +102,13 @@ export async function requestResetCode(
     return toFormState(error, ["email"] as const, { values });
   }
   await saveRecovery({ email: parsed.data.email });
-  redirect("/recuperar/codigo");
+  redirect("/recover/code");
 }
 
 /** "Reenviar código" on step 2. */
 export async function resendResetCode(): Promise<{ error?: string }> {
   const recovery = await readRecovery();
-  if (!recovery) redirect("/recuperar");
+  if (!recovery) redirect("/recover");
   try {
     await getRepositories().auth.requestPasswordReset(recovery.email);
     return {};
@@ -123,7 +123,7 @@ export async function verifyResetCode(
   formData: FormData,
 ): Promise<FormState<"code">> {
   const recovery = await readRecovery();
-  if (!recovery) redirect("/recuperar");
+  if (!recovery) redirect("/recover");
 
   const values = formValues(formData, ["code"] as const);
   const parsed = recoveryCodeSchema.safeParse(values);
@@ -140,7 +140,7 @@ export async function verifyResetCode(
     return toFormState(error, ["code"] as const, { values });
   }
   await saveRecovery({ email: recovery.email, code: parsed.data.code });
-  redirect("/recuperar/nueva");
+  redirect("/recover/new-password");
 }
 
 /** Step 3: new password. Every session closes; back to login to sign in with it. */
@@ -149,7 +149,7 @@ export async function resetPassword(
   formData: FormData,
 ): Promise<FormState<NewPasswordField>> {
   const recovery = await readRecovery();
-  if (!recovery?.code) redirect("/recuperar");
+  if (!recovery?.code) redirect("/recover");
 
   const parsed = newPasswordSchema.safeParse(formValues(formData, NEW_PASSWORD_FIELDS));
   if (!parsed.success) {
@@ -166,7 +166,7 @@ export async function resetPassword(
     // The code expired between steps 2 and 3: start over from step 1.
     if (isApiError(error) && error.code.startsWith("RESET_")) {
       await clearRecovery();
-      redirect("/recuperar?vencido=1");
+      redirect("/recover?vencido=1");
     }
     return toFormState(error, NEW_PASSWORD_FIELDS);
   }

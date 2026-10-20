@@ -21,18 +21,34 @@ const nextConfig: NextConfig = {
     staleTimes: { dynamic: 30 },
   },
   async redirects() {
-    // Música (audio) is now the track inside each song. Temporary: nothing new
-    // gets cached in browsers.
-    return [{ source: "/musica", destination: "/canciones", permanent: false }];
-  },
-  async rewrites() {
-    // Letras became Canciones again (lyrics and track together). Until then
-    // /canciones answered a permanent (cached) redirect to /letras, so /letras
-    // must keep working without redirecting back, or those browsers would loop.
-    return [
-      { source: "/letras", destination: "/canciones" },
-      { source: "/letras/:path*", destination: "/canciones/:path*" },
+    // Routes are in English now; the old Spanish ones (and older names) keep working.
+    // Temporary redirects: nothing new gets cached in browsers. /letras once answered
+    // as a permanent redirect target of /canciones, and both now end at /songs: no loop.
+    const moved: [string, string][] = [
+      ["/canciones/nueva", "/songs/new"],
+      ["/canciones", "/songs"],
+      ["/letras", "/songs"],
+      ["/musica", "/songs"],
+      ["/servicios/nuevo", "/services/new"],
+      ["/servicios", "/services"],
+      ["/ajustes", "/settings"],
+      ["/cuenta", "/account"],
+      ["/fondos", "/backgrounds"],
+      ["/multimedia", "/media"],
+      ["/personas", "/people"],
+      ["/tiempos", "/times"],
+      ["/consola", "/console"],
+      ["/pantalla", "/display"],
+      ["/recuperar/codigo", "/recover/code"],
+      ["/recuperar/nueva", "/recover/new-password"],
+      ["/recuperar", "/recover"],
+      // The plan is the SERVICIO list of the console: it has no page of its own.
+      ["/plan", "/console"],
     ];
+    return moved.flatMap(([source, destination]) => [
+      { source, destination, permanent: false },
+      { source: `${source}/:path*`, destination: `${destination}/:path*`, permanent: false },
+    ]);
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

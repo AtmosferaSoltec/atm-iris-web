@@ -20,12 +20,20 @@ import {
 // every read and mutation.
 
 /** Open to everyone, signed in or not: no redirect and no session refresh. */
-const PUBLIC_PATHS = ["/downloads", "/inicio"];
+const PUBLIC_PATHS = [
+  "/downloads",
+  "/welcome",
+  "/display",
+  // A TV has no session: it links itself with a code (contract §18).
+  "/api/display/pairing",
+  "/api/display/link",
+  "/api/display/stream",
+];
 /** Visitors without a session see the landing at "/" (rewritten, the address bar keeps "/"). */
-const LANDING_PATH = "/inicio";
+const LANDING_PATH = "/welcome";
 
 /** Only for visitors without a session. */
-const GUEST_PATHS = ["/login", "/recuperar"];
+const GUEST_PATHS = ["/login", "/recover"];
 const SESSION_OVER = new Set(["INVALID_REFRESH_TOKEN", "UNAUTHORIZED", "VALIDATION_FAILED"]);
 
 const matches = (pathname: string, paths: string[]) =>

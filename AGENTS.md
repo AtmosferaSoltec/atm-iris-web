@@ -22,3 +22,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Use the design tokens in `src/app/globals.css` and the components in `src/components/ui` (Radix primitives with Iris styles; toasts with `toast` from `ui/toaster`); no loose colors or sizes. Small text uses `ink-2`, not `ink-3` (contrast).
 - `docs/api-contract.md` and `docs/plans/00-fundamentos/plataforma.md` are shared with the other repos: don't edit or reformat them.
 - Before finishing: `pnpm check && pnpm format:check && pnpm build`; UI tests with `pnpm test:e2e`.
+- **Windows está descartado (2026-10-19).** El proyecto `atm-iris-win` no se toca: ni código, ni docs, ni la copia del contrato. Se trabaja solo con web, API e iPad. La consola web reemplaza a la app de Windows; su diseño se puede leer como referencia, nunca editar.

@@ -78,7 +78,8 @@ export function createApiClient({
 
     if (!response.ok) {
       const code = payload?.code ?? "INTERNAL_ERROR";
-      if (response.status === 401 && code === "UNAUTHORIZED" && accessToken && onUnauthorized) {
+      // Also without a token: a session left over from the mock data source is just as dead.
+      if (response.status === 401 && code === "UNAUTHORIZED" && onUnauthorized) {
         await onUnauthorized();
       }
       throw new ApiError(

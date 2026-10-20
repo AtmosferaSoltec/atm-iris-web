@@ -95,7 +95,9 @@ export function RecordsTab({
                             </span>
                           </span>
                           <span className="text-sm tabular-nums">{clock(totals.actual)}</span>
-                          {totals.overtime > 0 ? (
+                          {record.status === "inProgress" ? (
+                            <Chip color="var(--color-live)">En curso</Chip>
+                          ) : totals.overtime > 0 ? (
                             <Chip color="var(--color-danger)">{overtime(totals.overtime)}</Chip>
                           ) : (
                             <Chip color="var(--color-success)">A tiempo</Chip>

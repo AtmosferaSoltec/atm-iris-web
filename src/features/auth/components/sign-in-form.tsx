@@ -45,7 +45,7 @@ export function SignInForm({ notice }: { notice?: string }) {
               // Carry over what was typed so step 1 starts filled in.
               const field = event.currentTarget.form?.elements.namedItem("email");
               const email = field instanceof HTMLInputElement ? field.value.trim() : "";
-              router.push(email ? `/recuperar?email=${encodeURIComponent(email)}` : "/recuperar");
+              router.push(email ? `/recover?email=${encodeURIComponent(email)}` : "/recover");
             }}
             className="cursor-pointer text-[13px] font-semibold text-ink-2 hover:text-ink"
           >

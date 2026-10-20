@@ -13,9 +13,3 @@ export const churchSchema = z.object({
     .max(120, "Usa un nombre más corto."),
   timezone: z.string().trim().refine(isValidTimeZone, "Elige una zona horaria de la lista."),
 });
-
-export const modulesSchema = z.object({
-  bible: z.boolean(),
-  multimedia: z.boolean(),
-  timeControl: z.boolean(),
-});

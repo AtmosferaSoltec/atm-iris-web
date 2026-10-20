@@ -1,13 +1,14 @@
 import type {
   Church,
-  ChurchModules,
   DeviceSession,
+  Display,
   Id,
   MediaAsset,
   MediaKind,
   Paginated,
   Person,
   PlanItemKind,
+  RecordStatus,
   Schedule,
   ServicePlanItem,
   ServiceRecord,
@@ -76,7 +77,6 @@ export interface AuthService {
 export interface ChurchRepository {
   get(): Promise<Church>;
   update(input: { name?: string; timezone?: string }): Promise<Church>;
-  setModules(modules: ChurchModules): Promise<Church>;
 }
 
 export interface PeopleRepository {
@@ -124,6 +124,10 @@ export type SongInput = {
   sections: { label: string | null; text: string }[];
   /** An uploaded audio; replacing or clearing it deletes the previous one. */
   audioId: Id | null;
+  /** Or the track on YouTube (never both). */
+  youtubeId: string | null;
+  /** The link was YouTube Music's; saved false without `youtubeId`. */
+  youtubeMusic: boolean;
 };
 
 export type SongSort = "title" | "-updatedAt";
@@ -197,6 +201,39 @@ export interface ServicePlanRepository {
   clear(): Promise<void>;
 }
 
+/* ---------------------------------------------------------------- Displays */
+
+/**
+ * What the console sends its TVs (contract §18). The API passes the frame and the files
+ * along without reading them; `clock` is the console's `Date.now()` when sending.
+ */
+export type DisplayState = { frame?: object; preload?: object[]; clock: number };
+
+export interface DisplayRepository {
+  list(): Promise<Display[]>;
+  /** Links the TV showing `code`. Throws VALIDATION_FAILED (`errors.code`) for an unknown or expired one. */
+  claim(code: string, name: string): Promise<Display>;
+  remove(id: Id): Promise<void>;
+  publish(state: DisplayState): Promise<void>;
+}
+
+export type DisplayPairing = { id: string; code: string; secret: string; expiresAt: string };
+export type PairingStatus =
+  | { status: "pending" }
+  | { status: "paired"; token: string; display: { id: string; name: string } };
+
+/**
+ * The TV's side, without a session: it asks for a code, learns when it is linked, and opens
+ * its live channel with the token it got.
+ */
+export interface DisplayLink {
+  startPairing(): Promise<DisplayPairing>;
+  /** Null when the code expired or was already collected. */
+  pairingStatus(id: string, secret: string): Promise<PairingStatus | null>;
+  /** The SSE response, or `"unlinked"` when the token is no longer valid. */
+  stream(token: string, signal: AbortSignal): Promise<Response | "unlinked">;
+}
+
 /* ------------------------------------------------------------ Time records */
 
 export type RecordListQuery = {
@@ -204,14 +241,37 @@ export type RecordListQuery = {
   from?: string;
   to?: string;
   serviceTypeId?: Id;
+  status?: RecordStatus;
   page?: number;
   limit?: number;
+};
+
+/** Body of `PUT /service-records/:id` (contract §14): sent on every change while the service runs. */
+export type ServiceRecordInput = {
+  status: RecordStatus;
+  /** Start of the first block, UTC. */
+  date: string;
+  serviceTypeId: Id;
+  serviceTypeName: string;
+  blocks: {
+    id: Id;
+    name: string;
+    plannedSeconds: number;
+    actualSeconds: number;
+    personId: Id | null;
+    personName: string | null;
+    status: "pending" | "running" | "completed" | "skipped";
+    startedAt: string | null;
+    endedAt: string | null;
+  }[];
 };
 
 export interface TimeRecordRepository {
   /** Most recent first. `limit` up to 500. */
   list(query?: RecordListQuery): Promise<Paginated<ServiceRecord>>;
   get(id: Id): Promise<ServiceRecord | null>;
+  /** Creates or replaces (idempotent by id). A finished record cannot go back to in progress. */
+  save(id: Id, input: ServiceRecordInput): Promise<ServiceRecord>;
   /** `actualSeconds` marks the block adjusted; `personId` also refreshes `personName`. */
   adjustBlock(
     recordId: Id,
@@ -229,6 +289,7 @@ export type DataRepositories = {
   media: MediaRepository;
   servicePlan: ServicePlanRepository;
   records: TimeRecordRepository;
+  displays: DisplayRepository;
 };
 
 export type AppPlatform = "ios" | "windows";

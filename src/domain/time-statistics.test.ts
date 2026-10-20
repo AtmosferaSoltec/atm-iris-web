@@ -30,6 +30,8 @@ function block(
     personId,
     personName: personId,
     status,
+    startedAt: null,
+    endedAt: null,
   };
 }
 
@@ -40,6 +42,7 @@ function record(date: string, blocks: BlockRecord[], serviceTypeId = "culto"): S
     date,
     serviceTypeId,
     serviceTypeName: "Culto general",
+    status: "finished",
     blocks,
     createdAt: date,
     updatedAt: date,

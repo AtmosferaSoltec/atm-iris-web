@@ -31,22 +31,6 @@ describe("mock repositories", () => {
     expect(session.church.id).toBe(MOCK_IDS.vidaNueva);
   });
 
-  it("hides a module switched off for all of Iris and keeps the church's choice", async () => {
-    const { repos } = await signedIn();
-    const church = await repos.church.get();
-    expect(church.availableModules.bible).toBe(false);
-    expect(church.modules.bible).toBe(false);
-
-    // Saving from Ajustes sends the hidden module as off: the stored choice stays.
-    await repos.church.setModules({ bible: false, multimedia: false, timeControl: true });
-    const stored = mockWorld().churches.find((data) => data.church.id === church.id)!.church;
-    expect(stored.modules).toEqual({ bible: true, multimedia: false, timeControl: true });
-    expect((await repos.church.get()).modules).toEqual({
-      bible: false,
-      multimedia: false,
-      timeControl: true,
-    });
-  });
   it("splits the storage by section and lists several kinds at once", async () => {
     const { repos } = await signedIn();
     const upload = async (
@@ -102,7 +86,14 @@ describe("mock repositories", () => {
     };
 
     await expect(
-      repos.songs.create({ title: "Vacía", author: "", sections: [], audioId: null }),
+      repos.songs.create({
+        title: "Vacía",
+        author: "",
+        sections: [],
+        audioId: null,
+        youtubeId: null,
+        youtubeMusic: false,
+      }),
     ).rejects.toMatchObject({ errors: { sections: "Agrega la letra o una pista." } });
 
     const first = await track(100);
@@ -111,10 +102,19 @@ describe("mock repositories", () => {
       author: "",
       sections: [],
       audioId: first.id,
+      youtubeId: null,
+      youtubeMusic: false,
     });
     expect(song.audio?.id).toBe(first.id);
     await expect(
-      repos.songs.create({ title: "Copia", author: "", sections: [], audioId: first.id }),
+      repos.songs.create({
+        title: "Copia",
+        author: "",
+        sections: [],
+        audioId: first.id,
+        youtubeId: null,
+        youtubeMusic: false,
+      }),
     ).rejects.toMatchObject({ errors: { audioId: "Esa pista ya es de otra canción." } });
     await expect(repos.servicePlan.add({ kind: "media", refId: first.id })).rejects.toMatchObject({
       errors: { refId: "Las pistas se agregan con su canción." },
@@ -127,11 +127,36 @@ describe("mock repositories", () => {
       author: "",
       sections: [{ label: null, text: "Hoy te salvo" }],
       audioId: second.id,
+      youtubeId: null,
+      youtubeMusic: false,
     });
     expect(await repos.media.get(first.id)).toBeNull();
     expect((await repos.church.get()).storage.breakdown.musicBytes).toBe(40);
 
-    await repos.songs.delete(song.id);
+    // A YouTube track instead: only the id, the uploaded one goes; never both.
+    await expect(
+      repos.songs.update(song.id, {
+        title: "Hoy te salvo",
+        author: "",
+        sections: [],
+        audioId: second.id,
+        youtubeId: "aqz-KE-bpKQ",
+        youtubeMusic: false,
+      }),
+    ).rejects.toMatchObject({
+      errors: { youtubeId: "La pista es un audio o un video de YouTube, no los dos." },
+    });
+    const onYouTube = await repos.songs.update(song.id, {
+      title: "Hoy te salvo",
+      author: "",
+      sections: [],
+      audioId: null,
+      youtubeId: "aqz-KE-bpKQ",
+      youtubeMusic: false,
+    });
+    expect(onYouTube).toMatchObject({ audio: null, youtubeId: "aqz-KE-bpKQ" });
     expect(await repos.media.get(second.id)).toBeNull();
+
+    await repos.songs.delete(song.id);
   });
 });

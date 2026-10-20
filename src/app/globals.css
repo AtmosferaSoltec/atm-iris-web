@@ -74,6 +74,13 @@
   }
 }
 
+/* Cross-fade of the projection canvas (screen and EN VIVO). Opacity only: GPU-composited. */
+@keyframes projection-fade {
+  from {
+    opacity: 0;
+  }
+}
+
 /* ember → coral → rose */
 @utility bg-accent {
   background-image: linear-gradient(

@@ -5,8 +5,7 @@ import { AppNav } from "@/features/shell/app-nav";
 import { requireSession } from "@/server/dal";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
-  const { session, repos } = await requireSession();
-  const { modules } = await repos.church.get();
+  const { session } = await requireSession();
 
   return (
     <div className="lg:grid lg:min-h-dvh lg:grid-cols-[248px_1fr]">
@@ -19,7 +18,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             <AccountMenu session={session} compact />
           </div>
         </div>
-        <AppNav modules={modules} />
+        <AppNav />
         <div className="mt-auto hidden border-t border-line pt-3 lg:block">
           <AccountMenu session={session} />
         </div>

@@ -4,7 +4,7 @@ import { signIn, toast } from "./helpers";
 test.beforeEach(async ({ page }) => signIn(page));
 
 test("shows a record and adjusts one of its blocks", async ({ page }) => {
-  await page.goto("/tiempos");
+  await page.goto("/times");
   const detail = page.locator("article");
   await expect(detail.getByRole("heading", { name: "Culto general" })).toBeVisible();
   await expect(detail.getByText("Duración")).toBeVisible();
@@ -25,7 +25,7 @@ test("shows a record and adjusts one of its blocks", async ({ page }) => {
 });
 
 test("summaries match the iPad's sample church", async ({ page }) => {
-  await page.goto("/tiempos?tab=summaries&period=all");
+  await page.goto("/times?tab=summaries&period=all");
   await expect(page.getByText("Bloques pasados")).toBeVisible();
   await expect(page.locator("dl")).toContainText("Servicios");
   await expect(page.getByRole("button", { name: /Ver sus bloques: Daniel Ruiz/ })).toBeVisible();

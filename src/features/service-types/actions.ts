@@ -14,7 +14,7 @@ import {
 } from "./schemas";
 
 function revalidateServiceTypes() {
-  revalidatePath("/servicios", "layout");
+  revalidatePath("/services", "layout");
   revalidatePath("/");
 }
 
@@ -35,10 +35,7 @@ export async function saveServiceType(
 
   try {
     const { repos } = await authorize();
-    const [existing, church] = await Promise.all([
-      data.id ? repos.serviceTypes.get(data.id) : Promise.resolve(null),
-      repos.church.get(),
-    ]);
+    const existing = data.id ? await repos.serviceTypes.get(data.id) : null;
     if (data.id && !existing) {
       return { status: "error", message: "Este servicio ya no existe. Vuelve a la lista." };
     }
@@ -54,9 +51,7 @@ export async function saveServiceType(
       name: data.name,
       color: data.color,
       schedule: data.schedule,
-      // With the time module off the editor hides blocks; send the saved ones back
-      // untouched so the PUT doesn't delete them.
-      blocks: church.modules.timeControl ? edited : (existing?.blocks ?? []),
+      blocks: edited,
     };
 
     if (existing) await repos.serviceTypes.update(existing.id, input);

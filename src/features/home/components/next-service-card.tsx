@@ -10,11 +10,10 @@ import { blocksSummary, scheduleSummary, timeOfDay } from "@/lib/format";
 
 type Props = {
   next: NextService | null;
-  timeControl: boolean;
 };
 
 /** The iPad's home hero, without "Iniciar servicio": the web doesn't project. */
-export function NextServiceCard({ next, timeControl }: Props) {
+export function NextServiceCard({ next }: Props) {
   if (!next) {
     return (
       <Hero color="var(--color-violet)">
@@ -26,7 +25,7 @@ export function NextServiceCard({ next, timeControl }: Props) {
             Configura tus tipos de servicio y, si quieres, sus bloques de tiempo.
           </p>
           <div>
-            <ButtonLink href="/servicios/nuevo" size="lg" icon={<Plus className="size-4" />}>
+            <ButtonLink href="/services/new" size="lg" icon={<Plus className="size-4" />}>
               Configurar servicios
             </ButtonLink>
           </div>
@@ -36,7 +35,7 @@ export function NextServiceCard({ next, timeControl }: Props) {
   }
 
   const { type } = next;
-  const showsBlocks = timeControl && tracksTime(type);
+  const showsBlocks = tracksTime(type);
   const when = !type.schedule
     ? "Sin horario"
     : next.isToday

@@ -52,7 +52,7 @@ export async function changePassword(
       codes: { INVALID_CURRENT_PASSWORD: "currentPassword" },
     });
   }
-  revalidatePath("/cuenta");
+  revalidatePath("/account");
   return { status: "success" };
 }
 
@@ -72,7 +72,7 @@ export async function revokeSession(rawId: string): Promise<{ error?: string }> 
     await deleteSession();
     redirect("/login");
   }
-  revalidatePath("/cuenta");
+  revalidatePath("/account");
   return {};
 }
 

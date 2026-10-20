@@ -29,7 +29,6 @@ const pad = (value: number) => String(value).padStart(2, "0");
 
 type Props = {
   serviceType?: ServiceType;
-  timeControlEnabled: boolean;
   /** Names of the other service types, to flag duplicates before saving. */
   otherNames: string[];
 };
@@ -61,7 +60,7 @@ function clampMinutes(value: number): number {
 }
 
 /** Works on a local copy; only "Guardar" persists (IRIS_SPEC §6.8). */
-export function ServiceTypeEditor({ serviceType, timeControlEnabled, otherNames }: Props) {
+export function ServiceTypeEditor({ serviceType, otherNames }: Props) {
   const router = useRouter();
   const [name, setName] = useState(serviceType?.name ?? "");
   const [color, setColor] = useState(serviceType?.color ?? SERVICE_PALETTE[0].value);
@@ -80,7 +79,7 @@ export function ServiceTypeEditor({ serviceType, timeControlEnabled, otherNames 
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDeleting, startDeleting] = useTransition();
 
-  const showsBlocks = timeControlEnabled && tracksTime;
+  const showsBlocks = tracksTime;
   const hasEmptyBlockName = showsBlocks && blocks.some((block) => !block.name.trim());
   const canSave =
     name.trim().length > 0 && !hasEmptyBlockName && !(showsBlocks && blocks.length === 0);
@@ -138,7 +137,7 @@ export function ServiceTypeEditor({ serviceType, timeControlEnabled, otherNames 
       });
       if (response.status === "success") {
         toast.success("Servicio guardado");
-        router.push("/servicios");
+        router.push("/services");
       } else setResult(response);
     });
   }
@@ -153,7 +152,7 @@ export function ServiceTypeEditor({ serviceType, timeControlEnabled, otherNames 
         return;
       }
       toast.success(`Se eliminó ${serviceType.name}`);
-      router.push("/servicios");
+      router.push("/services");
     });
   }
 
@@ -277,151 +276,149 @@ export function ServiceTypeEditor({ serviceType, timeControlEnabled, otherNames 
           )}
         </fieldset>
 
-        {timeControlEnabled && (
-          <fieldset className="flex flex-col gap-4">
-            <legend className="mb-3 eyebrow text-ink-2">Control de tiempo</legend>
-            <label className="flex items-center justify-between gap-4">
-              <span>
-                <span className="block font-semibold">Controlar el tiempo de este servicio</span>
-                <span className="block text-sm text-ink-2">
-                  Divide el servicio en bloques con un tiempo previsto.
-                </span>
+        <fieldset className="flex flex-col gap-4">
+          <legend className="mb-3 eyebrow text-ink-2">Control de tiempo</legend>
+          <label className="flex items-center justify-between gap-4">
+            <span>
+              <span className="block font-semibold">Controlar el tiempo de este servicio</span>
+              <span className="block text-sm text-ink-2">
+                Divide el servicio en bloques con un tiempo previsto.
               </span>
-              <Switch
-                label="Controlar el tiempo de este servicio"
-                checked={tracksTime}
-                onCheckedChange={setTimeTracking}
-              />
-            </label>
+            </span>
+            <Switch
+              label="Controlar el tiempo de este servicio"
+              checked={tracksTime}
+              onCheckedChange={setTimeTracking}
+            />
+          </label>
 
-            {tracksTime && (
-              <div className="flex animate-fade-in flex-col gap-4">
-                {blocks.length > 0 && (
-                  <ol className="flex flex-col gap-2">
-                    {blocks.map((block, index) => (
-                      <li
-                        key={block.id}
-                        className="flex flex-wrap items-center gap-2 rounded-md bg-surface p-2 ring-1 ring-line ring-inset sm:flex-nowrap"
-                      >
-                        <span className="w-7 text-center text-xs text-ink-2 tabular-nums">
-                          {String(index + 1).padStart(2, "0")}
-                        </span>
-                        <input
-                          aria-label={`Nombre del bloque ${index + 1}`}
-                          value={block.name}
-                          onChange={(event) => updateBlock(block.id, { name: event.target.value })}
-                          placeholder="Nombre del bloque"
-                          autoFocus={block.id === focusBlockId}
-                          className={cn(
-                            controlStyles(Boolean(blocksError) && !block.name.trim()),
-                            "h-10 min-w-40 flex-1 px-3",
-                          )}
-                        />
-                        <div
-                          className="flex items-center gap-1"
-                          role="group"
-                          aria-label={`Minutos de ${block.name || "bloque"}`}
-                        >
-                          <IconButton
-                            label="Menos 5 minutos"
-                            onClick={() =>
-                              updateBlock(block.id, {
-                                plannedMinutes: stepMinutes(block.plannedMinutes, -1),
-                              })
-                            }
-                            disabled={block.plannedMinutes <= BLOCK_MINUTES.min}
-                          >
-                            <Minus />
-                          </IconButton>
-                          <label className="relative">
-                            <span className="sr-only">Minutos previstos</span>
-                            <input
-                              type="number"
-                              inputMode="numeric"
-                              min={BLOCK_MINUTES.min}
-                              max={BLOCK_MINUTES.max}
-                              value={block.plannedMinutes}
-                              onChange={(event) =>
-                                updateBlock(block.id, {
-                                  plannedMinutes: clampMinutes(event.target.valueAsNumber),
-                                })
-                              }
-                              className={cn(
-                                controlStyles(),
-                                "h-10 w-20 [appearance:textfield] pr-9 pl-3 text-right tabular-nums [&::-webkit-inner-spin-button]:appearance-none",
-                              )}
-                            />
-                            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-ink-2">
-                              min
-                            </span>
-                          </label>
-                          <IconButton
-                            label="Más 5 minutos"
-                            onClick={() =>
-                              updateBlock(block.id, {
-                                plannedMinutes: stepMinutes(block.plannedMinutes, 1),
-                              })
-                            }
-                            disabled={block.plannedMinutes >= BLOCK_MINUTES.max}
-                          >
-                            <Plus />
-                          </IconButton>
-                        </div>
-                        <div className="ml-auto flex items-center gap-1">
-                          <IconButton
-                            label="Mover arriba"
-                            onClick={() => moveBlock(index, -1)}
-                            disabled={index === 0}
-                          >
-                            <ChevronUp />
-                          </IconButton>
-                          <IconButton
-                            label="Mover abajo"
-                            onClick={() => moveBlock(index, 1)}
-                            disabled={index === blocks.length - 1}
-                          >
-                            <ChevronDown />
-                          </IconButton>
-                          <IconButton
-                            label="Eliminar bloque"
-                            className="hover:text-danger"
-                            onClick={() =>
-                              setBlocks((current) => current.filter((b) => b.id !== block.id))
-                            }
-                          >
-                            <Trash2 />
-                          </IconButton>
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-                {blocksError && <Banner tone="error">{blocksError}</Banner>}
-                <div className="flex flex-wrap items-center gap-4">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon={<Plus className="size-4" />}
-                    onClick={addBlock}
-                  >
-                    Agregar bloque
-                  </Button>
-                  {blocks.length > 0 && (
-                    <div className="flex min-w-60 flex-1 items-center gap-4">
-                      <BlockTimeline blocks={blocks} className="flex-1" />
-                      <span className="text-sm whitespace-nowrap text-ink-2 tabular-nums">
-                        Total previsto:{" "}
-                        <strong className="text-ink">
-                          {durationSummary(plannedSeconds(blocks))}
-                        </strong>
+          {tracksTime && (
+            <div className="flex animate-fade-in flex-col gap-4">
+              {blocks.length > 0 && (
+                <ol className="flex flex-col gap-2">
+                  {blocks.map((block, index) => (
+                    <li
+                      key={block.id}
+                      className="flex flex-wrap items-center gap-2 rounded-md bg-surface p-2 ring-1 ring-line ring-inset sm:flex-nowrap"
+                    >
+                      <span className="w-7 text-center text-xs text-ink-2 tabular-nums">
+                        {String(index + 1).padStart(2, "0")}
                       </span>
-                    </div>
-                  )}
-                </div>
+                      <input
+                        aria-label={`Nombre del bloque ${index + 1}`}
+                        value={block.name}
+                        onChange={(event) => updateBlock(block.id, { name: event.target.value })}
+                        placeholder="Nombre del bloque"
+                        autoFocus={block.id === focusBlockId}
+                        className={cn(
+                          controlStyles(Boolean(blocksError) && !block.name.trim()),
+                          "h-10 min-w-40 flex-1 px-3",
+                        )}
+                      />
+                      <div
+                        className="flex items-center gap-1"
+                        role="group"
+                        aria-label={`Minutos de ${block.name || "bloque"}`}
+                      >
+                        <IconButton
+                          label="Menos 5 minutos"
+                          onClick={() =>
+                            updateBlock(block.id, {
+                              plannedMinutes: stepMinutes(block.plannedMinutes, -1),
+                            })
+                          }
+                          disabled={block.plannedMinutes <= BLOCK_MINUTES.min}
+                        >
+                          <Minus />
+                        </IconButton>
+                        <label className="relative">
+                          <span className="sr-only">Minutos previstos</span>
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={BLOCK_MINUTES.min}
+                            max={BLOCK_MINUTES.max}
+                            value={block.plannedMinutes}
+                            onChange={(event) =>
+                              updateBlock(block.id, {
+                                plannedMinutes: clampMinutes(event.target.valueAsNumber),
+                              })
+                            }
+                            className={cn(
+                              controlStyles(),
+                              "h-10 w-20 [appearance:textfield] pr-9 pl-3 text-right tabular-nums [&::-webkit-inner-spin-button]:appearance-none",
+                            )}
+                          />
+                          <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-ink-2">
+                            min
+                          </span>
+                        </label>
+                        <IconButton
+                          label="Más 5 minutos"
+                          onClick={() =>
+                            updateBlock(block.id, {
+                              plannedMinutes: stepMinutes(block.plannedMinutes, 1),
+                            })
+                          }
+                          disabled={block.plannedMinutes >= BLOCK_MINUTES.max}
+                        >
+                          <Plus />
+                        </IconButton>
+                      </div>
+                      <div className="ml-auto flex items-center gap-1">
+                        <IconButton
+                          label="Mover arriba"
+                          onClick={() => moveBlock(index, -1)}
+                          disabled={index === 0}
+                        >
+                          <ChevronUp />
+                        </IconButton>
+                        <IconButton
+                          label="Mover abajo"
+                          onClick={() => moveBlock(index, 1)}
+                          disabled={index === blocks.length - 1}
+                        >
+                          <ChevronDown />
+                        </IconButton>
+                        <IconButton
+                          label="Eliminar bloque"
+                          className="hover:text-danger"
+                          onClick={() =>
+                            setBlocks((current) => current.filter((b) => b.id !== block.id))
+                          }
+                        >
+                          <Trash2 />
+                        </IconButton>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {blocksError && <Banner tone="error">{blocksError}</Banner>}
+              <div className="flex flex-wrap items-center gap-4">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<Plus className="size-4" />}
+                  onClick={addBlock}
+                >
+                  Agregar bloque
+                </Button>
+                {blocks.length > 0 && (
+                  <div className="flex min-w-60 flex-1 items-center gap-4">
+                    <BlockTimeline blocks={blocks} className="flex-1" />
+                    <span className="text-sm whitespace-nowrap text-ink-2 tabular-nums">
+                      Total previsto:{" "}
+                      <strong className="text-ink">
+                        {durationSummary(plannedSeconds(blocks))}
+                      </strong>
+                    </span>
+                  </div>
+                )}
               </div>
-            )}
-          </fieldset>
-        )}
+            </div>
+          )}
+        </fieldset>
       </Surface>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -434,7 +431,7 @@ export function ServiceTypeEditor({ serviceType, timeControlEnabled, otherNames 
         >
           Guardar
         </Button>
-        <ButtonLink href="/servicios" variant="ghost" size="lg">
+        <ButtonLink href="/services" variant="ghost" size="lg">
           Cancelar
         </ButtonLink>
         {serviceType && (

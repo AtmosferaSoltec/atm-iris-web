@@ -1,4 +1,4 @@
-import { Plus, Upload } from "lucide-react";
+import { Plus, Presentation, Upload } from "lucide-react";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ButtonLink } from "@/components/ui/button";
@@ -22,7 +22,6 @@ export const metadata: Metadata = { title: "Inicio" };
 export default async function HomePage() {
   const { repos } = await requireSession();
   const church = await repos.church.get();
-  const { modules } = church;
   const now = new Date();
 
   return (
@@ -30,49 +29,39 @@ export default async function HomePage() {
       <div className="flex flex-wrap items-end justify-between gap-6">
         <Greeting churchName={church.name} timeZone={church.timezone} now={now} />
         <div className="flex flex-wrap gap-3">
-          {modules.multimedia && (
-            <ButtonLink href="/multimedia" variant="secondary" icon={<Upload className="size-4" />}>
-              Subir multimedia
-            </ButtonLink>
-          )}
-          <ButtonLink href="/canciones/nueva" icon={<Plus className="size-4" />}>
+          <ButtonLink href="/media" variant="secondary" icon={<Upload className="size-4" />}>
+            Subir multimedia
+          </ButtonLink>
+          <ButtonLink href="/songs/new" variant="secondary" icon={<Plus className="size-4" />}>
             Nueva canción
+          </ButtonLink>
+          <ButtonLink href="/console" icon={<Presentation className="size-4" />}>
+            Iniciar servicio
           </ButtonLink>
         </div>
       </div>
 
       <Suspense fallback={<Skeleton className="h-72 rounded-2xl" />}>
-        <NextServiceSection
-          repos={repos}
-          timeZone={church.timezone}
-          now={now}
-          timeControl={modules.timeControl}
-        />
+        <NextServiceSection repos={repos} timeZone={church.timezone} now={now} />
       </Suspense>
 
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         <Suspense fallback={<TileSkeleton />}>
           <SongsTile repos={repos} />
         </Suspense>
-        {modules.multimedia && (
-          <Suspense fallback={<TileSkeleton />}>
-            <MediaTile repos={repos} storage={church.storage} />
-          </Suspense>
-        )}
         <Suspense fallback={<TileSkeleton />}>
-          <ServicesTile repos={repos} timeControl={modules.timeControl} />
+          <MediaTile repos={repos} storage={church.storage} />
         </Suspense>
-        {modules.timeControl && (
-          <>
-            <Suspense fallback={<TileSkeleton />}>
-              <TimesTile repos={repos} timeZone={church.timezone} />
-            </Suspense>
-            <Suspense fallback={<TileSkeleton />}>
-              <PeopleTile repos={repos} />
-            </Suspense>
-          </>
-        )}
-        <SettingsTile modules={modules} />
+        <Suspense fallback={<TileSkeleton />}>
+          <ServicesTile repos={repos} />
+        </Suspense>
+        <Suspense fallback={<TileSkeleton />}>
+          <TimesTile repos={repos} timeZone={church.timezone} />
+        </Suspense>
+        <Suspense fallback={<TileSkeleton />}>
+          <PeopleTile repos={repos} />
+        </Suspense>
+        <SettingsTile storage={church.storage} />
       </div>
     </div>
   );
@@ -82,13 +71,11 @@ async function NextServiceSection({
   repos,
   timeZone,
   now,
-  timeControl,
 }: {
   repos: Repositories;
   timeZone: string;
   now: Date;
-  timeControl: boolean;
 }) {
   const types = await repos.serviceTypes.list();
-  return <NextServiceCard next={nextService(types, now, timeZone)} timeControl={timeControl} />;
+  return <NextServiceCard next={nextService(types, now, timeZone)} />;
 }

@@ -56,7 +56,7 @@ const FEATURES: Feature[] = [
 const STEPS = [
   {
     title: "Prepara en la web",
-    text: "Sube letras, música y multimedia, y arma el plan del próximo servicio desde cualquier navegador.",
+    text: "Sube letras, música y multimedia, y arma el próximo servicio desde cualquier navegador.",
   },
   {
     title: "Se sincroniza solo",

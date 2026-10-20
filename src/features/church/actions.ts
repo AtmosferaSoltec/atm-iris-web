@@ -1,12 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { ChurchModules } from "@/domain/models";
-import { fieldErrorsFrom, formValues, GENERIC_ERROR, type FormState } from "@/lib/form-state";
+import { fieldErrorsFrom, formValues, type FormState } from "@/lib/form-state";
 import { authorize } from "@/server/dal";
-import { errorMessage, toFormState } from "@/server/repositories/api/errors";
+import { toFormState } from "@/server/repositories/api/errors";
 import { createSession } from "@/server/session";
-import { CHURCH_FIELDS, churchSchema, modulesSchema, type ChurchField } from "./schemas";
+import { CHURCH_FIELDS, churchSchema, type ChurchField } from "./schemas";
 
 export async function updateChurch(
   _prev: FormState<ChurchField>,
@@ -31,18 +30,4 @@ export async function updateChurch(
   }
   revalidatePath("/", "layout");
   return { status: "success", values: parsed.data };
-}
-
-export async function saveModules(modules: ChurchModules): Promise<{ error?: string }> {
-  const parsed = modulesSchema.safeParse(modules);
-  if (!parsed.success) return { error: GENERIC_ERROR };
-  try {
-    const { repos } = await authorize();
-    await repos.church.setModules(parsed.data);
-  } catch (error) {
-    return { error: errorMessage(error) };
-  }
-  // Navigation and every screen depend on the modules.
-  revalidatePath("/", "layout");
-  return {};
 }

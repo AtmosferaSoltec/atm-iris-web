@@ -3,21 +3,25 @@
 import { revalidatePath } from "next/cache";
 import { fieldErrorsFrom, formValues, GENERIC_ERROR, type FormState } from "@/lib/form-state";
 import { idSchema } from "@/lib/validation";
+import { isYouTubeMusicLink, youTubeVideoId, type YouTubeVideo } from "@/lib/youtube";
 import { authorize } from "@/server/dal";
 import { errorMessage, toFormState } from "@/server/repositories/api/errors";
+import { searchLyrics, type FoundLyrics } from "@/server/lyrics";
+import { lookUpYouTube } from "@/server/youtube";
 import {
+  lyricsSearchSchema,
   SONG_FIELDS,
   songFormSchema,
   songImportSchema,
   trackSongSchema,
+  youTubeLinkSchema,
   type SongExportItem,
   type SongField,
 } from "./schemas";
 
 function revalidateSongs() {
-  revalidatePath("/canciones", "layout");
-  revalidatePath("/plan");
-  revalidatePath("/ajustes");
+  revalidatePath("/songs", "layout");
+  revalidatePath("/settings");
   revalidatePath("/");
 }
 
@@ -47,13 +51,44 @@ export async function saveSong(
   return { status: "success" };
 }
 
+/** "Buscar letra": lyrics from LRCLIB, a free lyrics database (no key). */
+export async function findLyrics(
+  title: string,
+  artist: string,
+): Promise<{ results?: FoundLyrics[]; error?: string }> {
+  const parsed = lyricsSearchSchema.safeParse({ title, artist });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? GENERIC_ERROR };
+  await authorize();
+  return searchLyrics(parsed.data.title, parsed.data.artist);
+}
+
+/** A pasted YouTube or YouTube Music link, checked: it exists and can play outside YouTube. */
+export async function findYouTubeTrack(
+  link: string,
+): Promise<{ video?: YouTubeVideo; error?: string }> {
+  const parsed = youTubeLinkSchema.safeParse(link);
+  const videoId = parsed.success ? youTubeVideoId(parsed.data) : null;
+  if (!videoId) return { error: "Ese enlace no es de YouTube ni de YouTube Music." };
+  await authorize();
+  const found = await lookUpYouTube(videoId);
+  return found.video
+    ? { video: { ...found.video, music: isYouTubeMusicLink(parsed.data!) } }
+    : { error: found.error };
+}
+
 /** "Subir pistas": each uploaded file becomes a song with only that track. */
 export async function createTrackSong(audioId: string, title: string): Promise<{ error?: string }> {
   const parsed = trackSongSchema.safeParse({ audioId, title });
   if (!parsed.success) return { error: GENERIC_ERROR };
   try {
     const { repos } = await authorize();
-    await repos.songs.create({ ...parsed.data, author: "", sections: [] });
+    await repos.songs.create({
+      ...parsed.data,
+      author: "",
+      sections: [],
+      youtubeId: null,
+      youtubeMusic: false,
+    });
   } catch (error) {
     return { error: errorMessage(error) };
   }
@@ -93,8 +128,8 @@ export async function deleteSongs(songIds: string[]): Promise<{ deleted: number;
 }
 
 /**
- * The library's lyrics, full sections included, for "Exportar" to download as a file.
- * Songs that are only a track have nothing to export.
+ * The library's lyrics, full sections included, for "Exportar" to download as a file, with
+ * their YouTube track. Songs that are only an uploaded track have nothing to export.
  */
 export async function exportSongs(): Promise<{ songs?: SongExportItem[]; error?: string }> {
   try {
@@ -111,11 +146,13 @@ export async function exportSongs(): Promise<{ songs?: SongExportItem[]; error?:
     return {
       songs: full
         .filter((song) => song !== null)
-        .filter((song) => song.sections.length > 0)
+        .filter((song) => song.sections.length > 0 || song.youtubeId !== null)
         .map((song) => ({
           title: song.title,
           author: song.author,
           sections: song.sections.map(({ label, text }) => ({ label, text })),
+          youtubeId: song.youtubeId,
+          youtubeMusic: song.youtubeMusic,
         })),
     };
   } catch (error) {

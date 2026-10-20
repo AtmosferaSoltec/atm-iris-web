@@ -2,9 +2,9 @@
 
 import { CircleAlert, CircleCheck, RotateCw, X } from "lucide-react";
 import { Button, IconButton } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Surface } from "@/components/ui/surface";
-import { cn } from "@/lib/cn";
-import { fileSize, percent } from "@/lib/format";
+import { fileSize } from "@/lib/format";
 import { KIND_COLORS, KIND_ICONS } from "../media-format";
 import type { UploadItem } from "../upload/use-media-upload";
 
@@ -64,32 +64,13 @@ export function UploadQueue({ items, onCancel, onRetry, onDismiss, onClearFinish
                   </p>
                 ) : (
                   <p className="flex items-center gap-1.5 text-xs text-ink-2">
-                    {item.status === "done" && (
+                    {item.status === "done" ? (
                       <CircleCheck aria-hidden className="size-3.5 text-success" />
+                    ) : (
+                      <Spinner className="size-3.5" />
                     )}
                     {STATUS_TEXT[item.status]}
-                    {item.status === "uploading" && ` ${percent(item.progress)}`}
                   </p>
-                )}
-                {isActive && (
-                  <div
-                    role="progressbar"
-                    aria-label={`Progreso de ${item.title}`}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={Math.round(item.progress * 100)}
-                    className="mt-1.5 h-1 overflow-hidden rounded-full bg-surface-raised"
-                  >
-                    <div
-                      className={cn(
-                        "h-full rounded-full bg-accent transition-[width]",
-                        item.status !== "uploading" &&
-                          item.status !== "confirming" &&
-                          "animate-pulse",
-                      )}
-                      style={{ width: `${Math.max(item.progress * 100, 4)}%` }}
-                    />
-                  </div>
                 )}
               </div>
               {item.status === "error" && item.canRetry && (

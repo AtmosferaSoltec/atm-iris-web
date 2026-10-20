@@ -1,11 +1,4 @@
-import type {
-  BlockRecord,
-  Church,
-  Person,
-  ServiceRecord,
-  ServiceType,
-  ChurchModules,
-} from "@/domain/models";
+import type { BlockRecord, Church, Person, ServiceRecord, ServiceType } from "@/domain/models";
 import { parseLyrics } from "@/lib/lyrics";
 import type { ChurchData, MockSong } from "./world";
 
@@ -139,21 +132,13 @@ const RECORD_SAMPLES: Sample[][] = [
 
 const GIB = 1024 * 1024 * 1024;
 
-/** Same as production today (`system_features`): the Bible is off for all of Iris. */
-export const MOCK_AVAILABLE_MODULES: ChurchModules = {
-  bible: false,
-  multimedia: true,
-  timeControl: true,
-};
-
 export function newChurch(id: string, name: string, now: Date): Church {
   const timestamp = now.toISOString();
   return {
     id,
     name,
     timezone: "America/Lima",
-    modules: { bible: true, multimedia: true, timeControl: true },
-    availableModules: MOCK_AVAILABLE_MODULES,
+    projection: { fontFamily: "system", fontSizePt: 88, defaultBackgroundId: null },
     storage: {
       usedBytes: 0,
       quotaBytes: 5 * GIB,
@@ -185,6 +170,8 @@ export function sampleSongs(now: Date, titles?: string[]): MockSong[] {
     author: song.author,
     sections: parseLyrics(song.lyrics).map((section) => ({ id: crypto.randomUUID(), ...section })),
     audioId: null,
+    youtubeId: null,
+    youtubeMusic: false,
     createdAt: timestamp,
     // Spread a little so "Recientes" has an order.
     updatedAt: new Date(now.getTime() - index * 86_400_000).toISOString(),
@@ -255,6 +242,8 @@ export function sampleContent(
         personId: sample ? personId(sample[0]) : null,
         personName: sample ? sample[0] : null,
         status: !sample ? "skipped" : (sample[3] ?? "completed"),
+        startedAt: null,
+        endedAt: null,
       };
     });
     return {
@@ -262,6 +251,7 @@ export function sampleContent(
       date: iso,
       serviceTypeId: culto.id,
       serviceTypeName: culto.name,
+      status: "finished",
       blocks,
       createdAt: iso,
       updatedAt: iso,

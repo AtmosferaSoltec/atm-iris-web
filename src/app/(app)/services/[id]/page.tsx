@@ -1,0 +1,29 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { BackLink } from "@/components/ui/back-link";
+import { PageHeader } from "@/components/ui/page-header";
+import { ServiceTypeEditor } from "@/features/service-types/components/service-type-editor";
+import { requireSession } from "@/server/dal";
+
+export const metadata: Metadata = { title: "Editar servicio" };
+
+export default async function EditServiceTypePage({ params }: PageProps<"/services/[id]">) {
+  const { id } = await params;
+  const { repos } = await requireSession();
+  const [serviceType, types] = await Promise.all([
+    repos.serviceTypes.get(id),
+    repos.serviceTypes.list(),
+  ]);
+  if (!serviceType) notFound();
+
+  return (
+    <div className="mx-auto flex max-w-content flex-col gap-8">
+      <BackLink href="/services">Servicios</BackLink>
+      <PageHeader title="Editar servicio" />
+      <ServiceTypeEditor
+        serviceType={serviceType}
+        otherNames={types.filter((type) => type.id !== id).map((type) => type.name)}
+      />
+    </div>
+  );
+}

@@ -15,9 +15,9 @@ const NAME_FIELD = ["name"] as const;
 const NAME_TAKEN = { PERSON_NAME_TAKEN: "name" } as const;
 
 function revalidatePeople() {
-  revalidatePath("/personas");
+  revalidatePath("/people");
   // Leaders show in the service editor and the home tiles too.
-  revalidatePath("/servicios", "layout");
+  revalidatePath("/services", "layout");
   revalidatePath("/");
 }
 

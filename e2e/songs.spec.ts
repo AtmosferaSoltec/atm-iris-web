@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => signIn(page));
 
 /** "Subir pistas": each audio file becomes a song with just that track. */
 async function uploadTracks(page: Page, titles: string[]) {
-  await page.goto("/canciones");
+  await page.goto("/songs");
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Subir pistas" }).click();
   await (
@@ -25,13 +25,13 @@ async function uploadTracks(page: Page, titles: string[]) {
 
 test("creates a song and finds it by its lyrics", async ({ page }) => {
   const title = unique("Canción");
-  await page.goto("/canciones/nueva");
+  await page.goto("/songs/new");
   await page.locator("#title").fill(title);
   await page.locator("#lyrics").fill("#Coro\nGloria en las alturas\n\nSegunda diapositiva");
   await expect(page.getByText("2 diapositivas")).toBeVisible();
   await expect(page.getByText("Coro", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Guardar canción" }).click();
-  await expect(page).toHaveURL("/canciones");
+  await expect(page).toHaveURL("/songs");
   await expect(toast(page, "Canción guardada")).toBeVisible();
 
   await page.locator("#song-search").fill("en las alturas");
@@ -45,13 +45,13 @@ test("creates a song and finds it by its lyrics", async ({ page }) => {
 
 test("a song needs lyrics or a track, and keeps the track it was given", async ({ page }) => {
   const title = unique("Con pista");
-  await page.goto("/canciones/nueva");
+  await page.goto("/songs/new");
   await page.locator("#title").fill(title);
   await page.getByRole("button", { name: "Guardar canción" }).click();
-  await expect(page.getByText("Pega la letra o sube una pista", { exact: false })).toBeVisible();
+  await expect(page.getByText("Pega la letra o elige una pista", { exact: false })).toBeVisible();
 
   const chooser = page.waitForEvent("filechooser");
-  await page.getByRole("button", { name: /Subir pista/ }).click();
+  await page.getByRole("button", { name: "O sube un MP3" }).click();
   await (
     await chooser
   ).setFiles({ name: "hoy-te-salvo.mp3", mimeType: "audio/mpeg", buffer: Buffer.from("ID3 a") });
@@ -84,7 +84,7 @@ test("sube varias pistas: cada una es una canción, y rechaza lo que no es audio
 }) => {
   const first = unique("Preludio");
   const second = unique("Ofrenda");
-  await page.goto("/canciones");
+  await page.goto("/songs");
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Subir pistas" }).click();
   await (
@@ -103,10 +103,10 @@ test("sube varias pistas: cada una es una canción, y rechaza lo que no es audio
   await expect(page.getByRole("button", { name: `Escuchar ${second}` })).toBeVisible();
 
   // A track is part of its song: it never shows up in Multimedia.
-  await page.goto("/multimedia");
+  await page.goto("/media");
   await expect(page.getByRole("button", { name: first, exact: true })).toHaveCount(0);
 
-  await page.goto("/ajustes");
+  await page.goto("/settings");
   await expect(page.getByRole("meter", { name: "Almacenamiento usado" })).toBeVisible();
   for (const section of ["Pistas", "Fondos", "Multimedia"]) {
     await expect(page.getByRole("term").filter({ hasText: section })).toBeVisible();
@@ -133,21 +133,21 @@ test("selecciona varias canciones y las elimina de golpe", async ({ page }) => {
 
 test("Letras and Música lead to Canciones", async ({ page }) => {
   await page.goto("/musica");
-  await expect(page).toHaveURL("/canciones");
+  await expect(page).toHaveURL("/songs");
   await expect(page.getByRole("heading", { name: "Canciones", level: 1 })).toBeVisible();
   // Served, not redirected: /canciones used to redirect permanently to /letras.
-  await page.goto("/letras");
-  await expect(page).toHaveURL("/letras");
+  await page.goto("/songs");
+  await expect(page).toHaveURL("/songs");
   await expect(page.getByRole("heading", { name: "Canciones", level: 1 })).toBeVisible();
 });
 
 test("exporta las letras y las vuelve a importar en otra cuenta", async ({ page }) => {
   const title = unique("Letra para exportar");
-  await page.goto("/canciones/nueva");
+  await page.goto("/songs/new");
   await page.locator("#title").fill(title);
   await page.locator("#lyrics").fill("Primera diapositiva");
   await page.getByRole("button", { name: "Guardar canción" }).click();
-  await expect(page).toHaveURL("/canciones");
+  await expect(page).toHaveURL("/songs");
 
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Exportar" }).click();

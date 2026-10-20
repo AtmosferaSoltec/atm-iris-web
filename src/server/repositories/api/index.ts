@@ -1,6 +1,7 @@
 import "server-only";
 import type {
   Church,
+  Display,
   MediaAsset,
   Person,
   ServicePlanItem,
@@ -10,15 +11,18 @@ import type {
   SongSummary,
   UploadTicket,
 } from "@/domain/models";
-import { ALL_MODULES } from "@/domain/models";
-import type { DataRepositories } from "../types";
+import type { DataRepositories, DisplayLink, DisplayPairing, PairingStatus } from "../types";
+import { env } from "../../env";
 import { createApiClient, orNull, segment, type ClientOptions } from "./client";
+import { ApiError } from "./errors";
 
 // Implementation against atm-iris-api, route by route from docs/api-contract.md.
 
-/** An API from before the system switches doesn't send `availableModules`: everything exists. */
-function withAvailableModules(church: Church): Church {
-  return { ...church, availableModules: church.availableModules ?? ALL_MODULES };
+const DEFAULT_PROJECTION = { fontFamily: "system", fontSizePt: 88, defaultBackgroundId: null };
+
+/** An API from before projection settings doesn't send them: the defaults. */
+function withDefaults(church: Church): Church {
+  return { ...church, projection: church.projection ?? DEFAULT_PROJECTION };
 }
 
 /** Contract §6, §8–§11, §14. */
@@ -27,11 +31,9 @@ export function apiDataRepositories(options: ClientOptions = {}): DataRepositori
 
   return {
     church: {
-      get: () => api<Church>("/church").then(withAvailableModules),
+      get: () => api<Church>("/church").then(withDefaults),
       update: (input) =>
-        api<Church>("/church", { method: "PATCH", body: input }).then(withAvailableModules),
-      setModules: (modules) =>
-        api<Church>("/church/modules", { method: "PUT", body: modules }).then(withAvailableModules),
+        api<Church>("/church", { method: "PATCH", body: input }).then(withDefaults),
     },
     people: {
       list: () => api<Person[]>("/people"),
@@ -77,15 +79,54 @@ export function apiDataRepositories(options: ClientOptions = {}): DataRepositori
       remove: (id) => api(`/service-plan/${segment(id)}`, { method: "DELETE" }),
       clear: () => api("/service-plan", { method: "DELETE" }),
     },
+    displays: {
+      list: () => api<Display[]>("/displays"),
+      claim: (code, name) => api<Display>("/displays", { method: "POST", body: { code, name } }),
+      remove: (id) => api(`/displays/${segment(id)}`, { method: "DELETE" }),
+      publish: (state) => api("/displays/state", { method: "PUT", body: state }),
+    },
     records: {
       list: (query = {}) => api.page<ServiceRecord>("/service-records", { query }),
       get: (id) => orNull(api<ServiceRecord>(`/service-records/${segment(id)}`)),
+      save: (id, input) =>
+        api<ServiceRecord>(`/service-records/${segment(id)}`, { method: "PUT", body: input }),
       adjustBlock: (recordId, blockId, patch) =>
         api<ServiceRecord>(`/service-records/${segment(recordId)}/blocks/${segment(blockId)}`, {
           method: "PATCH",
           body: patch,
         }),
       delete: (id) => api(`/service-records/${segment(id)}`, { method: "DELETE" }),
+    },
+  };
+}
+
+/** Contract §18, the TV's side: no session, its own token. */
+export function apiDisplayLink(): DisplayLink {
+  const api = createApiClient();
+  return {
+    startPairing: () => api<DisplayPairing>("/displays/pairings", { method: "POST" }),
+    async pairingStatus(id, secret) {
+      // The secret goes in a header: the JSON client has no option for it.
+      const response = await fetch(`${env.API_URL}/displays/pairings/${segment(id)}`, {
+        headers: { Accept: "application/json", "X-Pairing-Secret": secret },
+        cache: "no-store",
+      }).catch(() => null);
+      if (!response) throw new ApiError(0, "NETWORK", "No pudimos conectar con Iris.");
+      if (response.status === 404) return null;
+      if (!response.ok) throw new ApiError(response.status, "INTERNAL_ERROR", "Algo salió mal.");
+      return ((await response.json()) as { data: PairingStatus }).data;
+    },
+    async stream(token, signal) {
+      const response = await fetch(`${env.API_URL}/displays/stream`, {
+        headers: { Accept: "text/event-stream", Authorization: `Bearer ${token}` },
+        cache: "no-store",
+        signal,
+      });
+      if (response.status === 401) return "unlinked";
+      if (!response.ok || !response.body) {
+        throw new ApiError(response.status, "INTERNAL_ERROR", "El canal no está disponible.");
+      }
+      return response;
     },
   };
 }

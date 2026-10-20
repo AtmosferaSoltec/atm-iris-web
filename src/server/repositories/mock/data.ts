@@ -6,7 +6,6 @@ import {
   tooLargeMessage,
 } from "@/domain/media-rules";
 import {
-  effectiveModules,
   type Church,
   type Id,
   type MediaAsset,
@@ -47,6 +46,7 @@ import {
   type MockMedia,
   type MockSong,
 } from "./world";
+import { mockDisplays } from "./displays";
 
 /* ---------------------------------------------------------------- Helpers */
 
@@ -91,13 +91,7 @@ function storageOf(data: ChurchData): StorageUsage {
 /* ------------------------------------------------------------------ Church */
 
 function church(session?: UserSession): ChurchRepository {
-  // Stored: the church's own choice. Returned: what it sees, like the API (contract §6).
-  const view = (data: ChurchData): Church =>
-    clone({
-      ...data.church,
-      modules: effectiveModules(data.church.modules, data.church.availableModules),
-      storage: storageOf(data),
-    });
+  const view = (data: ChurchData): Church => clone({ ...data.church, storage: storageOf(data) });
 
   return {
     async get() {
@@ -108,19 +102,6 @@ function church(session?: UserSession): ChurchRepository {
       await delay();
       const data = churchOf(session);
       Object.assign(data.church, input, { updatedAt: now() });
-      return view(data);
-    },
-    async setModules(modules) {
-      await delay();
-      const data = churchOf(session);
-      const { availableModules: available, modules: stored } = data.church;
-      // A module switched off for all of Iris keeps the choice it had.
-      data.church.modules = {
-        bible: available.bible ? modules.bible : stored.bible,
-        multimedia: available.multimedia ? modules.multimedia : stored.multimedia,
-        timeControl: available.timeControl ? modules.timeControl : stored.timeControl,
-      };
-      data.church.updatedAt = now();
       return view(data);
     },
   };
@@ -268,6 +249,8 @@ function toSummary(song: Song): SongSummary {
     sectionCount: song.sections.length,
     firstLine: firstLine(song.sections),
     audio: song.audio,
+    youtubeId: song.youtubeId,
+    youtubeMusic: song.youtubeMusic,
     updatedAt: song.updatedAt,
   };
 }
@@ -280,12 +263,21 @@ function relevance(song: MockSong, key: string): number {
   return 0;
 }
 
-const songFieldError = (field: "sections" | "audioId", message: string) =>
+const songFieldError = (field: "sections" | "audioId" | "youtubeId", message: string) =>
   new ApiError(400, "VALIDATION_FAILED", "Revisa los datos enviados.", { [field]: message });
 
-/** Same rules as the API: lyrics or a track, and a track belongs to one song only. */
+/**
+ * Same rules as the API: lyrics or a track; the track is an upload or a YouTube video, not
+ * both; an upload belongs to one song only.
+ */
 function assertSongInput(data: ChurchData, input: SongInput, songId: Id | null) {
-  if (input.sections.length === 0 && !input.audioId) {
+  if (input.youtubeId !== null && !/^[\w-]{11}$/.test(input.youtubeId)) {
+    throw songFieldError("youtubeId", "Ese no es un video de YouTube.");
+  }
+  if (input.audioId && input.youtubeId) {
+    throw songFieldError("youtubeId", "La pista es un audio o un video de YouTube, no los dos.");
+  }
+  if (input.sections.length === 0 && !input.audioId && !input.youtubeId) {
     throw songFieldError("sections", "Agrega la letra o una pista.");
   }
   if (!input.audioId) return;
@@ -312,6 +304,8 @@ function songs(session?: UserSession): SongRepository {
       author: input.author,
       sections: input.sections.map((section) => ({ id: crypto.randomUUID(), ...section })),
       audioId: input.audioId,
+      youtubeId: input.youtubeId,
+      youtubeMusic: input.youtubeId !== null && input.youtubeMusic,
       createdAt: existing?.createdAt ?? now(),
       updatedAt: now(),
     };
@@ -607,14 +601,15 @@ function servicePlan(session?: UserSession): ServicePlanRepository {
 
 function records(session?: UserSession): TimeRecordRepository {
   return {
-    async list({ from, to, serviceTypeId, page, limit } = {}) {
+    async list({ from, to, serviceTypeId, status, page, limit } = {}) {
       await delay();
       const items = churchOf(session)
         .records.filter(
           (record) =>
             (!from || record.date >= from) &&
             (!to || record.date < to) &&
-            (!serviceTypeId || record.serviceTypeId === serviceTypeId),
+            (!serviceTypeId || record.serviceTypeId === serviceTypeId) &&
+            (!status || record.status === status),
         )
         .sort((a, b) => b.date.localeCompare(a.date));
       return paginate(items, page, limit, 500);
@@ -622,6 +617,24 @@ function records(session?: UserSession): TimeRecordRepository {
     async get(id) {
       await delay();
       return clone(churchOf(session).records.find((record) => record.id === id) ?? null);
+    },
+    async save(id, input) {
+      await delay();
+      const data = churchOf(session);
+      const existing = data.records.find((record) => record.id === id);
+      // Contract §14: a finished record never goes back to in progress.
+      if (existing?.status === "finished" && input.status === "inProgress") {
+        throw new ApiError(409, "RECORD_FINISHED", "Este servicio ya terminó.");
+      }
+      const record: ServiceRecord = {
+        id,
+        ...input,
+        blocks: input.blocks.map((block) => ({ ...block })),
+        createdAt: existing?.createdAt ?? now(),
+        updatedAt: now(),
+      };
+      data.records = [...data.records.filter((candidate) => candidate.id !== id), record];
+      return clone(record);
     },
     async adjustBlock(recordId, blockId, patch) {
       await delay();
@@ -660,5 +673,6 @@ export function mockDataRepositories(session?: UserSession): DataRepositories {
     media: media(session),
     servicePlan: servicePlan(session),
     records: records(session),
+    displays: mockDisplays(session),
   };
 }

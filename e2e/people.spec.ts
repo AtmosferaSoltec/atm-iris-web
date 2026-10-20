@@ -5,7 +5,7 @@ test.beforeEach(async ({ page }) => signIn(page));
 
 test("adds, rejects duplicates and renames people", async ({ page }) => {
   const name = unique("Rut");
-  await page.goto("/personas");
+  await page.goto("/people");
   await page.getByLabel("Nueva persona").fill(name);
   await page.keyboard.press("Enter");
   await expect(toast(page, `Se agregó a ${name}`)).toBeVisible();

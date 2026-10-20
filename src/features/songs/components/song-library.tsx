@@ -42,6 +42,7 @@ import { plural } from "@/lib/text";
 import { useSlashFocus } from "@/lib/use-slash-focus";
 import { createTrackSong, deleteSongs, exportSongs, importSongs } from "../actions";
 import { useTrackPlayer, type PlayState } from "../use-track-player";
+import { YouTubeBadge } from "./youtube-badge";
 
 type Props = { songs: Paginated<SongSummary>; storage: Church["storage"] };
 
@@ -262,7 +263,7 @@ export function SongLibrary({ songs, storage }: Props) {
                   event.target.value = "";
                 }}
               />
-              <ButtonLink href="/canciones/nueva" icon={<Plus className="size-4" />}>
+              <ButtonLink href="/songs/new" icon={<Plus className="size-4" />}>
                 Nueva canción
               </ButtonLink>
             </>
@@ -276,10 +277,7 @@ export function SongLibrary({ songs, storage }: Props) {
 
       {storage.quotaBytes > 0 && storage.usedBytes / storage.quotaBytes >= 0.8 && (
         <Banner tone="info">
-          Estás por llenar tu espacio.{" "}
-          <Link href="/ajustes#plan" className="font-semibold underline underline-offset-2">
-            Ver planes con más espacio
-          </Link>
+          Estás por llenar tu espacio. Borra lo que ya no uses para liberar lugar.
         </Banner>
       )}
 
@@ -327,7 +325,7 @@ export function SongLibrary({ songs, storage }: Props) {
             <EmptyState
               icon={<ListMusic />}
               title="Aún no hay canciones"
-              description="Usa «Nueva canción» para escribir la letra y subir su pista, o arrastra tus pistas a esta página: cada archivo se vuelve una canción."
+              description="Usa «Nueva canción» para escribir la letra y pegar el enlace de su pista en YouTube o YouTube Music, o arrastra tus MP3 a esta página: cada archivo se vuelve una canción."
             />
           ) : songs.data.length === 0 ? (
             <EmptyState
@@ -392,6 +390,9 @@ function SongRow({
     song.author || "Sin autor",
     song.sectionCount > 0 ? plural(song.sectionCount, "diapositiva") : "Solo pista",
   ].join(" · ");
+  const youTube = song.youtubeId ? (
+    <YouTubeBadge music={song.youtubeMusic} className="text-sm" />
+  ) : null;
 
   const content = (
     <>
@@ -408,6 +409,7 @@ function SongRow({
           {song.audio.durationSeconds !== null && clock(song.audio.durationSeconds)}
         </span>
       )}
+      {youTube}
     </>
   );
 
@@ -459,7 +461,7 @@ function SongRow({
         </span>
       )}
       <Link
-        href={`/canciones/${song.id}`}
+        href={`/songs/${song.id}`}
         className="group flex min-w-0 flex-1 items-center gap-4 py-1"
       >
         {content}

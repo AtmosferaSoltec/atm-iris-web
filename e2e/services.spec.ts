@@ -5,7 +5,7 @@ test.beforeEach(async ({ page }) => signIn(page));
 
 test("creates a service with blocks", async ({ page }) => {
   const name = unique("Vigilia");
-  await page.goto("/servicios/nuevo");
+  await page.goto("/services/new");
   await page.locator("#name").fill(name);
   await page.getByRole("switch", { name: "Tiene horario fijo" }).click();
   await page.getByRole("radio", { name: "Vie" }).click();
@@ -22,7 +22,7 @@ test("creates a service with blocks", async ({ page }) => {
   await page.getByRole("button", { name: "Más 5 minutos" }).first().click();
   await page.getByRole("button", { name: "Guardar" }).click();
 
-  await expect(page).toHaveURL("/servicios");
+  await expect(page).toHaveURL("/services");
   await expect(toast(page, "Servicio guardado")).toBeVisible();
   const card = page.getByRole("link", { name: `Editar ${name}` });
   await expect(card).toContainText("Viernes · 10:00");
@@ -30,9 +30,9 @@ test("creates a service with blocks", async ({ page }) => {
 });
 
 test("rejects a duplicate name, ignoring accents, case and spaces", async ({ page }) => {
-  await page.goto("/servicios/nuevo");
+  await page.goto("/services/new");
   await page.locator("#name").fill("  CULTO   general ");
   await page.getByRole("button", { name: "Guardar" }).click();
   await expect(page.getByText("Ya existe un servicio con ese nombre.")).toBeVisible();
-  await expect(page).toHaveURL("/servicios/nuevo");
+  await expect(page).toHaveURL("/services/new");
 });

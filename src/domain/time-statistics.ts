@@ -143,6 +143,8 @@ export function computeStatistics(
   const services: { actual: number; planned: number }[] = [];
   const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
   for (const record of sorted) {
+    // A service still running is left out until it ends (contract §14).
+    if (record.status === "inProgress") continue;
     const time = new Date(record.date).getTime();
     if (range && (time < range.from.getTime() || time >= range.to.getTime())) continue;
     if (filter.serviceTypeId && record.serviceTypeId !== filter.serviceTypeId) continue;

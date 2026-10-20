@@ -20,7 +20,7 @@ export async function SongsTile({ repos }: TileProps) {
   const songs = await repos.songs.list({ sort: "-updatedAt", limit: 3 });
   return (
     <Tile
-      href="/canciones"
+      href="/songs"
       icon={<Quote />}
       color="var(--color-ember)"
       title="Canciones"
@@ -48,7 +48,7 @@ export async function MediaTile({ repos, storage }: TileProps & { storage: Churc
   });
   return (
     <Tile
-      href="/multimedia"
+      href="/media"
       icon={<Clapperboard />}
       color="var(--color-rose)"
       title="Multimedia"
@@ -65,11 +65,11 @@ export async function MediaTile({ repos, storage }: TileProps & { storage: Churc
   );
 }
 
-export async function ServicesTile({ repos, timeControl }: TileProps & { timeControl: boolean }) {
+export async function ServicesTile({ repos }: TileProps) {
   const types = await repos.serviceTypes.list();
   return (
     <Tile
-      href="/servicios"
+      href="/services"
       icon={<Library />}
       color="var(--color-violet)"
       title="Servicios"
@@ -81,7 +81,7 @@ export async function ServicesTile({ repos, timeControl }: TileProps & { timeCon
             <li key={type.id} className="flex items-center gap-2.5 text-sm">
               <ColorDot color={type.color} />
               <span className="min-w-0 flex-1 truncate font-medium">{type.name}</span>
-              {timeControl && tracksTime(type) ? (
+              {tracksTime(type) ? (
                 <Chip color="var(--color-success)" icon={<Timer />}>
                   Con tiempos
                 </Chip>
@@ -100,7 +100,7 @@ export async function PeopleTile({ repos }: TileProps) {
   const people = await repos.people.list();
   return (
     <Tile
-      href="/personas"
+      href="/people"
       icon={<Users />}
       color="var(--color-coral)"
       title="Personas"
@@ -126,7 +126,7 @@ export async function TimesTile({ repos, timeZone }: TileProps & { timeZone: str
   const totals = last ? recordTotals(last) : null;
   return (
     <Tile
-      href="/tiempos"
+      href="/times"
       icon={<Timer />}
       color="var(--color-coral)"
       title="Tiempos"
@@ -151,33 +151,17 @@ export async function TimesTile({ repos, timeZone }: TileProps & { timeZone: str
   );
 }
 
-const MODULE_LABELS = [
-  { key: "bible", label: "Biblia" },
-  { key: "multimedia", label: "Multimedia" },
-  { key: "timeControl", label: "Control de tiempo" },
-] as const;
-
-export function SettingsTile({ modules }: { modules: Church["modules"] }) {
+/** Ajustes: the church's settings and how much of its space it uses. */
+export function SettingsTile({ storage }: { storage: Church["storage"] }) {
   return (
     <Tile
-      href="/ajustes"
+      href="/settings"
       icon={<Settings2 />}
       color="var(--color-indigo)"
       title="Ajustes"
-      subtitle="Iglesia, módulos y almacenamiento"
+      subtitle="Iglesia y almacenamiento"
     >
-      <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-        <li className="flex items-center gap-2">
-          <ColorDot color="var(--color-success)" /> Canciones
-        </li>
-        {MODULE_LABELS.map(({ key, label }) => (
-          <li key={key} className="flex items-center gap-2">
-            <ColorDot color={modules[key] ? "var(--color-success)" : "var(--color-ink-3)"} />
-            {label}
-            <span className="text-ink-2">{modules[key] ? "Activo" : "Apagado"}</span>
-          </li>
-        ))}
-      </ul>
+      <StorageUsage usedBytes={storage.usedBytes} quotaBytes={storage.quotaBytes} />
     </Tile>
   );
 }

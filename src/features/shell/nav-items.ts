@@ -3,31 +3,28 @@ import {
   House,
   ImagePlay,
   Library,
-  ListChecks,
   Music,
+  Presentation,
   Settings2,
   Timer,
   Users,
 } from "lucide-react";
 import type { Route } from "next";
-import type { ModuleKey } from "@/domain/models";
 
 export type NavItem = {
   href: Route;
   label: string;
   icon: typeof House;
-  /** Only shown when the church has this module on. */
-  module?: ModuleKey;
 };
 
 export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Inicio", icon: House },
-  { href: "/plan", label: "Plan", icon: ListChecks },
-  { href: "/canciones", label: "Canciones", icon: Music },
-  { href: "/multimedia", label: "Multimedia", icon: Clapperboard, module: "multimedia" },
-  { href: "/fondos", label: "Fondos", icon: ImagePlay, module: "multimedia" },
-  { href: "/servicios", label: "Servicios", icon: Library },
-  { href: "/personas", label: "Personas", icon: Users, module: "timeControl" },
-  { href: "/tiempos", label: "Tiempos", icon: Timer, module: "timeControl" },
-  { href: "/ajustes", label: "Ajustes", icon: Settings2 },
+  { href: "/console", label: "Iniciar servicio", icon: Presentation },
+  { href: "/songs", label: "Canciones", icon: Music },
+  { href: "/media", label: "Multimedia", icon: Clapperboard },
+  { href: "/backgrounds", label: "Fondos", icon: ImagePlay },
+  { href: "/services", label: "Servicios", icon: Library },
+  { href: "/people", label: "Personas", icon: Users },
+  { href: "/times", label: "Tiempos", icon: Timer },
+  { href: "/settings", label: "Ajustes", icon: Settings2 },
 ];

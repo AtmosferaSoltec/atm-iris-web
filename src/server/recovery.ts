@@ -22,7 +22,7 @@ export async function saveRecovery(state: RecoveryState): Promise<void> {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
     sameSite: "lax",
-    path: "/recuperar",
+    path: "/recover",
     expires,
   });
 }
@@ -34,5 +34,5 @@ export async function readRecovery(): Promise<RecoveryState | null> {
 
 export async function clearRecovery(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete({ name: RECOVERY_COOKIE, path: "/recuperar" });
+  cookieStore.delete({ name: RECOVERY_COOKIE, path: "/recover" });
 }

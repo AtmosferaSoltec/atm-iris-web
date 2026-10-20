@@ -10,17 +10,11 @@ const cardStyles =
   "group relative flex w-full flex-col gap-4 overflow-hidden rounded-xl surface-panel p-6 pt-7";
 
 /** A card that opens the service's editor. */
-export function ServiceTypeCard({
-  type,
-  timeControlEnabled,
-}: {
-  type: ServiceType;
-  timeControlEnabled: boolean;
-}) {
-  const content = <ServiceTypeCardContent type={type} timeControlEnabled={timeControlEnabled} />;
+export function ServiceTypeCard({ type }: { type: ServiceType }) {
+  const content = <ServiceTypeCardContent type={type} />;
   return (
     <Link
-      href={`/servicios/${type.id}`}
+      href={`/services/${type.id}`}
       aria-label={`Editar ${type.name}`}
       className={`${cardStyles} transition hover:-translate-y-0.5 hover:bg-surface-raised active:scale-[0.99]`}
     >
@@ -29,14 +23,8 @@ export function ServiceTypeCard({
   );
 }
 
-function ServiceTypeCardContent({
-  type,
-  timeControlEnabled,
-}: {
-  type: ServiceType;
-  timeControlEnabled: boolean;
-}) {
-  const showsBlocks = timeControlEnabled && tracksTime(type);
+function ServiceTypeCardContent({ type }: { type: ServiceType }) {
+  const showsBlocks = tracksTime(type);
   return (
     <>
       <span

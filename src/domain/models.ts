@@ -36,30 +36,6 @@ export type DeviceSession = {
 
 /* ------------------------------------------------------------------ Church */
 
-/** Church-wide feature switches. Canciones (lyrics and track) is always on. */
-export type ChurchModules = {
-  bible: boolean;
-  multimedia: boolean;
-  timeControl: boolean;
-};
-
-export type ModuleKey = keyof ChurchModules;
-
-/** Every module exists. What a church gets when the API doesn't say otherwise. */
-export const ALL_MODULES: ChurchModules = { bible: true, multimedia: true, timeControl: true };
-
-/**
- * The church's modules as it sees them: its own choice, minus what is switched off for all
- * of Iris (`availableModules`, contract §6).
- */
-export function effectiveModules(chosen: ChurchModules, available: ChurchModules): ChurchModules {
-  return {
-    bible: chosen.bible && available.bible,
-    multimedia: chosen.multimedia && available.multimedia,
-    timeControl: chosen.timeControl && available.timeControl,
-  };
-}
-
 /** Contract §6. One quota per church; the three sections add up to `usedBytes`. */
 export type StorageUsage = {
   usedBytes: number;
@@ -72,13 +48,19 @@ export type Church = {
   name: string;
   /** IANA zone. "Today", schedules and summaries are computed in it. */
   timezone: string;
-  /** What the church sees on (contract §6): its choice, minus what Iris has switched off. */
-  modules: ChurchModules;
-  /** Modules that exist in Iris today. A module off here is not offered, not even in Ajustes. */
-  availableModules: ChurchModules;
+  /** How the projected lyrics look, the same on every screen of the church (contract §6). */
+  projection: ProjectionSettings;
   storage: StorageUsage;
   createdAt: string;
   updatedAt: string;
+};
+
+/** Contract §6. `fontFamily` is a key each client maps to a real font; `fontSizePt` is for a 1920-wide screen. */
+export type ProjectionSettings = {
+  fontFamily: string;
+  fontSizePt: number;
+  /** A built-in gradient id or a background image/video id; null shows black. */
+  defaultBackgroundId: string | null;
 };
 
 export type Person = {
@@ -134,8 +116,12 @@ export type Song = {
   author: string;
   /** Empty when the song is only a track. */
   sections: SongSection[];
-  /** The track (an audio `MediaAsset`); null when the song is only lyrics. */
+  /** The track (an audio `MediaAsset`); null when the song is only lyrics or its track is on YouTube. */
   audio: MediaAsset | null;
+  /** The track on YouTube (or YouTube Music): the video id. Played by YouTube's player, never downloaded. */
+  youtubeId: string | null;
+  /** The YouTube link was YouTube Music's (only the music), not YouTube's (with video). */
+  youtubeMusic: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -147,6 +133,8 @@ export type SongSummary = {
   sectionCount: number;
   firstLine: string | null;
   audio: MediaAsset | null;
+  youtubeId: string | null;
+  youtubeMusic: boolean;
   updatedAt: string;
 };
 
@@ -202,7 +190,11 @@ export type ServicePlanItem = {
 
 /* ----------------------------------------------------------- Time records */
 
-export type BlockRecordStatus = "completed" | "skipped" | "adjusted";
+/** `pending` and `running` only in a record in progress (contract §14). */
+export type BlockRecordStatus = "pending" | "running" | "completed" | "skipped" | "adjusted";
+
+/** A record is saved from the first block on (`inProgress`) so a closed console can pick it up again. */
+export type RecordStatus = "inProgress" | "finished";
 
 export type BlockRecord = {
   id: Id;
@@ -213,6 +205,9 @@ export type BlockRecord = {
   /** Name when the record was saved, so it stays readable after a rename or delete. */
   personName: string | null;
   status: BlockRecordStatus;
+  /** The console's clock (UTC), to resume a block that was running. */
+  startedAt: string | null;
+  endedAt: string | null;
 };
 
 /** The saved timing of one service. Only times are stored, never the content used. */
@@ -223,6 +218,8 @@ export type ServiceRecord = {
   serviceTypeId: Id;
   /** Copy, shown when the type is deleted. */
   serviceTypeName: string;
+  /** In progress: shown as "En curso" and left out of every statistic until it ends. */
+  status: RecordStatus;
   blocks: BlockRecord[];
   createdAt: string;
   updatedAt: string;
@@ -233,3 +230,15 @@ export type ServiceRecord = {
 export type PageMeta = { page: number; limit: number; total: number; totalPages: number };
 
 export type Paginated<T> = { data: T[]; meta: PageMeta };
+
+/* ---------------------------------------------------------------- Displays */
+
+/** A TV (or any screen with a browser) linked to the church with a code (contract §18). */
+export type Display = {
+  id: Id;
+  name: string;
+  /** Has its live channel open right now. */
+  online: boolean;
+  lastSeenAt: string | null;
+  createdAt: string;
+};

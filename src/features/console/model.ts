@@ -1,0 +1,67 @@
+import type {
+  Display,
+  Person,
+  ProjectionSettings,
+  ServiceRecord,
+  ServiceType,
+} from "@/domain/models";
+import type { ProjectionBackground } from "@/features/projection/model";
+
+/** One element of the service in the console (IRIS_SPEC §6.2). */
+export type ConsoleItem = {
+  /** The plan row (contract §15): moving or removing it here moves or removes it everywhere. */
+  planItemId: string;
+  refId: string;
+  /** `track` is a song that is only a track: it plays in the room, the screen does not change. */
+  kind: "song" | "track" | "image" | "video" | "youtube";
+  title: string;
+  subtitle: string | null;
+  /** A song's lyrics, one per screen. */
+  slides: ConsoleSlide[];
+  /** The file: the image or video, or the song's track. Null for lyrics only. */
+  file: ConsoleFile | null;
+  /**
+   * Played by YouTube's player: a YouTube video (`kind: "youtube"`, only for this service, not
+   * in the plan) or a song's track on YouTube.
+   */
+  youTubeId?: string;
+};
+
+export type ConsoleSlide = { id: string; label: string | null; text: string };
+
+export type ConsoleFile = {
+  id: string;
+  /** Signed GET, valid for about an hour (contract §11). */
+  url: string;
+  durationSeconds: number | null;
+};
+
+/** What the BIBLIOTECA panel lists; full songs load when one is added. */
+export type LibraryEntry = {
+  kind: "song" | "media";
+  id: string;
+  title: string;
+  subtitle: string;
+  /** For the icon: a song, a track-only song, an image or a video. */
+  icon: "song" | "track" | "image" | "video";
+  durationSeconds: number | null;
+};
+
+export type ConsoleData = {
+  churchId: string;
+  churchName: string;
+  projection: ProjectionSettings;
+  items: ConsoleItem[];
+  library: LibraryEntry[];
+  backgrounds: ProjectionBackground[];
+  timeZone: string;
+  /** For the block timer (IRIS_SPEC §6.9). */
+  serviceTypes: ServiceType[];
+  people: Person[];
+  /** The service running (saved from its first block): the console picks it up on its own. */
+  inProgress: ServiceRecord | null;
+  /** The service chosen but not started yet (a cookie): survives a reload until it ends. */
+  selectedServiceTypeId: string | null;
+  /** TVs linked to the church (contract §18). */
+  displays: Display[];
+};

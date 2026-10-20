@@ -27,8 +27,6 @@ export type UploadItem = {
   kind: MediaKind | null;
   sizeBytes: number;
   status: UploadStatus;
-  /** 0–1 while uploading. */
-  progress: number;
   error?: string;
   /** Network failures can be retried; rejected files can't. */
   canRetry?: boolean;
@@ -40,7 +38,7 @@ class UploadCancelled extends Error {}
 
 /**
  * Upload queue: each file goes measure → ticket → PUT straight to the storage
- * (with progress, cancellable) → confirm. One file failing doesn't stop the rest.
+ * (cancellable) → confirm. One file failing doesn't stop the rest.
  * Each section only takes its kinds; backgrounds must also meet the lyrics-background
  * rules (checked here and by the API).
  *
@@ -67,14 +65,14 @@ export function useMediaUpload({
     const kind = mediaKindOf(file.type);
     const title = titleFromFileName(file.name) || file.name;
     const fail = (error: string, canRetry = false) =>
-      patch(id, { status: "error", error, canRetry, progress: 0 });
+      patch(id, { status: "error", error, canRetry });
 
     // Same answer the API would give, without a round trip.
     if (!kind) return fail(MEDIA_ERRORS.UNSUPPORTED_MEDIA_TYPE);
     if (!SECTION_KINDS[section].includes(kind)) return fail(WRONG_SECTION[section]);
     if (file.size > MEDIA_RULES[kind].maxBytes) return fail(tooLargeMessage(kind));
 
-    patch(id, { status: "measuring", error: undefined, canRetry: false, progress: 0 });
+    patch(id, { status: "measuring", error: undefined, canRetry: false });
     const measures = await measureMedia(file, kind);
     if (background) {
       const problem = backgroundProblem({
@@ -103,7 +101,7 @@ export function useMediaUpload({
       return fail(NETWORK_UPLOAD_ERROR, true);
     }
 
-    patch(id, { status: "confirming", progress: 1 });
+    patch(id, { status: "confirming" });
     const confirmed = await confirmUpload({
       uploadId: requested.ticket.uploadId,
       title,
@@ -131,9 +129,6 @@ export function useMediaUpload({
       for (const [name, value] of Object.entries(ticket.headers)) {
         request.setRequestHeader(name, value);
       }
-      request.upload.onprogress = (event) => {
-        if (event.lengthComputable) patch(id, { progress: event.loaded / event.total });
-      };
       request.onload = () => {
         requests.current.delete(id);
         if (request.status >= 200 && request.status < 300) resolve();
@@ -162,7 +157,6 @@ export function useMediaUpload({
         kind: mediaKindOf(file.type),
         sizeBytes: file.size,
         status: "measuring",
-        progress: 0,
       };
       return item;
     });

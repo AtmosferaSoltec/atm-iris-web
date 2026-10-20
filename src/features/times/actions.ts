@@ -9,9 +9,9 @@ import { actualSecondsSchema, blockRefSchema, leaderSchema, recordIdSchema } fro
 type Result = { error?: string };
 
 function revalidateTimes() {
-  revalidatePath("/tiempos");
+  revalidatePath("/times");
   // Block counts per person and the home tile read records too.
-  revalidatePath("/personas");
+  revalidatePath("/people");
   revalidatePath("/");
 }
 

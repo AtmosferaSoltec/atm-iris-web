@@ -1,6 +1,6 @@
 "use client";
 
-import { Music, Quote, Trash2, User } from "lucide-react";
+import { Music, Quote, Search, Trash2, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
 import { SlidePreview } from "@/components/projection/slide-preview";
@@ -15,25 +15,35 @@ import { Surface } from "@/components/ui/surface";
 import { TextArea } from "@/components/ui/text-area";
 import { TextField } from "@/components/ui/text-field";
 import { toast } from "@/components/ui/toaster";
-import type { MediaAsset, Song } from "@/domain/models";
+import type { Song } from "@/domain/models";
 import { idleState, type FormState } from "@/lib/form-state";
 import { formatLyrics, parseLyrics } from "@/lib/lyrics";
+import { lyricsFromPlainText } from "@/lib/lyrics-import";
+import type { YouTubeVideo } from "@/lib/youtube";
 import { plural } from "@/lib/text";
 import { deleteSong, saveSong } from "../actions";
 import type { SongField } from "../schemas";
-import { TrackField } from "./track-field";
+import { LyricsSearchDialog } from "./lyrics-search-dialog";
+import { TrackField, type Track } from "./track-field";
 
 /** A screen with more lines than this is hard to read from the back of the room. */
 const COMFORTABLE_LINES = 6;
 
-export function SongEditor({ song }: { song?: Song }) {
+export function SongEditor({
+  song,
+  youtubeVideo,
+}: {
+  song?: Song;
+  /** The song's YouTube track with its title (read by the page). */
+  youtubeVideo?: Omit<YouTubeVideo, "music">;
+}) {
   const router = useRouter();
   const [state, action] = useActionState(
     async (previous: FormState<SongField>, formData: FormData) => {
       const next = await saveSong(song?.id ?? null, previous, formData);
       if (next.status === "success") {
         toast.success("Canción guardada");
-        router.push("/canciones");
+        router.push("/songs");
       }
       return next;
     },
@@ -42,7 +52,26 @@ export function SongEditor({ song }: { song?: Song }) {
   const [title, setTitle] = useState(song?.title ?? "");
   const [author, setAuthor] = useState(song?.author ?? "");
   const [lyrics, setLyrics] = useState(song ? formatLyrics(song.sections) : "");
-  const [audio, setAudio] = useState<MediaAsset | null>(song?.audio ?? null);
+  const [track, setTrack] = useState<Track | null>(() =>
+    song?.audio
+      ? { kind: "audio", audio: song.audio }
+      : song?.youtubeId
+        ? {
+            kind: "youtube",
+            video: {
+              ...(youtubeVideo ?? {
+                videoId: song.youtubeId,
+                title: "Video de YouTube",
+                author: "",
+              }),
+              music: song.youtubeMusic,
+            },
+          }
+        : null,
+  );
+  const trackId =
+    track?.kind === "audio" ? track.audio.id : track?.kind === "youtube" ? track.video.videoId : "";
+  const [isSearchingLyrics, setIsSearchingLyrics] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDeleting, startDelete] = useTransition();
   const [deleteError, setDeleteError] = useState<string>();
@@ -62,7 +91,7 @@ export function SongEditor({ song }: { song?: Song }) {
         return;
       }
       toast.success(`Se eliminó «${song.title}»`);
-      router.push("/canciones");
+      router.push("/songs");
     });
   }
 
@@ -98,9 +127,12 @@ export function SongEditor({ song }: { song?: Song }) {
           />
         </div>
         <TrackField
-          audio={audio}
-          onChange={setAudio}
-          error={errorFor("audioId", audio?.id ?? "")}
+          track={track}
+          onChange={setTrack}
+          error={
+            errorFor("audioId", track?.kind === "audio" ? trackId : "") ??
+            errorFor("youtubeId", track?.kind === "youtube" ? trackId : "")
+          }
         />
         <TextArea
           id="lyrics"
@@ -109,13 +141,23 @@ export function SongEditor({ song }: { song?: Song }) {
           value={lyrics}
           onChange={(event) => setLyrics(event.target.value)}
           error={errorFor("lyrics", lyrics)}
+          accessory={
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Search className="size-4" />}
+              onClick={() => setIsSearchingLyrics(true)}
+            >
+              Buscar letra
+            </Button>
+          }
           hint="Deja una línea en blanco entre diapositivas. Para nombrar una, escribe # y el nombre en su primera línea (por ejemplo #Coro). Si la canción tiene pista, la letra es opcional."
           className="min-h-[420px] font-serif text-[17px]"
           spellCheck
         />
         <div className="flex flex-wrap items-center gap-3">
           <SubmitButton size="lg">{song ? "Guardar cambios" : "Guardar canción"}</SubmitButton>
-          <ButtonLink href="/canciones" variant="ghost" size="lg">
+          <ButtonLink href="/songs" variant="ghost" size="lg">
             Cancelar
           </ButtonLink>
         </div>
@@ -145,7 +187,7 @@ export function SongEditor({ song }: { song?: Song }) {
         </SectionHeader>
         {sections.length === 0 ? (
           <Surface>
-            {audio ? (
+            {track ? (
               <EmptyState
                 icon={<Music />}
                 title="Solo pista"
@@ -180,6 +222,22 @@ export function SongEditor({ song }: { song?: Song }) {
           </ol>
         )}
       </section>
+
+      {isSearchingLyrics && (
+        <LyricsSearchDialog
+          initialTitle={title}
+          initialArtist={author}
+          replacesLyrics={lyrics.trim() !== ""}
+          onClose={() => setIsSearchingLyrics(false)}
+          onPick={(found) => {
+            setLyrics(lyricsFromPlainText(found.lyrics));
+            if (!title.trim()) setTitle(found.title);
+            if (!author.trim()) setAuthor(found.artist);
+            setIsSearchingLyrics(false);
+            toast.success("Letra cargada. Revísala antes de guardar.");
+          }}
+        />
+      )}
 
       <ConfirmDialog
         open={isConfirmingDelete}

@@ -56,7 +56,7 @@ export function AccountMenu({ session, compact }: { session: UserSession; compac
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/cuenta">
+          <Link href="/account">
             <UserRound aria-hidden />
             Mi cuenta
           </Link>

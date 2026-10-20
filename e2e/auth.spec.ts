@@ -42,17 +42,17 @@ test("sign-up validates and reports a taken email", async ({ page }) => {
 });
 
 test("recovers the password in three steps", async ({ page }) => {
-  await page.goto("/recuperar");
+  await page.goto("/recover");
   await page.locator("#email").fill(OWNER);
   await page.getByRole("button", { name: "Enviar código" }).click();
-  await expect(page).toHaveURL("/recuperar/codigo");
+  await expect(page).toHaveURL("/recover/code");
 
   await page.locator("#code").fill("000000");
   await page.getByRole("button", { name: "Continuar" }).click();
   await expect(page.getByText("El código no es válido", { exact: false })).toBeVisible();
   await page.locator("#code").fill("123456");
   await page.getByRole("button", { name: "Continuar" }).click();
-  await expect(page).toHaveURL("/recuperar/nueva");
+  await expect(page).toHaveURL("/recover/new-password");
 
   await page.locator("#password").fill("vidanueva123");
   await page.locator("#passwordConfirmation").fill("vidanueva123");
