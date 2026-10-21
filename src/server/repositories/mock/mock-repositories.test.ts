@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { MOCK_IDS, mockDataRepositories, mockWorld, resetMockWorld } from ".";
+import { MOCK_IDS, MOCK_PASSWORD, mockDataRepositories, mockWorld, resetMockWorld } from ".";
 import { mockAuth } from "./auth";
 
 async function signedIn(email = "pastor@vidanueva.org") {
@@ -36,6 +36,20 @@ describe("mock repositories", () => {
     await repos.youtubeVideos.delete(saved.id);
     expect(await repos.youtubeVideos.get(saved.id)).toBeNull();
     expect(await repos.servicePlan.list()).toEqual([]);
+  });
+
+  it("deleting the account takes the church, its users and devices with it, after the password", async () => {
+    const { session } = await signedIn();
+    const auth = mockAuth(session);
+    await expect(auth.deleteAccount({ password: "mal" })).rejects.toMatchObject({
+      errors: { password: "La contraseña no es correcta." },
+    });
+    expect(mockWorld().churches.some((data) => data.church.id === session.church.id)).toBe(true);
+
+    await auth.deleteAccount({ password: MOCK_PASSWORD });
+    expect(mockWorld().churches.some((data) => data.church.id === session.church.id)).toBe(false);
+    expect(mockWorld().users.some((user) => user.churchId === session.church.id)).toBe(false);
+    expect(mockWorld().sessions.some((device) => device.userId === session.userId)).toBe(false);
   });
 
   it("deleting a person keeps the records that name them", async () => {

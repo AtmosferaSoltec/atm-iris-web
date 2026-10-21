@@ -8,6 +8,7 @@ import { errorMessage, toFormState } from "@/server/repositories/api/errors";
 import { createSession, deleteSession } from "@/server/session";
 import {
   changePasswordSchema,
+  deleteAccountSchema,
   PASSWORD_FIELDS,
   PROFILE_FIELDS,
   profileSchema,
@@ -54,6 +55,23 @@ export async function changePassword(
   }
   revalidatePath("/settings");
   return { status: "success" };
+}
+
+/**
+ * Deletes the church and everything in it, this account included. The API checks the
+ * password; on success this device's cookie goes too and the person lands on sign-in.
+ */
+export async function deleteAccount(input: unknown): Promise<{ error?: string }> {
+  const parsed = deleteAccountSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? GENERIC_ERROR };
+  try {
+    const { repos } = await authorize();
+    await repos.auth.deleteAccount({ password: parsed.data.password });
+  } catch (error) {
+    return { error: errorMessage(error) };
+  }
+  await deleteSession();
+  redirect("/login");
 }
 
 /** Closes one device. Closing this one is signing out. */

@@ -163,6 +163,26 @@ export function mockAuth(session?: UserSession): AuthService {
       return sessionFor(world, user, signedIn.sessionId);
     },
 
+    async deleteAccount({ password }) {
+      await delay();
+      const signedIn = requireSignedIn(session);
+      const world = mockWorld();
+      const user = currentUser(world, signedIn);
+      if (password !== user.password) {
+        throw new ApiError(400, "INVALID_CURRENT_PASSWORD", "La contraseña no es correcta.", {
+          password: "La contraseña no es correcta.",
+        });
+      }
+      // The church goes with its users, their devices and everything in it.
+      const churchId = user.churchId;
+      const accountIds = world.users
+        .filter((candidate) => candidate.churchId === churchId)
+        .map((candidate) => candidate.id);
+      world.churches = world.churches.filter((data) => data.church.id !== churchId);
+      world.users = world.users.filter((candidate) => candidate.churchId !== churchId);
+      world.sessions = world.sessions.filter((device) => !accountIds.includes(device.userId));
+    },
+
     async changePassword({ currentPassword, password }) {
       await delay();
       const signedIn = requireSignedIn(session);

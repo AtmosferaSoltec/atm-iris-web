@@ -41,6 +41,8 @@ export type ResetPasswordInput = {
   password: string;
   passwordConfirmation: string;
 };
+/** Borrar la cuenta pide la contraseña actual. */
+export type DeleteAccountInput = { password: string };
 export type ChangePasswordInput = {
   currentPassword: string;
   password: string;
@@ -69,6 +71,8 @@ export interface AuthService {
   updateProfile(fullName: string): Promise<UserSession>;
   /** Closes the account's other sessions. */
   changePassword(input: ChangePasswordInput): Promise<void>;
+  /** Deletes the church with everything in it (files too) and this account. Irreversible. */
+  deleteAccount(input: DeleteAccountInput): Promise<void>;
   listSessions(): Promise<DeviceSession[]>;
   /** Revoking the current one equals signing out. */
   revokeSession(id: Id): Promise<void>;

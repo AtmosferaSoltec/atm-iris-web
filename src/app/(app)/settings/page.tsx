@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui/page-header";
 import { Panel } from "@/components/ui/panel";
+import { DeleteAccountPanel } from "@/features/account/components/delete-account-panel";
 import { DeviceList } from "@/features/account/components/device-list";
 import { PasswordForm } from "@/features/account/components/password-form";
 import { ProfileForm } from "@/features/account/components/profile-form";
@@ -56,6 +57,12 @@ export default async function SettingsPage() {
         description="Elimina de golpe lo que elijas. Se borra también del servicio en curso."
       >
         <ErasePanel />
+      </Panel>
+      <Panel
+        title="Eliminar cuenta"
+        description="Borra tu cuenta y todo lo de tu iglesia, también los archivos subidos. No se puede deshacer."
+      >
+        <DeleteAccountPanel />
       </Panel>
     </div>
   );

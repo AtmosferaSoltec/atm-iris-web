@@ -23,3 +23,7 @@ export const changePasswordSchema = z
   });
 
 export const sessionIdSchema = idSchema;
+
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1, "Escribe tu contraseña."),
+});

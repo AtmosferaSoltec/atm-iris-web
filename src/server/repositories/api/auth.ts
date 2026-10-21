@@ -55,6 +55,7 @@ export function apiAuth(options: ClientOptions = {}): AuthService {
     updateProfile: async (fullName) =>
       toUserSession(await api<SessionView>("/auth/me", { method: "PATCH", body: { fullName } })),
     changePassword: (input) => post("/auth/change-password", input),
+    deleteAccount: (input) => post("/auth/delete-account", input),
     listSessions: () => api<DeviceSession[]>("/auth/sessions"),
     revokeSession: (id) => api(`/auth/sessions/${segment(id)}`, { method: "DELETE" }),
   };
