@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { addToService, signIn, toast } from "./helpers";
 
 test.beforeEach(async ({ page }) => signIn(page));
@@ -51,6 +51,12 @@ test("la consola manda la letra y el fondo a la pantalla abierta en otra ventana
   await expect(page.getByText("Castillo fuerte", { exact: false })).toHaveCount(1);
 });
 
+/** «Texto» lives in the Herramientas menu: open it and pick the card. */
+async function openTextTool(page: Page) {
+  await page.getByRole("button", { name: "Herramientas", exact: true }).click();
+  await page.getByRole("button", { name: "Texto", exact: true }).click();
+}
+
 test("«Texto» cambia la fuente, el tamaño y el estilo de la letra en la pantalla", async ({
   page,
   context,
@@ -66,7 +72,7 @@ test("«Texto» cambia la fuente, el tamaño y el estilo de la letra en la panta
   const lyrics = screen.getByText("Castillo fuerte es nuestro Dios", { exact: false });
   await expect(lyrics).toBeVisible();
 
-  await page.getByRole("button", { name: /^Texto/ }).click();
+  await openTextTool(page);
   const dialog = page.getByRole("dialog", { name: "Texto" });
   await dialog.getByRole("button", { name: /Lora/ }).click();
   await dialog.getByRole("button", { name: "Negrita", exact: true }).click();
@@ -82,7 +88,7 @@ test("«Texto» cambia la fuente, el tamaño y el estilo de la letra en la panta
   // Kept for the church: a reload still has it.
   await expect(toast(page, "Texto actualizado")).toBeVisible();
   await page.reload();
-  await page.getByRole("button", { name: /^Texto/ }).click();
+  await openTextTool(page);
   await expect(
     page.getByRole("dialog", { name: "Texto" }).getByRole("button", { name: /Lora/ }),
   ).toHaveAttribute("aria-pressed", "true");

@@ -1,10 +1,17 @@
 "use client";
 
 import { Maximize } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { screenChannel, type PreloadFile } from "../channel";
-import { FileResolverProvider, type ResolveFile } from "../file-resolver";
-import { BLACK_FRAME, rebaseFrame, type ProjectionFrame } from "../model";
+import { FileCache } from "../file-cache";
+import { FileResolverProvider } from "../file-resolver";
+import { requestPersistentStorage } from "../file-store";
+import {
+  BLACK_FRAME,
+  rebaseFrame,
+  type ProjectionBackground,
+  type ProjectionFrame,
+} from "../model";
 import { ProjectionCanvas } from "./projection-canvas";
 
 /** Heartbeat to the console: it shows "Pantalla conectada" while these keep coming. */
@@ -36,8 +43,24 @@ export function ScreenView({
   const [isPointerIdle, setIsPointerIdle] = useState(false);
   // Set after render: the file cache tells a console in this browser what it has ready.
   const reportFiles = useRef<(ready: string[]) => void>(() => undefined);
-  const files = useFileCache((ready) => reportFiles.current(ready));
+  const { files, pending } = useFileCache((ready) => reportFiles.current(ready));
   const { announce, readyIds } = files;
+
+  // A background still downloading is not drawn yet: the previous one stays until it is
+  // here, and then it shows from the local copy. Drawing it early would start a second
+  // download of the same file over the same weak connection, with a grey box meanwhile.
+  const wanted = frame.background;
+  const isPending = wanted !== null && pending.has(wanted.id);
+  const [shownBackground, setShownBackground] = useState<ProjectionBackground | null>(null);
+  if (!isPending && shownBackground !== wanted) setShownBackground(wanted);
+  const shownFrame = useMemo(
+    () =>
+      frame.background === shownBackground ? frame : { ...frame, background: shownBackground },
+    [frame, shownBackground],
+  );
+  useEffect(() => {
+    if (isPending && wanted) files.prioritize(wanted.id);
+  }, [isPending, wanted, files]);
   const showFrame = useCallback((next: ProjectionFrame) => {
     setHasConsole(true);
     setFrame(next);
@@ -99,7 +122,7 @@ export function ScreenView({
         onDoubleClick={goFullscreen}
       >
         <ProjectionCanvas
-          frame={frame}
+          frame={shownFrame}
           transitions
           playsVideo
           onVideoTime={onVideoTime}
@@ -287,120 +310,23 @@ function useRemoteSource(
   }, [isRemote, showFrame, announce]);
 }
 
-type CachedFile = {
-  /** The URL it was announced with, to tell a refreshed signed URL from a new file. */
-  url: string;
-  kind: PreloadFile["kind"];
-  /** `blob:` URL once the whole file is in memory (images and background videos). */
-  objectUrl: string | null;
-  /** Detached element that keeps a service video buffered. */
-  video: HTMLVideoElement | null;
-  ready: boolean;
-  abort: AbortController;
-};
-
-/**
- * The screen's files, by media id, for as long as this page is open (a TV left on all
- * week keeps them; reloading downloads them again). Images and background videos are
- * downloaded whole and shown from memory; a service video is buffered by a hidden player.
- */
+/** The screen's files (see `FileCache`); `onReadyChange` tells the console which ones it already has. */
 function useFileCache(onReadyChange: (ready: string[]) => void) {
-  const cache = useRef(new Map<string, CachedFile>());
-  const notify = useRef(onReadyChange);
-  // A version bump re-renders the canvas so it switches to the in-memory copy.
-  const [, setVersion] = useState(0);
+  // The files still on their way, as state: a change re-renders the screen so it can switch
+  // to the local copy once it is here.
+  const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
+  const [files] = useState(() => new FileCache(setPending));
 
   useEffect(() => {
-    notify.current = onReadyChange;
+    files.listen(onReadyChange);
   });
 
-  const readyIds = useCallback(
-    () => [...cache.current].filter(([, file]) => file.ready).map(([id]) => id),
-    [],
-  );
-
-  const markReady = useCallback(
-    (id: string, file: CachedFile) => {
-      if (cache.current.get(id) !== file) return;
-      file.ready = true;
-      setVersion((version) => version + 1);
-      notify.current(readyIds());
-    },
-    [readyIds],
-  );
-
-  const drop = useCallback((id: string) => {
-    const file = cache.current.get(id);
-    if (!file) return;
-    file.abort.abort();
-    if (file.objectUrl) URL.revokeObjectURL(file.objectUrl);
-    if (file.video) {
-      file.video.removeAttribute("src");
-      file.video.load();
-    }
-    cache.current.delete(id);
-  }, []);
-
-  const announce = useCallback(
-    (files: PreloadFile[]) => {
-      const announced = new Map(files.map((file) => [file.id, file]));
-      for (const id of [...cache.current.keys()]) {
-        if (!announced.has(id)) drop(id);
-      }
-      for (const { id, url, kind } of files) {
-        const existing = cache.current.get(id);
-        // A refreshed signed URL for a file already here changes nothing.
-        if (existing && (existing.ready || existing.url === url)) continue;
-        if (existing) drop(id);
-        const file: CachedFile = {
-          url,
-          kind,
-          objectUrl: null,
-          video: null,
-          ready: false,
-          abort: new AbortController(),
-        };
-        cache.current.set(id, file);
-        if (kind === "video") {
-          const video = document.createElement("video");
-          video.muted = true;
-          video.preload = "auto";
-          video.addEventListener("canplaythrough", () => markReady(id, file), { once: true });
-          video.src = url;
-          file.video = video;
-        } else {
-          void fetch(url, { signal: file.abort.signal })
-            .then((response) =>
-              response.ok ? response.blob() : Promise.reject(new Error(String(response.status))),
-            )
-            .then((blob) => {
-              file.objectUrl = URL.createObjectURL(blob);
-              markReady(id, file);
-            })
-            .catch(() => {
-              // Not reachable now: the canvas keeps using the network URL.
-            });
-        }
-      }
-      notify.current(readyIds());
-    },
-    [drop, markReady, readyIds],
-  );
-
-  // Freed when the page goes away.
   useEffect(() => {
-    const files = cache.current;
-    return () => {
-      for (const id of [...files.keys()]) drop(id);
-    };
-  }, [drop]);
+    requestPersistentStorage();
+    return files.dispose;
+  }, [files]);
 
-  const resolve = useCallback<ResolveFile>(
-    (id, url) => cache.current.get(id)?.objectUrl ?? url,
-    [],
-  );
-
-  return { announce, readyIds, resolve };
+  return { files, pending };
 }
 
 /** A screen must never fall asleep in the middle of a service. */

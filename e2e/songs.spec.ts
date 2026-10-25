@@ -68,7 +68,9 @@ test("una canción necesita letra o pista, y conserva la pista que se le dio", a
   await expect(toast(page, "Canción guardada")).toBeVisible();
 
   await page.getByLabel("Buscar en la biblioteca").fill(title);
-  await expect(library(page).getByText("Solo pista", { exact: false })).toBeVisible();
+  // An uploaded track is shown with a music icon, not in words.
+  await expect(library(page).getByText(title)).toBeVisible();
+  await expect(library(page).getByRole("img", { name: "Pista de audio" })).toBeVisible();
 });
 
 test("las páginas de antes llevan a la consola", async ({ page }) => {
