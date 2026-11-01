@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { buttonStyles } from "@/components/ui/button";
+import { buttonStyles } from "@/components/ui/button-styles";
 
 export function NotFoundPage() {
   return (

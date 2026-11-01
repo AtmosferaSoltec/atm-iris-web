@@ -1,5 +1,5 @@
 import { Apple, Download, Monitor } from "lucide-react";
-import { buttonStyles } from "@/components/ui/button";
+import { buttonStyles } from "@/components/ui/button-styles";
 import { Surface } from "@/components/ui/surface";
 import { cn } from "@/lib/cn";
 import { detectPlatform, formatSize, type Platform } from "@/lib/platform";

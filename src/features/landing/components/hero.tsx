@@ -1,6 +1,6 @@
 import { Download, Timer } from "lucide-react";
 import { Link } from "react-router";
-import { buttonStyles } from "@/components/ui/button";
+import { buttonStyles } from "@/components/ui/button-styles";
 import { Surface } from "@/components/ui/surface";
 import consola from "@/assets/screens/consola.png";
 import { ProjectionShowcase } from "./projection-showcase";

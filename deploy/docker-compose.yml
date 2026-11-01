@@ -1,0 +1,30 @@
+# Production stack of the landing. GitHub Actions copies it to /opt/iris-landing on
+# each deploy; it is not edited by hand on the server.
+#
+# It never builds: the image is compiled once in CI and published to GHCR.
+# The landing is static and has no configuration or secrets, so there is no .env.
+# The HEALTHCHECK comes with the image (Dockerfile) and asks for /healthz.
+
+networks:
+  shared:
+    name: atm-network
+    external: true
+
+services:
+  app:
+    image: ghcr.io/atmosferasoltec/atm-iris-web:${IMAGE_TAG:-latest}
+    container_name: iris-landing
+    # Loopback only: the host nginx (iris.atmosferast.com) is what publishes it.
+    ports:
+      - '127.0.0.1:3140:8080'
+    volumes:
+      # Installers and latest.json / latest*.yml; the desktop release flow writes here.
+      - /opt/iris-landing/releases:/usr/share/nginx/html/releases:ro
+    networks:
+      - shared
+    restart: unless-stopped
+    security_opt: ['no-new-privileges:true']
+    deploy:
+      resources:
+        limits:
+          memory: 128m

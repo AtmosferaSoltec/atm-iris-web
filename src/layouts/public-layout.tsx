@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { IrisLogo } from "@/components/brand/iris-logo";
 import { PageGlow } from "@/components/brand/page-glow";
-import { buttonStyles } from "@/components/ui/button";
+import { buttonStyles } from "@/components/ui/button-styles";
 
 const NAV = [
   { href: "/#funciones", label: "Funciones" },
