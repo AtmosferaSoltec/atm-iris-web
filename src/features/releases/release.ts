@@ -11,7 +11,8 @@ export const releaseSchema = z.object({
   version: z.string(),
   releasedAt: z.string(),
   windows: z.object({ x64: fileSchema }),
-  mac: z.object({ arm64: fileSchema, x64: fileSchema }),
+  // Hasta que macOS esté firmado, una versión puede publicarse solo para Windows.
+  mac: z.object({ arm64: fileSchema, x64: fileSchema }).optional(),
 });
 export type Release = z.infer<typeof releaseSchema>;
 export type ReleaseFile = z.infer<typeof fileSchema>;

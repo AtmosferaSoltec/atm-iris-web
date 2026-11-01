@@ -86,16 +86,27 @@ export function DownloadSection() {
             requirement="Windows 10 u 11, 64 bits"
             options={[{ label: "Descargar instalador", detail: ".exe", file: release.windows.x64 }]}
           />
-          <Card
-            platform="mac"
-            highlighted={platform === "mac"}
-            title="macOS"
-            requirement="macOS 12 o superior"
-            options={[
-              { label: "Apple Silicon (M1 o más nuevo)", detail: ".dmg", file: release.mac.arm64 },
-              { label: "Mac con Intel", detail: ".dmg", file: release.mac.x64 },
-            ]}
-          />
+          {release.mac ? (
+            <Card
+              platform="mac"
+              highlighted={platform === "mac"}
+              title="macOS"
+              requirement="macOS 12 o superior"
+              options={[
+                {
+                  label: "Apple Silicon (M1 o más nuevo)",
+                  detail: ".dmg",
+                  file: release.mac.arm64,
+                },
+                { label: "Mac con Intel", detail: ".dmg", file: release.mac.x64 },
+              ]}
+            />
+          ) : (
+            <Surface className="flex flex-col justify-center gap-2 p-8">
+              <h3 className="text-xl font-semibold">macOS</h3>
+              <p className="text-ink-2">La versión para Mac llegará pronto.</p>
+            </Surface>
+          )}
         </div>
       )}
       <p className="mt-6 text-center text-sm text-ink-2">
